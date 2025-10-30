@@ -1,8 +1,7 @@
-# This file is the entry point to configure your own services.
-# Files in the packages/ subdirectory configure your dependencies.
+# This file is the entry point to configure your own services and load the default configuration.
+# If you are *not* using the default services.yaml file in your package, you *must* pass an
+# array as the first argument of the container's constructor.
 
-# Put parameters here that don't need to change on each machine where the app is deployed
-# https://symfony.com/doc/current/best_practices.html#use-parameters-for-application-configuration
 parameters:
 
 services:
@@ -15,6 +14,44 @@ services:
     # this creates a service per class whose id is the fully-qualified class name
     App\:
         resource: '../src/'
+        exclude:
+            - '../src/DependencyInjection/'
+            - '../src/Entity/'
+            - '../src/Kernel.php'
 
     # add more service definitions when explicit configuration is needed
     # please note that last definitions always *replace* previous ones
+
+    # File Storage Service
+    App\Service\FileStorageService:
+        arguments:
+            $uploadsDirectory: '%kernel.project_dir%/public/uploads'
+            $slugger: '@Symfony\Component\String\Slugger\SluggerInterface'
+
+    # HttpClient pour Mercure (ignore SSL verification)
+    mercure.http_client:
+        class: Symfony\Component\HttpClient\HttpClient
+        factory: [Symfony\Component\HttpClient\HttpClient, create]
+        arguments:
+            - verify_peer: false
+              verify_host: false
+        tags:
+            - { name: 'http_client.client' }
+
+    # JWT Provider pour Mercure
+    App\Service\MercureJwtProvider:
+        arguments:
+            $jwtSecret: '!ChangeThisMercureHubJWTSecretKey!'
+
+    # Publisher personnalisé pour Mercure
+    App\Service\MercurePublisher:
+        arguments:
+            $hubUrl: 'https://localhost:8443/.well-known/mercure'
+            $jwtProvider: '@App\Service\MercureJwtProvider'
+            $httpClient: '@mercure.http_client'
+
+    # Configuration du Hub Mercure par défaut
+    Symfony\Component\Mercure\Hub:
+        arguments:
+            - '@App\Service\MercurePublisher'
+            - '@App\Service\MercureJwtProvider'

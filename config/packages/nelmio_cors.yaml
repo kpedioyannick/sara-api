@@ -1,0 +1,14 @@
+nelmio_cors:
+    defaults:
+        origin_regex: true
+        allow_origin: ['^https?://(localhost|127\.0\.0\.1)(:[0-9]+)?$', '^https?://.*\.yourdomain\.com$', '^https?://.*\.lovableproject\.com$', '^https?://.*\.ngrok-free\.app$']
+        allow_methods: ['GET', 'OPTIONS', 'POST', 'PUT', 'PATCH', 'DELETE']
+        allow_headers: ['Content-Type', 'Authorization', 'X-Requested-With', 'ngrok-skip-browser-warning']
+        expose_headers: ['Link']
+        max_age: 3600
+    paths:
+        '^/api/':
+            allow_origin: ['*']
+            allow_headers: ['X-Custom-Auth', 'Content-Type', 'Authorization', 'ngrok-skip-browser-warning']
+            allow_methods: ['POST', 'PUT', 'GET', 'DELETE', 'OPTIONS']
+            max_age: 3600

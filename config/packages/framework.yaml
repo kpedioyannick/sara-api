@@ -7,6 +7,12 @@ framework:
 
     #esi: true
     #fragments: true
+    
+    rate_limiter:
+        auth:
+            policy: 'token_bucket'
+            limit: 5
+            interval: '1 minute'
 
 when@test:
     framework:

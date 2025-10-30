@@ -1,0 +1,9 @@
+mercure:
+    hubs:
+        default:
+            url: 'https://localhost:8443/.well-known/mercure'
+            public_url: 'https://localhost:8443/.well-known/mercure'
+            jwt:
+                secret: '!ChangeThisMercureHubJWTSecretKey!'
+                publish: ['*']
+                subscribe: ['*']

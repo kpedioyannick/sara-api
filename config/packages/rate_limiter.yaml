@@ -1,0 +1,19 @@
+framework:
+    rate_limiter:
+        # Rate limiter pour l'authentification (prévention des attaques par force brute)
+        auth:
+            policy: 'token_bucket'
+            limit: 5
+            interval: '60 seconds'
+        
+        # Rate limiter général pour l'API
+        api:
+            policy: 'token_bucket'
+            limit: 100
+            interval: '60 seconds'
+        
+        # Rate limiter strict pour les endpoints sensibles
+        strict:
+            policy: 'token_bucket'
+            limit: 10
+            interval: '60 seconds'
