@@ -1,44 +1,97 @@
-# Features - Élève (Student)
+## 🎓 **Features – Élève (Student)**
 
-## Gestion des Objectifs
+---
 
-- En tant qu'Élève, quand je consulte la page Objectifs, je dois pouvoir voir la liste de mes objectifs
-- En tant qu'Élève, quand je consulte un objectif, je dois pouvoir consulter le détail d'un objectif (titre, description, statut, échéance, etc.)
-- En tant qu'Élève, quand je consulte un objectif, je dois voir toutes les tâches associées à chaque objectif
-- En tant qu'Élève, quand je consulte un objectif, je dois voir ma progression en pourcentage
-- En tant qu'Élève, quand je consulte un objectif, je dois pouvoir ajouter un commentaire ou une note sur un objectif
-- En tant qu'Élève, quand je filtre les objectifs, je dois pouvoir filtrer mes objectifs par statut (en cours, terminé, à venir)
+### 🎯 **Gestion des Objectifs**
 
-## Gestion des Tâches
+* CRUD complet sur les objectifs.
+* Filtrage par **famille → enfant**.
+* Création : saisie type, description, enfant assigné
+* Ajout de commentaires et suivi sur un objectif .
+* IA : reformulation du titre et génération des tâches automatiquement.
+* Un parent peut aussi CRUD ses objectifs.
+* Un objectif contient des **tâches à cocher**, si le user coche une tache avec preuves (texte, photo, etc.).
+* Tache peut etre affecté à un student , parent ou à un specialiste ou coach 
+* Historique des preuves.
+* Regroupement des tâches par **rôle** (élève, parent, spécialiste).
+* CRUD complet sur les tâches d’un objectif.
+* Attribution d’une tâche à un élève, parent ou spécialiste.
+* Paramètres : fréquence
+* Consultation des preuves et de l’historique.
+* Suivi du statut d’avancement.
+* Si une tâche exige une preuve :
 
-- En tant qu'Élève, quand je consulte les tâches, je dois voir les tâches qui me sont assignées par le coach ou un spécialiste
-- En tant qu'Élève, quand je complète une tâche, je dois pouvoir mettre à jour le statut d'une tâche qui m'est affecté (ex. : à faire, en cours, terminée)
-- En tant qu'Élève, quand une tâche nécessite une preuve, je dois pouvoir télécharger un fichier ou une photo
-- En tant qu'Élève, quand je télécharge une preuve, je dois recevoir une confirmation
+  * Il peut **uploader** une photo, un fichier ou un texte.
+  * Il reçoit une **confirmation visuelle ou sonore** de la soumission.
+* Historique des preuves accessible (ex : “preuves précédentes”).
 
-## Planning
+* Interface gamifiée : cases à cocher, badges, barres de progression.
+* Chaque tâche devient une **mini-carte** avec action rapide (upload, statut).
+* Upload possible directement dans la carte (drag & drop ou clic).
 
-- En tant qu'Élève, quand je consulte le planning, je dois pouvoir visualiser mon planning
-- En tant qu'Élève, quand je consulte un événement, je dois pouvoir consulter le détail d'un événement de mon planning
+---
 
-## Gestion des Demandes
+### 📅 **Planning**
 
-- En tant qu'Élève, quand j'ai besoin d'aide, je dois pouvoir créer une demande pour mon coach ou un spécialiste (ex. : besoin d'aide, question sur une tâche, etc.)
-- En tant qu'Élève, quand je consulte la page Demandes, je dois pouvoir voir la liste de mes demandes
-- En tant qu'Élève, quand je clique sur une demande, je dois pouvoir consulter le détail d'une demande
-- En tant qu'Élève, quand je consulte une demande, je dois pouvoir voir le statut d'une demande (en attente, en cours, terminée)
-- En tant qu'Élève, quand je traite une demande, je dois pouvoir répondre à un message ou échanger avec le coach sur une demande
+* L’élève peut **visualiser son planning personnel**.
+* Les événements affichent :
 
-## Dashboard
+  * Titre (ex : cours de maths, séance d’orthophonie)
+  * Type (cours, révision, activité, objectif lié)
+  * Date et heure
+  * Statut ou lien vers une tâche associée.
+* Il peut **ouvrir un événement** pour consulter le détail complet.
 
-- En tant qu'Élève, quand j'accède au dashboard, je dois voir un résumé de mes activités
-- En tant qu'Élève, quand je consulte le dashboard, je dois voir mes objectifs en cours
-- En tant qu'Élève, quand je consulte le dashboard, je dois voir mes points actuels et ma progression
-- En tant qu'Élève, quand je consulte le dashboard, je dois voir mes prochains devoirs et événements
-- En tant qu'Élève, quand je consulte le dashboard, je dois voir un accès rapide pour ajouter une demande
-- En tant qu'Élève, quand je consulte le dashboard, je dois voir les actions à compléter aujourd'hui
 
-## Paramètres
 
-- En tant qu'Élève, quand je consulte les paramètres, je dois pouvoir changer mon nom et mon mot de passe
-- En tant qu'Élève, quand je consulte les paramètres, je dois pouvoir personnaliser l'affichage (thème clair/sombre)
+---
+
+### 💬 **Gestion des Demandes**
+
+* L’élève peut **créer une demande** vers :
+
+  * Son coach
+  * Ou un spécialiste (ex : “J’ai besoin d’aide pour une tâche”).
+* Il peut **voir la liste de ses demandes**.
+* Chaque demande affiche :
+
+  * Sujet / type
+  * Statut (en attente, en cours, terminée)
+  * Dernier message échangé.
+* Il peut **répondre en temps réel** aux messages de suivi.
+* Échanges en **temps réel via Mercure.rocks** (messagerie instantanée).
+
+
+
+### 📊 **Dashboard**
+
+* Vue d’ensemble de son **apprentissage et progression** :
+
+  * Objectifs en cours et progression globale.
+  * Points / récompenses gagnés (gamification).
+  * Tâches ou actions du jour.
+  * Prochains devoirs / événements.
+  * Accès rapide à la **création d’une demande**.
+
+
+---
+
+### 🕒 **Disponibilités**
+
+* Le parent peut définir ses **créneaux de disponibilités** :
+
+  * CRUD sur des créneaux d’une heure.
+  * De lundi à dimanche.
+* Ces disponibilités sont visibles par le coach ou les spécialistes.
+
+---
+
+### ⚙️ **Paramètres**
+
+* L’élève peut :
+
+  * Modifier son **pseudo / mot de passe**.
+  * Choisir son **thème visuel** (clair / sombre).
+  * Activer / désactiver les **notifications**.
+
+

@@ -23,10 +23,19 @@ security:
         main:
             lazy: true
             provider: app_user_provider
+            form_login:
+                login_path: app_login
+                check_path: app_login
+                default_target_path: app_dashboard
+                enable_csrf: true
+            logout:
+                path: app_logout
+                target: app_login
 
     # Easy way to control access for large sections of your site
     # Note: Only the *first* access control that matches will be used
     access_control:
+        # API routes
         - { path: ^/api/auth/register, roles: PUBLIC_ACCESS }
         - { path: ^/api/auth/login, roles: PUBLIC_ACCESS }
         - { path: ^/api/files, roles: PUBLIC_ACCESS }
@@ -35,6 +44,14 @@ security:
         - { path: ^/api/student, roles: ROLE_STUDENT }
         - { path: ^/api/specialist, roles: ROLE_SPECIALIST }
         - { path: ^/api, roles: IS_AUTHENTICATED_FULLY }
+        # Web routes
+        - { path: ^/login, roles: PUBLIC_ACCESS }
+        - { path: ^/coach, roles: ROLE_COACH }
+        - { path: ^/parent, roles: ROLE_PARENT }
+        - { path: ^/student, roles: ROLE_STUDENT }
+        - { path: ^/specialist, roles: ROLE_SPECIALIST }
+        - { path: ^/dashboard, roles: IS_AUTHENTICATED_FULLY }
+        - { path: ^/settings, roles: IS_AUTHENTICATED_FULLY }
 
 when@test:
     security:

@@ -28,6 +28,11 @@ services:
             $uploadsDirectory: '%kernel.project_dir%/public/uploads'
             $slugger: '@Symfony\Component\String\Slugger\SluggerInterface'
 
+    # Smart Objective Service
+    App\Service\SmartObjectiveService:
+        arguments:
+            $openaiApiKey: '%env(default::OPENAI_API_KEY)%'
+
     # HttpClient pour Mercure (ignore SSL verification)
     mercure.http_client:
         class: Symfony\Component\HttpClient\HttpClient

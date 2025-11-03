@@ -3,6 +3,8 @@
 namespace App\Entity;
 
 use App\Repository\PlanningRepository;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: PlanningRepository::class)]
@@ -101,12 +103,14 @@ class Planning
     #[ORM\Column(nullable: true)]
     private ?int $maxOccurrences = null;
 
-
+    #[ORM\OneToMany(mappedBy: 'planning', targetEntity: Proof::class, cascade: ['persist', 'remove'], fetch: 'EXTRA_LAZY')]
+    private Collection $proofs;
 
     public function __construct()
     {
         $this->createdAt = new \DateTimeImmutable();
         $this->updatedAt = new \DateTimeImmutable();
+        $this->proofs = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -220,9 +224,44 @@ class Planning
             'maxOccurrences' => $this->getMaxOccurrences(),
             'isRecurring' => !is_null($this->getRecurrence()),
             'metadata' => $this->getMetadata() ?? [],
+            'proofsCount' => $this->getProofs()->count(),
             'createdAt' => $this->getCreatedAt()?->format('Y-m-d H:i:s'),
             'updatedAt' => $this->getUpdatedAt()?->format('Y-m-d H:i:s')
         ];
+    }
+
+    /**
+     * Version optimisée pour les parents - données minimales
+     */
+    public function toParentArray(): array
+    {
+        return [
+            'id' => $this->getId(),
+            'title' => $this->getTitle(),
+            'description' => $this->getDescription(),
+            'startDate' => $this->getStartDate()?->format('Y-m-d H:i:s'),
+            'endDate' => $this->getEndDate()?->format('Y-m-d H:i:s'),
+            'date' => $this->getDate()?->format('Y-m-d H:i:s'),
+            'type' => $this->getType(),
+            'status' => $this->getStatus(),
+            'student' => $this->getStudent() ? [
+                'id' => $this->getStudent()->getId(),
+                'firstName' => $this->getStudent()->getFirstName(),
+                'lastName' => $this->getStudent()->getLastName(),
+                'pseudo' => $this->getStudent()->getPseudo(),
+            ] : null,
+            'createdAt' => $this->getCreatedAt()?->format('Y-m-d H:i:s'),
+        ];
+    }
+
+    /**
+     * Version détaillée avec proofs (pour la vue complète)
+     */
+    public function toDetailedArray(): array
+    {
+        $data = $this->toArray();
+        $data['proofs'] = array_map(fn($proof) => $proof->toArray(), $this->getProofs()->toArray());
+        return $data;
     }
 
     public function toPublicArray(): array
@@ -364,6 +403,33 @@ class Planning
     public function setMetadata(?array $metadata): static
     {
         $this->metadata = $metadata;
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Proof>
+     */
+    public function getProofs(): Collection
+    {
+        return $this->proofs;
+    }
+
+    public function addProof(Proof $proof): static
+    {
+        if (!$this->proofs->contains($proof)) {
+            $this->proofs->add($proof);
+            $proof->setPlanning($this);
+        }
+        return $this;
+    }
+
+    public function removeProof(Proof $proof): static
+    {
+        if ($this->proofs->removeElement($proof)) {
+            if ($proof->getPlanning() === $this) {
+                $proof->setPlanning(null);
+            }
+        }
         return $this;
     }
 }

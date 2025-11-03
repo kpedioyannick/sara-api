@@ -18,3 +18,13 @@
 /public/assets/
 /assets/vendor/
 ###< symfony/asset-mapper ###
+
+###> lexik/jwt-authentication-bundle ###
+/config/jwt/*.pem
+###< lexik/jwt-authentication-bundle ###
+
+# Uploads directory (fichiers uploadés par les utilisateurs)
+/public/uploads/
+
+# Migrations directory (migrations générées)
+/migrations/

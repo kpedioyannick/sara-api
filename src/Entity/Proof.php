@@ -47,8 +47,12 @@ class Proof
     private ?\DateTimeImmutable $updatedAt = null;
 
     #[ORM\ManyToOne]
-    #[ORM\JoinColumn(nullable: false)]
+    #[ORM\JoinColumn(nullable: true)]
     private ?Task $task = null;
+
+    #[ORM\ManyToOne]
+    #[ORM\JoinColumn(nullable: true)]
+    private ?Planning $planning = null;
 
     #[ORM\ManyToOne]
     #[ORM\JoinColumn(nullable: false)]
@@ -164,6 +168,17 @@ class Proof
         return $this;
     }
 
+    public function getPlanning(): ?Planning
+    {
+        return $this->planning;
+    }
+
+    public function setPlanning(?Planning $planning): static
+    {
+        $this->planning = $planning;
+        return $this;
+    }
+
     public function getFileUrl(): ?string
     {
         return $this->fileUrl;
@@ -221,23 +236,11 @@ class Proof
             'fileSize' => $this->getFileSize(),
             'mimeType' => $this->getMimeType(),
             'content' => $this->getContent(),
+            'task' => $this->getTask()?->getId(),
+            'planning' => $this->getPlanning()?->getId(),
             'submittedBy' => $this->getSubmittedBy()?->toSimpleArray(),
             'createdAt' => $this->getCreatedAt()?->format('Y-m-d H:i:s'),
             'updatedAt' => $this->getUpdatedAt()?->format('Y-m-d H:i:s')
         ];
-    }
-
-    public static function createForCoach(array $data, User $submittedBy): self
-    {
-        $proof = new self();
-        
-        $proof->setTitle($data['title']);
-        $proof->setDescription($data['description'] ?? null);
-        $proof->setType($data['type']);
-        $proof->setFilePath($data['file_path'] ?? null);
-        $proof->setContent($data['content'] ?? null);
-        $proof->setSubmittedBy($submittedBy);
-        
-        return $proof;
     }
 }

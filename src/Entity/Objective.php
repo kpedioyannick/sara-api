@@ -46,10 +46,10 @@ class Objective
     #[ORM\JoinColumn(nullable: false)]
     private ?Coach $coach = null;
 
-    #[ORM\OneToMany(targetEntity: Task::class, mappedBy: 'objective', orphanRemoval: true)]
+    #[ORM\OneToMany(targetEntity: Task::class, mappedBy: 'objective', orphanRemoval: true, fetch: 'EXTRA_LAZY')]
     private Collection $tasks;
 
-    #[ORM\OneToMany(targetEntity: Comment::class, mappedBy: 'objective', orphanRemoval: true)]
+    #[ORM\OneToMany(targetEntity: Comment::class, mappedBy: 'objective', orphanRemoval: true, fetch: 'EXTRA_LAZY')]
     private Collection $comments;
 
     public function __construct()
@@ -231,10 +231,66 @@ class Objective
             'student' => $this->getStudent()?->toSimpleArray(),
             'coach' => $this->getCoach()?->toSimpleArray(),
             'tasksCount' => $this->getTasks()->count(),
-            'comments' => array_map(fn($comment) => $comment->toArray(), $this->getComments()->toArray()),
+            'commentsCount' => $this->getComments()->count(),
             'createdAt' => $this->getCreatedAt()?->format('Y-m-d H:i:s'),
             'updatedAt' => $this->getUpdatedAt()?->format('Y-m-d H:i:s')
         ];
+    }
+
+    /**
+     * Version optimisée pour les parents - pas de chargement des collections
+     */
+    public function toParentArray(): array
+    {
+        return [
+            'id' => $this->getId(),
+            'title' => $this->getTitle(),
+            'description' => $this->getDescription(),
+            'deadline' => $this->getDeadline()?->format('Y-m-d H:i:s'),
+            'category' => $this->getCategory(),
+            'status' => $this->getStatus(),
+            'progress' => $this->getProgress(),
+            'student' => $this->getStudent() ? [
+                'id' => $this->getStudent()->getId(),
+                'firstName' => $this->getStudent()->getFirstName(),
+                'lastName' => $this->getStudent()->getLastName(),
+                'pseudo' => $this->getStudent()->getPseudo(),
+            ] : null,
+            'tasksCount' => $this->getTasks()->count(),
+            'createdAt' => $this->getCreatedAt()?->format('Y-m-d H:i:s'),
+        ];
+    }
+
+    /**
+     * Version complète pour les coaches - inclut les détails
+     */
+    public function toCoachArray(bool $includeComments = false, bool $includeTasks = false): array
+    {
+        $data = [
+            'id' => $this->getId(),
+            'title' => $this->getTitle(),
+            'description' => $this->getDescription(),
+            'deadline' => $this->getDeadline()?->format('Y-m-d H:i:s'),
+            'category' => $this->getCategory(),
+            'status' => $this->getStatus(),
+            'progress' => $this->getProgress(),
+            'student' => $this->getStudent()?->toSimpleArray(),
+            'coach' => $this->getCoach()?->toSimpleArray(),
+            'tasksCount' => $this->getTasks()->count(),
+            'commentsCount' => $this->getComments()->count(),
+            'createdAt' => $this->getCreatedAt()?->format('Y-m-d H:i:s'),
+            'updatedAt' => $this->getUpdatedAt()?->format('Y-m-d H:i:s')
+        ];
+
+        if ($includeComments) {
+            $data['comments'] = array_map(fn($comment) => $comment->toArray(), $this->getComments()->toArray());
+        }
+
+        if ($includeTasks) {
+            $data['tasks'] = array_map(fn($task) => $task->toArray(), $this->getTasks()->toArray());
+        }
+
+        return $data;
     }
 
     public function toPublicArray(): array

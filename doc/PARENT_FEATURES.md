@@ -1,72 +1,128 @@
-# Features - Parent
+Excellent 👍 tu poses ici la **spécification complète du rôle Parent** dans ton application.
 
-## Gestion des Familles : page familles
+## 👨‍👩‍👧 **Features – Parent**
 
-- En tant que Parent, quand je gère mes enfants, je dois pouvoir effectuer les opérations CRUD (Créer, Lire, Mettre à jour, Supprimer) sur mes enfants
-  - **API**: `GET /api/parent/family/children`, `POST /api/parent/family/children`, `PUT /api/parent/family/children/{id}`, `DELETE /api/parent/family/children/{id}`
-- En tant que Parent, quand je consulte la page Enfants, je dois voir la liste de tous mes enfants
-  - **API**: `GET /api/parent/family/children`
-- En tant que Parent, quand je clique sur "Ajouter un enfant", je dois pouvoir créer un compte enfant
-  - **API**: `POST /api/parent/family/children`
-- En tant que Parent, quand je crée un enfant, je dois renseigner son pseudo, son mot de passe, la confirmation du mot de passe et sa classe
-  - **API**: `POST /api/parent/family/children`
-- En tant que Parent, quand je sélectionne une classe, je dois choisir parmi une liste prédéfinie via un menu déroulant
-  - **API**: `GET /api/parent/classes` (pour récupérer les classes disponibles)
-- En tant que Parent, quand j'ai une famille existante, je dois pouvoir ajouter des enfants depuis ma famille existante
-  - **API**: `POST /api/parent/family/children`
-- En tant que Parent, quand je clique sur un enfant, je dois pouvoir consulter le profil détaillé d'un de mes enfants
-  - **API**: `GET /api/parent/family/children/{id}`
-- En tant que Parent, quand je consulte un enfant, je dois pouvoir modifier ses informations
-  - **API**: `PUT /api/parent/family/children/{id}`
+---
 
-## Gestion des Objectifs
+### 🏠 **Gestion des Familles**
 
-- En tant que Parent, quand je consulte la page Objectifs, je dois pouvoir visualiser les objectifs de mes enfants
-- En tant que Parent, quand je clique sur "Créer un objectif", je dois pouvoir créer un objectif pour mes enfants
-- En tant que Parent, quand je consulte un objectif, je dois voir le détail d'un objectif (titre, description, échéance, statut, etc.)
-- En tant que Parent, quand je consulte un objectif, je dois voir la progression globale
-- En tant que Parent, quand je consulte un objectif, je dois pouvoir ajouter un commentaire ou un retour sur un objectif
-- En tant que Parent, quand je filtre par enfant, je dois pouvoir filtrer les objectifs ou tâches par enfant ou par statut
+* Le **parent** peut CRUD ses **enfants** (ajouter, modifier, supprimer, consulter).
+* Chaque enfant est représenté par :
 
-## Gestion des Tâches
+  * pseudo (ex : `lisa@sara.education`)
+  * mot de passe
+  * confirmation du mot de passe
+  * classe (liste prédéfinie : CP, CE1, CE2, CM1, CM2, 6e, etc.)
+* Depuis la fiche d’un enfant, le parent peut :
 
-- En tant que Parent, quand je consulte les tâches d'un objectif, je ne peux pas effectuer les opérations CRUD sur les tâches d'un objectif (c'est la mission du Coach)
-- En tant que Parent, quand je consulte un objectif, je dois pouvoir visualiser les tâches associées à un objectif
-- En tant que Parent, quand je consulte les tâches, je dois voir les tâches qui me sont assignées par le coach (avec les instructions, dates et priorités)
-- En tant que Parent, quand je complète une tâche, je dois pouvoir mettre à jour le statut d'une tâche qui m'est assignée (ex. : en cours, terminée)
-- En tant que Parent, quand une tâche nécessite une preuve, je dois pouvoir télécharger un fichier
-- En tant que Parent, quand je télécharge une preuve, je dois recevoir une confirmation
+  * Consulter son profil : pseudo, classe 
+  * Modifier sa classe ou son mot de passe
+  * Accéder directement à ses **Objectifs**, **Planning**, **Demandes**
 
-## Gestion des Demandes
+📌 **UI / UX**
 
-- En tant que Parent, quand j'ai besoin d'aide, je dois pouvoir créer une demande à destination du coach (ex. : demande de suivi, de rendez-vous, de modification d'objectif, etc.)
-- En tant que Parent, quand je consulte mes demandes, je dois pouvoir voir la liste de mes demandes
-- En tant que Parent, quand je clique sur une demande, je dois pouvoir consulter le détail d'une demande
-- En tant que Parent, quand je consulte une demande, je dois pouvoir suivre l'état (statut) de ma demande (en attente, en cours, traitée)
-- En tant que Parent, quand je traite une demande, je dois pouvoir répondre ou ajouter un message à une demande en cours
-- En tant que Parent, quand je consulte mes demandes, je dois pouvoir filtrer mes demandes par statut ou date
+* Un **seul template / route** pour tout le CRUD des enfants.
+* Les formulaires s’ouvrent dans des **RightSheets (panneaux latéraux)** sans rechargement de page.
+* Chaque encart enfant contient :
 
-## Planning
+  * `Edit` | `Delete` | `Objectifs` | `Planning` | `Demandes`
+* La route renvoie aussi le **nombre d’objectifs** et de **demandes** pour chaque enfant.
 
-- En tant que Parent, quand je consulte le planning, je dois pouvoir visualiser le planning de mes enfants
-- En tant que Parent, quand je consulte un événement, je dois pouvoir consulter le détail des événements du planning (objectif, séance, activité, etc.)
-- En tant que Parent, quand je filtre le planning, je dois pouvoir filtrer le planning par enfant ou type d'événement
+📌 **Automatisation :**
 
-## Dashboard
+* Lors de la création d’un enfant : l’email est auto-généré à partir du pseudo
+  → exemple : `pseudo@sara.education`.
 
-- En tant que Parent, quand j'accède au dashboard, je dois voir un résumé de l'activité de mes enfants
-- En tant que Parent, quand je consulte le dashboard, je dois voir le nombre d'objectifs actifs par enfant
-- En tant que Parent, quand je consulte le dashboard, je dois voir les actions qui m'attendent
-- En tant que Parent, quand je consulte le dashboard, je dois voir les prochains événements
-- En tant que Parent, quand je consulte le dashboard, je dois voir les points gagnés par chaque enfant
+---
 
-## Profil Famille
+### 🎯 **Gestion des Objectifs**
 
-- En tant que Parent, quand je consulte mon profil famille, je dois voir toutes les informations de ma famille
-- En tant que Parent, quand je consulte mon profil, je dois voir la liste complète de mes enfants
-- En tant que Parent, quand je consulte mon profil, je dois pouvoir modifier l'identifiant famille
+* CRUD complet sur les objectifs.
+* Filtrage par **famille → enfant**.
+* Création : saisie type, description, enfant assigné
+* Ajout de commentaires et suivi sur un objectif .
+* IA : reformulation du titre et génération des tâches automatiquement.
+* Un parent peut aussi CRUD ses objectifs.
+* Un objectif contient des **tâches à cocher**, si le user coche une tache avec preuves (texte, photo, etc.).
+* Tache peut etre affecté à un student , parent ou à un specialiste ou coach 
+* Historique des preuves.
+* Regroupement des tâches par **rôle** (élève, parent, spécialiste).
+* CRUD complet sur les tâches d’un objectif.
+* Attribution d’une tâche à un élève, parent ou spécialiste.
+* Paramètres : fréquence
+* Consultation des preuves et de l’historique.
+* Suivi du statut d’avancement.
 
-## Paramètres
+---
 
-- En tant que Parent, quand je consulte les paramètres, je dois pouvoir changer mon nom et mon mot de passe
-- En tant que Parent, quand je consulte les paramètres, je dois pouvoir configurer mes préférences de notification
+---
+
+### 💬 **Gestion des Demandes**
+
+* Le parent peut **CRUD** ses **demandes** :
+
+  * Demandes adressées au **coach** ou à un **spécialiste**.
+  * Exemple : suivi, modification d’objectif, rendez-vous, etc.
+* Consultation et suivi du **statut** : en attente, en cours, terminée.
+* **Messagerie temps réel** intégrée avec **Mercure.rocks**.
+* Possibilité de **répondre** ou **ajouter un message** à une demande.
+* Filtrage possible par **statut** ou **date**.
+
+---
+
+### 📅 **Planning**
+
+* Le parent peut **CRUD les événements** du planning de ses enfants.
+* Un événement contient :
+
+  * **Titre** (choisi parmi les matières prédéfinies)
+  * **Description**
+  * **Date et heure** de début et fin
+  * **Type** (cours, révision, activité, etc.)
+  * **Preuves associées** (texte, photo, image)
+* Les tâches planifiées s’affichent aussi dans le planning (selon fréquence, début, fin).
+* Visualisation et filtrage par **enfant** ou **type d’événement**.
+
+📌 **UI / UX**
+
+* Pas de route CRUD séparée : utilisation de **RightSheets** pour créer / modifier les événements.
+* Les événements sont affichés dans une **vue calendrier** ou **liste enrichie**.
+
+---
+
+### 📊 **Dashboard**
+
+* Vue d’ensemble de la famille :
+
+  * Activité globale des enfants
+  * Nombre d’objectifs actifs par enfant
+  * Actions en attente
+  * Prochains événements
+  * Points ou récompenses obtenus
+
+---
+
+### 👨‍👩‍👧 **Profil Famille**
+
+* Affichage complet des informations de la famille.
+* Liste complète des enfants.
+* Possibilité de **modifier l’identifiant famille**.
+
+---
+
+### ⚙️ **Paramètres**
+
+* Modification du **nom**, **mot de passe** du parent.
+* Configuration des **préférences de notification**.
+
+---
+
+### 🕒 **Disponibilités**
+
+* Le parent peut définir ses **créneaux de disponibilités** :
+
+  * CRUD sur des créneaux d’une heure.
+  * De lundi à dimanche.
+* Ces disponibilités sont visibles par le coach ou les spécialistes.
+
+---

@@ -64,7 +64,7 @@ class Request
     #[ORM\ManyToOne(inversedBy: 'requests')]
     private ?Specialist $specialist = null;
 
-    #[ORM\OneToMany(targetEntity: Message::class, mappedBy: 'request', orphanRemoval: true)]
+    #[ORM\OneToMany(targetEntity: Message::class, mappedBy: 'request', orphanRemoval: true, fetch: 'EXTRA_LAZY')]
     private Collection $messages;
 
     public function __construct()
@@ -232,10 +232,45 @@ class Request
             'family' => $this->getFamily()?->toArray(),
             'student' => $this->getStudent()?->toArray(),
             'coach' => $this->getCoach()?->toArray(),
-            'messages' => array_map(fn($message) => $message->toArray(), $this->getMessages()->toArray()),
+            'messagesCount' => $this->getMessages()->count(),
             'createdAt' => $this->getCreatedAt()?->format('Y-m-d H:i:s'),
             'updatedAt' => $this->getUpdatedAt()?->format('Y-m-d H:i:s')
         ];
+    }
+
+    /**
+     * Version optimisée pour les parents - données minimales
+     */
+    public function toParentArray(): array
+    {
+        return [
+            'id' => $this->getId(),
+            'title' => $this->getTitle(),
+            'description' => $this->getDescription(),
+            'status' => $this->getStatus(),
+            'type' => $this->getType(),
+            'priority' => $this->getPriority(),
+            'response' => $this->getResponse(),
+            'student' => $this->getStudent() ? [
+                'id' => $this->getStudent()->getId(),
+                'firstName' => $this->getStudent()->getFirstName(),
+                'lastName' => $this->getStudent()->getLastName(),
+                'pseudo' => $this->getStudent()->getPseudo(),
+            ] : null,
+            'messagesCount' => $this->getMessages()->count(),
+            'createdAt' => $this->getCreatedAt()?->format('Y-m-d H:i:s'),
+            'updatedAt' => $this->getUpdatedAt()?->format('Y-m-d H:i:s'),
+        ];
+    }
+
+    /**
+     * Version complète avec messages (pour la vue détaillée)
+     */
+    public function toDetailedArray(): array
+    {
+        $data = $this->toArray();
+        $data['messages'] = array_map(fn($message) => $message->toArray(), $this->getMessages()->toArray());
+        return $data;
     }
 
     public function toPublicArray(): array

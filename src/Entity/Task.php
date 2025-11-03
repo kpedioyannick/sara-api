@@ -63,10 +63,10 @@ class Task
     #[ORM\Column(length: 20)]
     private ?string $assignedType = null;
 
-    #[ORM\OneToMany(mappedBy: 'task', targetEntity: Proof::class, cascade: ['persist', 'remove'])]
+    #[ORM\OneToMany(mappedBy: 'task', targetEntity: Proof::class, cascade: ['persist', 'remove'], fetch: 'EXTRA_LAZY')]
     private Collection $proofs;
 
-    #[ORM\OneToMany(mappedBy: 'task', targetEntity: TaskHistory::class, cascade: ['persist', 'remove'])]
+    #[ORM\OneToMany(mappedBy: 'task', targetEntity: TaskHistory::class, cascade: ['persist', 'remove'], fetch: 'EXTRA_LAZY')]
     private Collection $taskHistories;
 
     public function __construct()
@@ -327,6 +327,26 @@ class Task
             'coach' => $this->getCoach()?->toSimpleArray(),
             'proofsCount' => $this->getProofs()->count(),
             'historyCount' => $this->getTaskHistories()->count(),
+            'createdAt' => $this->getCreatedAt()?->format('Y-m-d H:i:s'),
+            'updatedAt' => $this->getUpdatedAt()?->format('Y-m-d H:i:s')
+        ];
+    }
+
+    public function toParentArray(): array
+    {
+        return [
+            'id' => $this->getId(),
+            'title' => $this->getTitle(),
+            'description' => $this->getDescription(),
+            'status' => $this->getStatus(),
+            'frequency' => $this->getFrequency(),
+            'requiresProof' => $this->isRequiresProof(),
+            'proofType' => $this->getProofType(),
+            'dueDate' => $this->getDueDate()?->format('Y-m-d H:i:s'),
+            'assignedType' => $this->getAssignedType(),
+            'assignedTo' => $this->getAssignedToSimpleArray(),
+            'coach' => $this->getCoach()?->toSimpleArray(),
+            'proofs' => array_map(fn($proof) => $proof->toArray(), $this->getProofs()->toArray()),
             'createdAt' => $this->getCreatedAt()?->format('Y-m-d H:i:s'),
             'updatedAt' => $this->getUpdatedAt()?->format('Y-m-d H:i:s')
         ];

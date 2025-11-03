@@ -23,13 +23,13 @@ class Student extends User
     #[ORM\JoinColumn(nullable: false)]
     private ?Family $family = null;
 
-    #[ORM\OneToMany(targetEntity: Objective::class, mappedBy: 'student')]
+    #[ORM\OneToMany(targetEntity: Objective::class, mappedBy: 'student', fetch: 'EXTRA_LAZY')]
     private Collection $objectives;
 
-    #[ORM\OneToMany(targetEntity: Request::class, mappedBy: 'student')]
+    #[ORM\OneToMany(targetEntity: Request::class, mappedBy: 'student', fetch: 'EXTRA_LAZY')]
     private Collection $requests;
 
-    #[ORM\OneToMany(targetEntity: Planning::class, mappedBy: 'student')]
+    #[ORM\OneToMany(targetEntity: Planning::class, mappedBy: 'student', fetch: 'EXTRA_LAZY')]
     private Collection $plannings;
 
     public function __construct()
@@ -205,6 +205,7 @@ class Student extends User
             'pseudo' => $this->getPseudo(),
             'email' => $this->getEmail(),
             'class' => $this->getClass(),
+            'isActive' => $this->isActive(),
         ];
     }
 
@@ -250,7 +251,7 @@ class Student extends User
         $student->setLastName($data['lastName'] ?? $data['pseudo']);
         $student->setPassword($data['password'] ?? 'defaultPassword123'); // Mot de passe par défaut
         $student->setPseudo($data['pseudo']);
-        $student->setClass($data['class']);
+        $student->setClass($data['class'] ?? $data['grade']);
         $student->setFamily($family);
         $student->setPoints($data['points'] ?? 0);
         
