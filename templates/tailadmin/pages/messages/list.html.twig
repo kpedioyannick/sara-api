@@ -1,0 +1,97 @@
+{% extends 'tailadmin/layouts/base.html.twig' %}
+
+{% block page_title %}{{ pageTitle }}{% endblock %}
+
+{% block content %}
+<div class="mx-auto max-w-screen-2xl p-4 md:p-6 2xl:p-10">
+    {% include 'tailadmin/components/breadcrumb.html.twig' with { items: breadcrumbs } %}
+
+    <!-- ====== Messages Section Start ====== -->
+    <div class="rounded-lg border border-gray-200 bg-white shadow-default dark:border-gray-800 dark:bg-gray-900">
+        <div class="border-b border-gray-200 px-6 py-4 dark:border-gray-800">
+            <h3 class="text-title-md font-semibold text-gray-800 dark:text-white">
+                {{ pageName }}
+                {% if unreadCount > 0 %}
+                    <span class="ml-2 inline-flex items-center rounded-full bg-orange-100 px-2.5 py-0.5 text-xs font-medium text-orange-800 dark:bg-orange-900 dark:text-orange-200">
+                        {{ unreadCount }} non lus
+                    </span>
+                {% endif %}
+            </h3>
+        </div>
+
+        <div class="p-6">
+            <div class="flex flex-col gap-4" x-data="messageManager()">
+                {% if conversations|length > 0 %}
+                    {% for conversation in conversations %}
+                        <a
+                            href="{{ path('admin_messages_show', { conversationId: conversation.conversationId }) }}"
+                            class="flex items-center gap-4 rounded-lg border border-gray-200 p-4 transition-all hover:bg-gray-50 dark:border-gray-800 dark:hover:bg-gray-800/50 {% if conversation.unreadCount > 0 %}bg-blue-50 dark:bg-blue-900/20{% endif %}"
+                        >
+                            <div class="flex h-12 w-12 items-center justify-center rounded-full bg-gray-200 dark:bg-gray-700">
+                                <span class="text-lg font-semibold text-gray-600 dark:text-gray-300">
+                                    {{ conversation.otherUser.firstName|first|upper }}{{ conversation.otherUser.lastName|first|upper }}
+                                </span>
+                            </div>
+                            <div class="flex-1">
+                                <div class="flex items-center justify-between">
+                                    <h4 class="font-semibold text-gray-800 dark:text-white">
+                                        {{ conversation.otherUser.firstName }} {{ conversation.otherUser.lastName }}
+                                    </h4>
+                                    <span class="text-xs text-gray-500 dark:text-gray-400">
+                                        {{ conversation.lastMessage.createdAt|date('d/m/Y H:i') }}
+                                    </span>
+                                </div>
+                                <p class="mt-1 text-sm text-gray-600 dark:text-gray-400 {% if conversation.unreadCount > 0 %}font-medium{% endif %}">
+                                    {% if conversation.lastMessage.isFromMe %}
+                                        <span class="text-gray-500">Vous : </span>
+                                    {% endif %}
+                                    {{ conversation.lastMessage.content|length > 60 ? conversation.lastMessage.content|slice(0, 60) ~ '...' : conversation.lastMessage.content }}
+                                </p>
+                            </div>
+                            {% if conversation.unreadCount > 0 %}
+                                <span class="flex h-6 w-6 items-center justify-center rounded-full bg-blue-600 text-xs font-semibold text-white">
+                                    {{ conversation.unreadCount }}
+                                </span>
+                            {% endif %}
+                        </a>
+                    {% endfor %}
+                {% else %}
+                    <div class="py-12 text-center">
+                        <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                        </svg>
+                        <p class="mt-4 text-sm text-gray-500 dark:text-gray-400">Aucune conversation pour le moment</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <!-- ====== Messages Section End ====== -->
+</div>
+
+<script>
+function messageManager() {
+    return {
+        init() {
+            // Rafraîchir le compteur de messages non lus toutes les 30 secondes
+            setInterval(() => {
+                this.refreshUnreadCount();
+            }, 30000);
+        },
+        async refreshUnreadCount() {
+            try {
+                const response = await fetch('{{ path('admin_messages_unread_count') }}');
+                const data = await response.json();
+                if (data.success) {
+                    // Mettre à jour le compteur dans le header si nécessaire
+                    console.log('Unread count:', data.count);
+                }
+            } catch (error) {
+                console.error('Error refreshing unread count:', error);
+            }
+        }
+    }
+}
+</script>
+{% endblock %}
+

@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8" />
+    <meta
+        name="viewport"
+        content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0"
+    />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>{% block page_title %}{{ pageTitle|default('TailAdmin') }}{% endblock %}</title>
+    <link rel="icon" href="{{ asset('tailadmin/favicon.ico') }}">
+    <link href="{{ asset('tailadmin/style.css') }}" rel="stylesheet">
+</head>
+<body
+    x-data="{ page: '{{ pageName|default('blank') }}', 'loaded': true, 'darkMode': false, 'stickyMenu': false, 'sidebarToggle': false, 'scrollTop': false }"
+    x-init="
+        darkMode = JSON.parse(localStorage.getItem('darkMode'));
+        $watch('darkMode', value => localStorage.setItem('darkMode', JSON.stringify(value)))"
+    :class="{'dark bg-gray-900': darkMode === true}"
+>
+    {% include 'tailadmin/components/preloader.html.twig' %}
+
+    <!-- ===== Page Wrapper Start ===== -->
+    <div class="flex h-screen overflow-hidden">
+        {% if app.user %}
+            {% include 'tailadmin/components/sidebar.html.twig' %}
+        {% endif %}
+
+        <!-- ===== Content Area Start ===== -->
+        <div class="relative flex flex-col flex-1 overflow-x-hidden overflow-y-auto">
+            {% if app.user %}
+                {% include 'tailadmin/components/overlay.html.twig' %}
+                {% include 'tailadmin/components/header.html.twig' %}
+            {% endif %}
+
+            <!-- ===== Main Content Start ===== -->
+            <main>
+                {% block content %}{% endblock %}
+            </main>
+            <!-- ===== Main Content End ===== -->
+        </div>
+        <!-- ===== Content Area End ===== -->
+    </div>
+    <!-- ===== Page Wrapper End ===== -->
+
+    {% include 'tailadmin/components/toast.html.twig' %}
+    <script defer src="{{ asset('tailadmin/bundle.js') }}"></script>
+</body>
+</html>
+

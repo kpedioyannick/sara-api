@@ -1,0 +1,1291 @@
+{% extends 'tailadmin/layouts/base.html.twig' %}
+
+{% block content %}
+<div 
+    x-data="objectiveManager()"
+    data-objectives='{{ objectives|json_encode|e('html_attr') }}'
+    data-students='{{ students|json_encode|e('html_attr') }}'
+    data-parents='{{ parents|json_encode|e('html_attr') }}'
+    data-specialists='{{ specialists|json_encode|e('html_attr') }}'
+    class="p-4 mx-auto max-w-(--breakpoint-2xl) md:p-6"
+>
+    {% include 'tailadmin/components/breadcrumb.html.twig' %}
+
+    <div class="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
+        <div class="px-6 py-5 flex items-center justify-between">
+            <h3 class="text-base font-medium text-gray-800 dark:text-white/90">
+                Liste des Objectifs
+            </h3>
+            <button
+                @click="openCreate()"
+                class="inline-flex items-center gap-2 rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white shadow-theme-xs hover:bg-brand-600"
+            >
+                <svg class="fill-current" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                    <path d="M8 1a7 7 0 100 14A7 7 0 008 1zM7.5 4v4l3.5 2 .5-.866L8.5 7.5V4h-1z" fill=""/>
+                </svg>
+                Nouvel Objectif
+            </button>
+        </div>
+        <div class="border-t border-gray-100 p-4 dark:border-gray-800 sm:p-6">
+            <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-2">
+                {% for objective in objectives %}
+                <div>
+                    <div class="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] sm:p-6">
+                        <div class="mb-4 flex items-center justify-between">
+                            <span class="text-theme-xs font-medium text-gray-500 dark:text-gray-400">{{ objective.category }}</span>
+                            {% if objective.status == 'termine' %}
+                            <span class="inline-flex items-center rounded-full bg-success-100 px-2.5 py-0.5 text-xs font-medium text-success-600 dark:bg-success-900/30 dark:text-success-400">
+                                Terminé
+                            </span>
+                            {% elseif objective.status == 'en_cours' %}
+                            <span class="inline-flex items-center rounded-full bg-brand-100 px-2.5 py-0.5 text-xs font-medium text-brand-600 dark:bg-brand-900/30 dark:text-brand-400">
+                                En cours
+                            </span>
+                            {% else %}
+                            <span class="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-600 dark:bg-gray-800 dark:text-gray-400">
+                                {{ objective.status }}
+                            </span>
+                            {% endif %}
+                        </div>
+
+                        <h4 class="mb-3 text-theme-xl font-medium text-gray-800 dark:text-white/90">
+                            {{ objective.title }}
+                        </h4>
+
+                        <div class="mb-4 space-y-2">
+                            <div class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                                <span>Élève: {{ objective.studentName }}</span>
+                            </div>
+                            <div class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                                <span>Coach: {{ objective.coachName }}</span>
+                            </div>
+                            <div class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+                                <span>{{ objective.tasksCount }} tâche(s) • Deadline: {{ objective.deadline }}</span>
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <div class="mb-2 flex items-center justify-between text-sm">
+                                <span class="text-gray-600 dark:text-gray-400">Progression</span>
+                                <span class="font-medium text-gray-800 dark:text-white/90">{{ objective.progress }}%</span>
+                            </div>
+                            <div class="h-2 overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700">
+                                <div class="h-full bg-brand-500" style="width: {{ objective.progress }}%"></div>
+                            </div>
+                        </div>
+
+                        <!-- Tâches -->
+                        {% if objective.tasks is defined and objective.tasks|length > 0 %}
+                        <div class="mb-4 border-t border-gray-100 pt-4 dark:border-gray-800">
+                            <h5 class="mb-3 text-sm font-medium text-gray-700 dark:text-gray-300">Tâches ({{ objective.tasks|length }})</h5>
+                            <div class="space-y-2 max-h-48 overflow-y-auto">
+                                {% for task in objective.tasks %}
+                                <div class="flex items-start gap-2 rounded-lg border border-gray-200 bg-gray-50 p-2.5 dark:border-gray-700 dark:bg-gray-800/50">
+                                    <div class="mt-0.5 flex-shrink-0">
+                                        {% if task.status == 'completed' %}
+                                        <svg class="h-5 w-5 text-success-600 dark:text-success-400" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                                        </svg>
+                                        {% elseif task.status == 'in_progress' %}
+                                        <svg class="h-5 w-5 text-brand-600 dark:text-brand-400" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/>
+                                        </svg>
+                                        {% else %}
+                                        <svg class="h-5 w-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm0-2a6 6 0 100-12 6 6 0 000 12z" clip-rule="evenodd"/>
+                                        </svg>
+                                        {% endif %}
+                                    </div>
+                                    <div class="flex-1 min-w-0">
+                                        <p class="text-sm font-medium text-gray-800 dark:text-white/90 {% if task.status == 'completed' %}line-through text-gray-500 dark:text-gray-400{% endif %}">
+                                            {{ task.title }}
+                                        </p>
+                                        <span class="mt-1 inline-flex items-center text-xs text-gray-500 dark:text-gray-400">
+                                            <svg class="mr-1 h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd"/>
+                                            </svg>
+                                            Preuve requise
+                                        </span>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        <div class="mt-4 flex gap-2">
+                            <a
+                                href="{{ path('admin_objectives_detail', {id: objective.id}) }}"
+                                class="flex-1 inline-flex items-center justify-center gap-2 rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white shadow-theme-xs transition-colors hover:bg-brand-600"
+                            >
+                                <svg class="fill-current" width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M8 1C4.134 1 1 4.134 1 8s3.134 7 7 7 7-3.134 7-7-3.134-7-7-7zm0 12.5c-3.032 0-5.5-2.468-5.5-5.5S4.968 2.5 8 2.5 13.5 4.968 13.5 8 11.032 13.5 8 13.5z" fill=""/>
+                                    <path d="M8 4.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7zm0 6a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5z" fill=""/>
+                                    <path d="M8 6.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3z" fill=""/>
+                                </svg>
+                                Détails
+                            </a>
+                            <button
+                                @click="openEdit({{ objective.id }})"
+                                class="inline-flex items-center justify-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-theme-xs transition-colors hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+                            >
+                                <svg class="fill-current" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                                    <path d="M11.333 2.667a2.667 2.667 0 0 1 3.774 3.774l-8 8a2.667 2.667 0 0 1-1.886.78H2.667v-2.554a2.667 2.667 0 0 1 .78-1.886l8-8zm2.554 1.22L12.113 2.113a1.333 1.333 0 0 0-1.886 0L9.333 3.007l2.667 2.667 1.554-1.554a1.333 1.333 0 0 0 0-1.886z" fill=""/>
+                                </svg>
+                                Modifier
+                            </button>
+                            <button
+                                @click="openDelete({{ objective.id }})"
+                                class="inline-flex items-center justify-center gap-2 rounded-lg border border-red-200 bg-white px-4 py-2.5 text-sm font-medium text-red-600 shadow-theme-xs transition-colors hover:bg-red-50 dark:border-red-800 dark:bg-gray-800 dark:text-red-400 dark:hover:bg-red-900/20"
+                            >
+                                <svg class="fill-current" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                                    <path d="M5.5 5.5a.5.5 0 015 0v3a.5.5 0 01-5 0v-3zM2 4a2 2 0 012-2h8a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V4z" fill=""/>
+                                </svg>
+                                Supprimer
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Sheet Overlay -->
+    <div
+        x-show="rightSheetOpen"
+        @click="closeSheet()"
+        x-transition:enter="transition-opacity ease-out duration-300"
+        x-transition:enter-start="opacity-0"
+        x-transition:enter-end="opacity-100"
+        x-transition:leave="transition-opacity ease-in duration-200"
+        x-transition:leave-start="opacity-100"
+        x-transition:leave-end="opacity-0"
+        class="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm"
+        style="display: none;"
+    ></div>
+
+    <!-- Right Sheet Panel -->
+    <div
+        x-show="rightSheetOpen"
+        @click.away="closeSheet()"
+        x-transition:enter="transition-transform ease-out duration-300"
+        x-transition:enter-start="translate-x-full"
+        x-transition:enter-end="translate-x-0"
+        x-transition:leave="transition-transform ease-in duration-200"
+        x-transition:leave-start="translate-x-0"
+        x-transition:leave-end="translate-x-full"
+        class="fixed right-0 top-0 z-50 h-full w-full max-w-md overflow-y-auto bg-white shadow-2xl dark:bg-gray-900"
+        style="display: none;"
+    >
+        <div class="flex h-full flex-col">
+            <!-- Header -->
+            <div class="sticky top-0 z-10 border-b border-gray-200 bg-white px-6 py-4 dark:border-gray-800 dark:bg-gray-900">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">
+                        <span x-show="!isEdit">Nouvel Objectif</span>
+                        <span x-show="isEdit">Modifier Objectif</span>
+                    </h3>
+                    <button
+                        @click="closeSheet()"
+                        class="rounded-lg p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-300"
+                    >
+                        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Content -->
+            <div class="flex-1 p-6">
+                <form @submit.prevent="saveObjective()" class="space-y-6">
+                    <!-- Mode création simplifié -->
+                    <template x-if="!isEdit">
+                        <div class="space-y-6">
+                            <div>
+                                <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Description *</label>
+                                <textarea
+                                    x-model="formData.description"
+                                    required
+                                    rows="4"
+                                    placeholder="Décrivez l'objectif à atteindre..."
+                                    class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+                                ></textarea>
+                                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                                    Le titre et les tâches seront générés automatiquement à partir de cette description.
+                                </p>
+                            </div>
+                            <div>
+                                <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Catégorie *</label>
+                                <select
+                                    x-model="formData.category"
+                                    required
+                                    class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+                                >
+                                    <option value="">Sélectionner...</option>
+                                    <option value="academic">Académique</option>
+                                    <option value="Comportement">Comportement</option>
+                                    <option value="Autonomie">Autonomie</option>
+                                    <option value="Social">Social</option>
+                                    <option value="Émotionnel">Émotionnel</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Élève *</label>
+                                <select
+                                    x-model="formData.studentId"
+                                    required
+                                    class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+                                >
+                                    <option value="">Sélectionner un élève...</option>
+                                    <template x-for="student in studentsData" :key="student.id">
+                                        <option :value="student.id" x-text="student.firstName + ' ' + student.lastName + (student.parentLastName || student.familyIdentifier ? ' (' + (student.parentLastName || student.familyIdentifier) + ')' : '')"></option>
+                                    </template>
+                                </select>
+                            </div>
+                        </div>
+                    </template>
+                    
+                    <!-- Mode édition complet -->
+                    <template x-if="isEdit">
+                        <div class="space-y-6">
+                            <div>
+                                <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Titre *</label>
+                                <input
+                                    type="text"
+                                    x-model="formData.title"
+                                    required
+                                    class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+                                />
+                            </div>
+                            <div>
+                                <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Description *</label>
+                                <textarea
+                                    x-model="formData.description"
+                                    required
+                                    rows="4"
+                                    class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+                                ></textarea>
+                            </div>
+                            <div>
+                                <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Catégorie *</label>
+                                <select
+                                    x-model="formData.category"
+                                    required
+                                    class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+                                >
+                                    <option value="">Sélectionner...</option>
+                                    <option value="academic">Académique</option>
+                                    <option value="Comportement">Comportement</option>
+                                    <option value="Autonomie">Autonomie</option>
+                                    <option value="Social">Social</option>
+                                    <option value="Émotionnel">Émotionnel</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Statut *</label>
+                                <select
+                                    x-model="formData.status"
+                                    required
+                                    class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+                                >
+                                    <option value="pending">En attente</option>
+                                    <option value="en_cours">En cours</option>
+                                    <option value="termine">Terminé</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Progression (%)</label>
+                                <input
+                                    type="number"
+                                    x-model="formData.progress"
+                                    min="0"
+                                    max="100"
+                                    class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+                                />
+                            </div>
+                            <div>
+                                <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Date limite</label>
+                                <input
+                                    type="date"
+                                    x-model="formData.deadline"
+                                    class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+                                />
+                            </div>
+                            <div>
+                                <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Élève *</label>
+                                <select
+                                    x-model="formData.studentId"
+                                    required
+                                    class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+                                >
+                                    <option value="">Sélectionner un élève...</option>
+                                    <template x-for="student in studentsData" :key="student.id">
+                                        <option :value="student.id" x-text="student.firstName + ' ' + student.lastName + (student.parentLastName || student.familyIdentifier ? ' (' + (student.parentLastName || student.familyIdentifier) + ')' : '')"></option>
+                                    </template>
+                                </select>
+                            </div>
+                        </div>
+                    </template>
+                </form>
+                
+                <!-- Tasks Section (only in edit mode) -->
+                <template x-if="isEdit && currentId">
+                    <div class="mt-8 border-t border-gray-200 pt-6 dark:border-gray-800">
+                        <div class="mb-4 flex items-center justify-between">
+                            <h4 class="text-base font-semibold text-gray-800 dark:text-white/90">Tâches</h4>
+                            <button
+                                @click="openTaskCreate()"
+                                class="inline-flex items-center gap-2 rounded-lg bg-brand-500 px-3 py-1.5 text-xs font-medium text-white shadow-theme-xs hover:bg-brand-600"
+                            >
+                                <svg class="fill-current" width="14" height="14" viewBox="0 0 16 16" fill="none">
+                                    <path d="M8 1a7 7 0 100 14A7 7 0 008 1zM7.5 4v4l3.5 2 .5-.866L8.5 7.5V4h-1z" fill=""/>
+                                </svg>
+                                Nouvelle tâche
+                            </button>
+                        </div>
+                        <div class="space-y-2 max-h-64 overflow-y-auto">
+                            <template x-for="task in currentTasks" :key="task.id">
+                                <div class="flex items-start gap-2 rounded-lg border border-gray-200 bg-gray-50 p-3 dark:border-gray-700 dark:bg-gray-800/50">
+                                    <div class="flex-1">
+                                        <p class="text-sm font-medium text-gray-800 dark:text-white/90" x-text="task.title"></p>
+                                        <div class="mt-1 flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+                                            <span x-text="task.status"></span>
+                                            <span class="text-brand-600">• Preuve requise</span>
+                                        </div>
+                                    </div>
+                                    <div class="flex gap-1">
+                                        <button
+                                            @click="openTaskEdit(task)"
+                                            class="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-700"
+                                        >
+                                            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                            </svg>
+                                        </button>
+                                        <button
+                                            @click="openTaskDelete(task.id)"
+                                            class="rounded p-1 text-red-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20"
+                                        >
+                                            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                            </svg>
+                                        </button>
+                                    </div>
+                                </div>
+                            </template>
+                            <template x-if="!currentTasks || currentTasks.length === 0">
+                                <p class="text-sm text-gray-500 dark:text-gray-400 text-center py-4">Aucune tâche</p>
+                            </template>
+                        </div>
+                    </div>
+                </template>
+                
+                <!-- Comments Section (only in edit mode) -->
+                <template x-if="isEdit && currentId">
+                    <div class="mt-8 border-t border-gray-200 pt-6 dark:border-gray-800">
+                        <div class="mb-4 flex items-center justify-between">
+                            <h4 class="text-base font-semibold text-gray-800 dark:text-white/90">Commentaires</h4>
+                            <button
+                                @click="openCommentCreate()"
+                                class="inline-flex items-center gap-2 rounded-lg bg-brand-500 px-3 py-1.5 text-xs font-medium text-white shadow-theme-xs hover:bg-brand-600"
+                            >
+                                <svg class="fill-current" width="14" height="14" viewBox="0 0 16 16" fill="none">
+                                    <path d="M8 1a7 7 0 100 14A7 7 0 008 1zM7.5 4v4l3.5 2 .5-.866L8.5 7.5V4h-1z" fill=""/>
+                                </svg>
+                                Nouveau commentaire
+                            </button>
+                        </div>
+                        <div class="space-y-3 max-h-64 overflow-y-auto">
+                            <template x-for="comment in currentComments" :key="comment.id">
+                                <div class="rounded-lg border border-gray-200 bg-gray-50 p-3 dark:border-gray-700 dark:bg-gray-800/50">
+                                    <div class="mb-2 flex items-start justify-between">
+                                        <div class="flex-1">
+                                            <div class="flex items-center gap-2 mb-1">
+                                                <span class="text-xs font-medium text-gray-600 dark:text-gray-400" x-text="comment.author?.firstName + ' ' + comment.author?.lastName"></span>
+                                                <span class="text-xs text-gray-400" x-text="comment.createdAt ? new Date(comment.createdAt).toLocaleDateString('fr-FR') : ''"></span>
+                                            </div>
+                                            <p class="text-sm text-gray-800 dark:text-white/90" x-text="comment.content"></p>
+                                        </div>
+                                        <div class="flex gap-1 ml-2">
+                                            <button
+                                                @click="openCommentEdit(comment)"
+                                                class="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-700"
+                                            >
+                                                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                                </svg>
+                                            </button>
+                                            <button
+                                                @click="openCommentDelete(comment.id)"
+                                                class="rounded p-1 text-red-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20"
+                                            >
+                                                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                </svg>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </template>
+                            <template x-if="!currentComments || currentComments.length === 0">
+                                <p class="text-sm text-gray-500 dark:text-gray-400 text-center py-4">Aucun commentaire</p>
+                            </template>
+                        </div>
+                    </div>
+                </template>
+            </div>
+
+            <!-- Footer -->
+            <div class="sticky bottom-0 border-t border-gray-200 bg-white px-6 py-4 dark:border-gray-800 dark:bg-gray-900">
+                <div class="flex gap-3">
+                    <button
+                        @click="closeSheet()"
+                        class="flex-1 rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+                    >
+                        Annuler
+                    </button>
+                    <button
+                        @click="saveObjective()"
+                        class="flex-1 rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white shadow-theme-xs hover:bg-brand-600"
+                    >
+                        Enregistrer
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Comment Right Sheet -->
+    <div
+        x-show="commentSheetOpen"
+        @click="commentSheetOpen = false"
+        x-transition:enter="transition-opacity ease-out duration-300"
+        x-transition:enter-start="opacity-0"
+        x-transition:enter-end="opacity-100"
+        x-transition:leave="transition-opacity ease-in duration-200"
+        x-transition:leave-start="opacity-100"
+        x-transition:leave-end="opacity-0"
+        class="fixed inset-0 z-[70] bg-black/50 backdrop-blur-sm"
+        style="display: none;"
+    ></div>
+
+    <div
+        x-show="commentSheetOpen"
+        @click.away="commentSheetOpen = false"
+        x-transition:enter="transition-transform ease-out duration-300"
+        x-transition:enter-start="translate-x-full"
+        x-transition:enter-end="translate-x-0"
+        x-transition:leave="transition-transform ease-in duration-200"
+        x-transition:leave-start="translate-x-0"
+        x-transition:leave-end="translate-x-full"
+        class="fixed right-0 top-0 z-[70] h-full w-full max-w-md overflow-y-auto bg-white shadow-2xl dark:bg-gray-900"
+        style="display: none;"
+    >
+        <div class="flex h-full flex-col">
+            <div class="sticky top-0 z-10 border-b border-gray-200 bg-white px-6 py-4 dark:border-gray-800 dark:bg-gray-900">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">
+                        <span x-show="!commentEditMode">Nouveau Commentaire</span>
+                        <span x-show="commentEditMode">Modifier Commentaire</span>
+                    </h3>
+                    <button
+                        @click="commentSheetOpen = false"
+                        class="rounded-lg p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-300"
+                    >
+                        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <div class="flex-1 p-6">
+                <form @submit.prevent="saveComment()" class="space-y-6">
+                    <div>
+                        <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Commentaire *</label>
+                        <textarea
+                            x-model="commentFormData.content"
+                            required
+                            rows="6"
+                            class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+                            placeholder="Écrivez votre commentaire..."
+                        ></textarea>
+                    </div>
+                </form>
+            </div>
+
+            <div class="sticky bottom-0 border-t border-gray-200 bg-white px-6 py-4 dark:border-gray-800 dark:bg-gray-900">
+                <div class="flex gap-3">
+                    <button
+                        @click="commentSheetOpen = false"
+                        class="flex-1 rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+                    >
+                        Annuler
+                    </button>
+                    <button
+                        @click="saveComment()"
+                        class="flex-1 rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white shadow-theme-xs hover:bg-brand-600"
+                    >
+                        Enregistrer
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Task Right Sheet -->
+    <div
+        x-show="taskSheetOpen"
+        @click="taskSheetOpen = false"
+        x-transition:enter="transition-opacity ease-out duration-300"
+        x-transition:enter-start="opacity-0"
+        x-transition:enter-end="opacity-100"
+        x-transition:leave="transition-opacity ease-in duration-200"
+        x-transition:leave-start="opacity-100"
+        x-transition:leave-end="opacity-0"
+        class="fixed inset-0 z-[60] bg-black/50 backdrop-blur-sm"
+        style="display: none;"
+    ></div>
+
+    <div
+        x-show="taskSheetOpen && taskFormData"
+        @click.away="taskSheetOpen = false"
+        x-transition:enter="transition-transform ease-out duration-300"
+        x-transition:enter-start="translate-x-full"
+        x-transition:enter-end="translate-x-0"
+        x-transition:leave="transition-transform ease-in duration-200"
+        x-transition:leave-start="translate-x-0"
+        x-transition:leave-end="translate-x-full"
+        class="fixed right-0 top-0 z-[60] h-full w-full max-w-md overflow-y-auto bg-white shadow-2xl dark:bg-gray-900"
+        style="display: none;"
+    >
+        <div class="flex h-full flex-col">
+            <div class="sticky top-0 z-10 border-b border-gray-200 bg-white px-6 py-4 dark:border-gray-800 dark:bg-gray-900">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">
+                        <span x-show="!taskEditMode">Nouvelle Tâche</span>
+                        <span x-show="taskEditMode">Modifier Tâche</span>
+                    </h3>
+                    <button
+                        @click="taskSheetOpen = false"
+                        class="rounded-lg p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-300"
+                    >
+                        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <div class="flex-1 p-6">
+                <form @submit.prevent="saveTask()" class="space-y-6">
+                    <div>
+                        <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Titre *</label>
+                        <input
+                            type="text"
+                            x-model="taskFormData.title"
+                            required
+                            class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+                        />
+                    </div>
+                    <div>
+                        <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Description</label>
+                        <textarea
+                            x-model="taskFormData.description"
+                            rows="3"
+                            class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+                        ></textarea>
+                    </div>
+                    <div>
+                        <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Statut *</label>
+                        <select
+                            x-model="taskFormData.status"
+                            required
+                            class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+                        >
+                            <option value="pending">En attente</option>
+                            <option value="in_progress">En cours</option>
+                            <option value="completed">Terminé</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Fréquence</label>
+                        <select
+                            x-model="taskFormData.frequency"
+                            class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+                        >
+                            <option value="daily">Quotidienne</option>
+                            <option value="weekly">Hebdomadaire</option>
+                            <option value="monthly">Mensuelle</option>
+                            <option value="once">Une fois</option>
+                        </select>
+                    </div>
+                    <div class="flex items-center gap-2 opacity-50">
+                        <input
+                            type="checkbox"
+                            checked
+                            disabled
+                            class="rounded border-gray-300 text-brand-600 focus:ring-brand-500"
+                        />
+                        <label class="text-sm font-medium text-gray-700 dark:text-gray-300">Nécessite une preuve (toujours activé)</label>
+                    </div>
+                    <div>
+                        <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Type de preuve</label>
+                        <select
+                            x-model="taskFormData.proofType"
+                            class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+                        >
+                            <option value="text">Texte</option>
+                            <option value="photo">Photo</option>
+                            <option value="audio">Audio</option>
+                            <option value="video">Vidéo</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Assignation *</label>
+                        <select
+                            x-model="taskFormData.assignedType"
+                            @change="if (taskFormData) { taskFormData.studentId = ''; taskFormData.parentId = ''; taskFormData.specialistId = ''; }"
+                            required
+                            class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+                        >
+                            <option value="coach">Coach</option>
+                            <option value="student">Élève</option>
+                            <option value="parent">Parent</option>
+                            <option value="specialist">Spécialiste</option>
+                        </select>
+                    </div>
+                    <div x-show="taskFormData && taskFormData.assignedType === 'student'">
+                        <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Élève</label>
+                        <select
+                            x-model="taskFormData.studentId"
+                            class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+                        >
+                            <option value="">Sélectionner...</option>
+                            <template x-for="student in (studentsData || [])" :key="student.id">
+                                <option :value="student.id" x-text="student.firstName + ' ' + student.lastName"></option>
+                            </template>
+                        </select>
+                    </div>
+                    <div x-show="taskFormData && taskFormData.assignedType === 'parent'">
+                        <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Parent</label>
+                        <select
+                            x-model="taskFormData.parentId"
+                            class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+                        >
+                            <option value="">Sélectionner...</option>
+                            <template x-for="parent in (parentsData || [])" :key="parent.id">
+                                <option :value="parent.id" x-text="parent.firstName + ' ' + parent.lastName"></option>
+                            </template>
+                        </select>
+                    </div>
+                    <div x-show="taskFormData && taskFormData.assignedType === 'specialist'">
+                        <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Spécialiste</label>
+                        <select
+                            x-model="taskFormData.specialistId"
+                            class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+                        >
+                            <option value="">Sélectionner...</option>
+                            <template x-for="specialist in (specialistsData || [])" :key="specialist.id">
+                                <option :value="specialist.id" x-text="specialist.firstName + ' ' + specialist.lastName"></option>
+                            </template>
+                        </select>
+                    </div>
+                    <div x-show="taskFormData">
+                        <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Date d'échéance</label>
+                        <input
+                            type="date"
+                            x-model="taskFormData.dueDate"
+                            class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+                        />
+                    </div>
+                </form>
+            </div>
+
+            <div class="sticky bottom-0 border-t border-gray-200 bg-white px-6 py-4 dark:border-gray-800 dark:bg-gray-900">
+                <div class="flex gap-3">
+                    <button
+                        @click="taskSheetOpen = false"
+                        class="flex-1 rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+                    >
+                        Annuler
+                    </button>
+                    <button
+                        @click="saveTask()"
+                        class="flex-1 rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white shadow-theme-xs hover:bg-brand-600"
+                    >
+                        Enregistrer
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function objectiveManager() {
+    return {
+        rightSheetOpen: false,
+        isEdit: false,
+        currentId: null,
+        formData: {
+            title: '',
+            description: '',
+            category: '',
+            status: 'pending',
+            progress: 0,
+            deadline: '',
+            studentId: '',
+        },
+        objectivesData: [],
+        studentsData: [],
+        parentsData: [],
+        specialistsData: [],
+        currentTasks: [],
+        currentComments: [],
+        taskSheetOpen: false,
+        commentSheetOpen: false,
+        taskEditMode: false,
+        commentEditMode: false,
+        currentTaskId: null,
+        currentCommentId: null,
+        taskFormData: {
+            title: '',
+            description: '',
+            status: 'pending',
+            frequency: 'daily',
+            requiresProof: true, // Toutes les tâches nécessitent des preuves par défaut
+            proofType: '',
+            assignedType: 'coach',
+            studentId: '',
+            parentId: '',
+            specialistId: '',
+            dueDate: '',
+        },
+        commentFormData: {
+            content: '',
+        },
+        init() {
+            const objectivesJson = this.$el.getAttribute('data-objectives');
+            const studentsJson = this.$el.getAttribute('data-students');
+            const parentsJson = this.$el.getAttribute('data-parents');
+            const specialistsJson = this.$el.getAttribute('data-specialists');
+            if (objectivesJson) {
+                this.objectivesData = JSON.parse(objectivesJson);
+            }
+            if (studentsJson) {
+                this.studentsData = JSON.parse(studentsJson);
+            }
+            if (parentsJson) {
+                this.parentsData = JSON.parse(parentsJson);
+            }
+            if (specialistsJson) {
+                this.specialistsData = JSON.parse(specialistsJson);
+            }
+        },
+        openCreate() {
+            this.isEdit = false;
+            this.currentId = null;
+            this.formData = {
+                title: '',
+                description: '',
+                category: '',
+                status: 'pending',
+                progress: 0,
+                deadline: '',
+                studentId: '',
+            };
+            this.rightSheetOpen = true;
+        },
+        openEdit(id) {
+            const objective = this.objectivesData.find(o => o.id === id);
+            if (objective) {
+                this.isEdit = true;
+                this.currentId = id;
+                this.formData = {
+                    title: objective.title || '',
+                    description: objective.description || '',
+                    category: objective.category || '',
+                    status: objective.status || 'pending',
+                    progress: objective.progress || 0,
+                    deadline: objective.deadline ? objective.deadline.split(' ')[0] : '',
+                    studentId: objective.student?.id || '',
+                };
+                this.currentTasks = objective.tasks || [];
+                this.currentComments = objective.comments || [];
+                this.rightSheetOpen = true;
+            }
+        },
+        openTaskCreate() {
+            this.taskEditMode = false;
+            this.currentTaskId = null;
+            this.taskFormData = {
+                title: '',
+                description: '',
+                status: 'pending',
+                frequency: 'daily',
+                requiresProof: true, // Toutes les tâches nécessitent des preuves par défaut
+                proofType: '',
+                assignedType: 'coach',
+                studentId: '',
+                parentId: '',
+                specialistId: '',
+                dueDate: '',
+            };
+            this.taskSheetOpen = true;
+        },
+        openTaskEdit(task) {
+            this.taskEditMode = true;
+            this.currentTaskId = task.id;
+            this.taskFormData = {
+                title: task.title || '',
+                description: task.description || '',
+                status: task.status || 'pending',
+                frequency: task.frequency || 'daily',
+                requiresProof: true, // Toutes les tâches nécessitent des preuves
+                proofType: task.proofType || '',
+                assignedType: task.assignedType || 'coach',
+                studentId: task.student?.id || '',
+                parentId: task.parent?.id || '',
+                specialistId: task.specialist?.id || '',
+                dueDate: task.dueDate ? task.dueDate.split(' ')[0] : '',
+            };
+            this.taskSheetOpen = true;
+        },
+        openTaskDelete(taskId) {
+            if (confirm('Êtes-vous sûr de vouloir supprimer cette tâche ?')) {
+                fetch(`/admin/tasks/${taskId}`, {
+                    method: 'DELETE',
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                })
+                .then(async response => {
+                    let data = {};
+                    let errorText = '';
+                    
+                    try {
+                        const text = await response.text();
+                        try {
+                            data = JSON.parse(text);
+                        } catch (e) {
+                            errorText = text.substring(0, 500);
+                            console.error('Réponse non-JSON (erreur serveur):', errorText);
+                        }
+                    } catch (e) {
+                        console.error('Erreur lecture réponse:', e);
+                    }
+                    
+                    if (!response.ok) {
+                        let errorMessage = data.message || data.error;
+                        if (!errorMessage) {
+                            errorMessage = errorText 
+                                ? `Erreur ${response.status}: Le serveur a renvoyé une erreur.` 
+                                : `Erreur ${response.status}: ${response.statusText}`;
+                        }
+                        this.showMessage(errorMessage, 'error');
+                        return;
+                    }
+                    if (data.success) {
+                        this.currentTasks = this.currentTasks.filter(t => t.id !== taskId);
+                        this.showMessage(data.message || 'Tâche supprimée avec succès', 'success');
+                    } else {
+                        this.showMessage(data.message || data.error || 'Erreur lors de la suppression', 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    this.showMessage('Erreur de connexion', 'error');
+                });
+            }
+        },
+        saveTask() {
+            const data = {
+                ...this.taskFormData,
+                objectiveId: this.currentId,
+            };
+            
+            const url = this.taskEditMode 
+                ? `/admin/tasks/${this.currentTaskId}/update`
+                : `/admin/objectives/${this.currentId}/tasks/create`;
+            
+            fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                body: JSON.stringify(data),
+            })
+            .then(async response => {
+                let data = {};
+                let errorText = '';
+                
+                try {
+                    const text = await response.text();
+                    try {
+                        data = JSON.parse(text);
+                    } catch (e) {
+                        errorText = text.substring(0, 500);
+                        console.error('Réponse non-JSON (erreur serveur):', errorText);
+                    }
+                } catch (e) {
+                    console.error('Erreur lecture réponse:', e);
+                }
+                
+                if (!response.ok) {
+                    let errorMessage = data.message || data.error;
+                    if (!errorMessage) {
+                        errorMessage = errorText 
+                            ? `Erreur ${response.status}: Le serveur a renvoyé une erreur.` 
+                            : `Erreur ${response.status}: ${response.statusText}`;
+                    }
+                    this.showMessage(errorMessage, 'error');
+                    return;
+                }
+                if (data.success) {
+                    this.taskSheetOpen = false;
+                    this.showMessage(data.message || 'Tâche enregistrée avec succès', 'success');
+                    // Recharger les tâches
+                    const objective = this.objectivesData.find(o => o.id === this.currentId);
+                    if (objective) {
+                        setTimeout(() => location.reload(), 1000);
+                    }
+                } else {
+                    this.showMessage(data.message || data.error || 'Erreur lors de l\'enregistrement', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                this.showMessage('Erreur de connexion', 'error');
+            });
+        },
+        openCommentCreate() {
+            this.commentEditMode = false;
+            this.currentCommentId = null;
+            this.commentFormData = {
+                content: '',
+            };
+            this.commentSheetOpen = true;
+        },
+        openCommentEdit(comment) {
+            this.commentEditMode = true;
+            this.currentCommentId = comment.id;
+            this.commentFormData = {
+                content: comment.content || '',
+            };
+            this.commentSheetOpen = true;
+        },
+        openCommentDelete(commentId) {
+            if (confirm('Êtes-vous sûr de vouloir supprimer ce commentaire ?')) {
+                fetch(`/admin/objectives/${this.currentId}/comments/${commentId}/delete`, {
+                    method: 'DELETE',
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                })
+                .then(async response => {
+                    let data = {};
+                    let errorText = '';
+                    
+                    try {
+                        const text = await response.text();
+                        try {
+                            data = JSON.parse(text);
+                        } catch (e) {
+                            errorText = text.substring(0, 500);
+                            console.error('Réponse non-JSON (erreur serveur):', errorText);
+                        }
+                    } catch (e) {
+                        console.error('Erreur lecture réponse:', e);
+                    }
+                    
+                    if (!response.ok) {
+                        let errorMessage = data.message || data.error;
+                        if (!errorMessage) {
+                            errorMessage = errorText 
+                                ? `Erreur ${response.status}: Le serveur a renvoyé une erreur.` 
+                                : `Erreur ${response.status}: ${response.statusText}`;
+                        }
+                        this.showMessage(errorMessage, 'error');
+                        return;
+                    }
+                    if (data.success) {
+                        this.currentComments = this.currentComments.filter(c => c.id !== commentId);
+                        this.showMessage(data.message || 'Commentaire supprimé avec succès', 'success');
+                    } else {
+                        this.showMessage(data.message || data.error || 'Erreur lors de la suppression', 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    this.showMessage('Erreur de connexion', 'error');
+                });
+            }
+        },
+        saveComment() {
+            const url = this.commentEditMode 
+                ? `/admin/objectives/${this.currentId}/comments/${this.currentCommentId}/update`
+                : `/admin/objectives/${this.currentId}/comments/create`;
+            
+            fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                body: JSON.stringify(this.commentFormData),
+            })
+            .then(async response => {
+                let data = {};
+                let errorText = '';
+                
+                try {
+                    const text = await response.text();
+                    try {
+                        data = JSON.parse(text);
+                    } catch (e) {
+                        errorText = text.substring(0, 500);
+                        console.error('Réponse non-JSON (erreur serveur):', errorText);
+                    }
+                } catch (e) {
+                    console.error('Erreur lecture réponse:', e);
+                }
+                
+                if (!response.ok) {
+                    let errorMessage = data.message || data.error;
+                    if (!errorMessage) {
+                        errorMessage = errorText 
+                            ? `Erreur ${response.status}: Le serveur a renvoyé une erreur.` 
+                            : `Erreur ${response.status}: ${response.statusText}`;
+                    }
+                    this.showMessage(errorMessage, 'error');
+                    return;
+                }
+                if (data.success) {
+                    this.commentSheetOpen = false;
+                    this.showMessage(data.message || 'Commentaire enregistré avec succès', 'success');
+                    // Recharger la page pour avoir les commentaires à jour
+                    setTimeout(() => location.reload(), 500);
+                } else {
+                    this.showMessage(data.message || data.error || 'Erreur lors de l\'enregistrement', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                this.showMessage('Erreur de connexion', 'error');
+            });
+        },
+        showMessage(message, type = 'info') {
+            console.log('showMessage appelé avec:', message, type);
+            
+            // Vérifier que le message n'est pas vide
+            if (!message || message.trim() === '') {
+                message = type === 'error' ? 'Une erreur est survenue' : 'Opération réussie';
+            }
+            
+            // Essayer d'abord window.showToast
+            if (typeof window.showToast === 'function') {
+                console.log('Utilisation de window.showToast');
+                try {
+                    window.showToast(message, type);
+                } catch (e) {
+                    console.error('Erreur lors de l\'appel à window.showToast:', e);
+                }
+            } else {
+                console.log('window.showToast non disponible');
+            }
+            
+            // Essayer d'accéder directement au toast manager
+            const toastElement = document.querySelector('[x-data="toastManager()"]');
+            console.log('toastElement trouvé:', toastElement);
+            if (toastElement?.__x?.$data) {
+                console.log('Utilisation du toast manager Alpine.js direct');
+                try {
+                    toastElement.__x.$data.show(message, type);
+                } catch (e) {
+                    console.error('Erreur lors de l\'appel au toast manager:', e);
+                }
+            } else {
+                console.log('toastElement.__x.$data non disponible');
+            }
+            
+            // Essayer l'événement personnalisé
+            try {
+                console.log('Envoi de l\'événement personnalisé show-toast');
+                window.dispatchEvent(new CustomEvent('show-toast', { 
+                    detail: { message, type } 
+                }));
+            } catch (e) {
+                console.error('Erreur lors de l\'envoi de l\'événement:', e);
+            }
+            
+            // Toujours afficher un alert en backup après un court délai pour être sûr
+            setTimeout(() => {
+                // Vérifier si un toast est visible
+                const toastContainer = document.querySelector('[x-data="toastManager()"]');
+                let hasVisibleToast = false;
+                
+                if (toastContainer) {
+                    // Vérifier si le tableau toasts contient des éléments
+                    try {
+                        const alpineData = toastContainer.__x?.$data;
+                        if (alpineData && alpineData.toasts && alpineData.toasts.length > 0) {
+                            console.log('Toasts dans le tableau:', alpineData.toasts.length);
+                            hasVisibleToast = alpineData.toasts.some(t => t.visible === true);
+                        }
+                    } catch (e) {
+                        console.error('Erreur lors de la vérification des toasts:', e);
+                    }
+                    
+                    // Vérifier aussi visuellement
+                    const toastElements = toastContainer.querySelectorAll('[x-show="toast.visible"]');
+                    console.log('Toast elements trouvés:', toastElements.length);
+                    toastElements.forEach((el, index) => {
+                        const style = window.getComputedStyle(el);
+                        const isVisible = style.display !== 'none' && 
+                                        style.visibility !== 'hidden' && 
+                                        parseFloat(style.opacity) > 0;
+                        console.log(`Toast ${index} visible:`, isVisible, 'display:', style.display, 'opacity:', style.opacity);
+                        if (isVisible) {
+                            hasVisibleToast = true;
+                        }
+                    });
+                }
+                
+                // Si aucun toast n'est visible, utiliser alert
+                if (!hasVisibleToast) {
+                    console.log('Aucun toast visible après 500ms, utilisation d\'alert comme fallback');
+                    alert(message);
+                } else {
+                    console.log('Toast visible détecté, pas d\'alert nécessaire');
+                }
+            }, 500);
+        },
+        openDelete(id) {
+            if (confirm('Êtes-vous sûr de vouloir supprimer cet objectif ?')) {
+                fetch(`/admin/objectives/${id}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                })
+                .then(async response => {
+                    let data = {};
+                    let errorText = '';
+                    
+                    try {
+                        const text = await response.text();
+                        try {
+                            data = JSON.parse(text);
+                        } catch (e) {
+                            errorText = text.substring(0, 500);
+                            console.error('Réponse non-JSON (erreur serveur):', errorText);
+                        }
+                    } catch (e) {
+                        console.error('Erreur lecture réponse:', e);
+                    }
+                    
+                    if (!response.ok) {
+                        let errorMessage = data.message || data.error;
+                        if (!errorMessage) {
+                            errorMessage = errorText 
+                                ? `Erreur ${response.status}: Le serveur a renvoyé une erreur.` 
+                                : `Erreur ${response.status}: ${response.statusText}`;
+                        }
+                        this.showMessage(errorMessage, 'error');
+                        return;
+                    }
+                    if (data.success) {
+                        this.showMessage(data.message || 'Objectif supprimé avec succès', 'success');
+                        setTimeout(() => location.reload(), 1000);
+                    } else {
+                        this.showMessage(data.message || data.error || 'Erreur lors de la suppression', 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    this.showMessage('Erreur de connexion', 'error');
+                });
+            }
+        },
+        saveObjective() {
+            const url = this.isEdit 
+                ? `/admin/objectives/${this.currentId}/update`
+                : '/admin/objectives/create';
+            const method = 'POST';
+            
+            // En mode création, n'envoyer que description, studentId, category
+            const dataToSend = this.isEdit 
+                ? this.formData
+                : {
+                    description: this.formData.description,
+                    studentId: this.formData.studentId,
+                    category: this.formData.category,
+                };
+            
+            fetch(url, {
+                method: method,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                body: JSON.stringify(dataToSend),
+            })
+            .then(async response => {
+                let data = {};
+                let errorText = '';
+                
+                // Essayer de parser en JSON d'abord
+                try {
+                    const text = await response.text();
+                    // Essayer de parser en JSON
+                    try {
+                        data = JSON.parse(text);
+                    } catch (e) {
+                        // Ce n'est pas du JSON, c'est probablement une page d'erreur HTML
+                        errorText = text.substring(0, 500);
+                        console.error('Réponse non-JSON (erreur serveur):', errorText);
+                    }
+                } catch (e) {
+                    console.error('Erreur lecture réponse:', e);
+                }
+                
+                if (!response.ok) {
+                    // Erreur HTTP (500, 404, etc.)
+                    let errorMessage = data.message || data.error;
+                    if (!errorMessage) {
+                        if (errorText) {
+                            errorMessage = `Erreur ${response.status}: Le serveur a renvoyé une erreur. Consultez la console pour plus de détails.`;
+                        } else {
+                            errorMessage = `Erreur ${response.status}: ${response.statusText}`;
+                        }
+                    }
+                    console.log('Erreur détectée, message:', errorMessage);
+                    console.log('Appel de showMessage avec:', errorMessage, 'error');
+                    this.showMessage(errorMessage, 'error');
+                    console.log('showMessage appelé');
+                    return;
+                }
+                if (data.success) {
+                    this.showMessage(data.message || (this.isEdit ? 'Objectif modifié avec succès' : 'Objectif créé avec succès'), 'success');
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    this.showMessage(data.message || data.error || (this.isEdit ? 'Erreur lors de la modification' : 'Erreur lors de la création'), 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                this.showMessage('Erreur de connexion: ' + error.message, 'error');
+            });
+        },
+        closeSheet() {
+            this.rightSheetOpen = false;
+            this.isEdit = false;
+            this.currentId = null;
+            this.currentTasks = [];
+            this.currentComments = [];
+        }
+    };
+}
+</script>
+{% endblock %}
+

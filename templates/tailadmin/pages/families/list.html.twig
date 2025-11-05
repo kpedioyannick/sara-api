@@ -1,0 +1,901 @@
+{% extends 'tailadmin/layouts/base.html.twig' %}
+
+{% block content %}
+<div 
+    x-data="familyManager()"
+    data-families='{{ families|json_encode|e('html_attr') }}'
+    class="p-4 mx-auto max-w-(--breakpoint-2xl) md:p-6"
+>
+    {% include 'tailadmin/components/breadcrumb.html.twig' %}
+
+    <div class="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
+        <div class="px-6 py-5 flex items-center justify-between">
+            <h3 class="text-base font-medium text-gray-800 dark:text-white/90">
+                Liste des Familles
+            </h3>
+            <button
+                @click="openCreate()"
+                class="inline-flex items-center gap-2 rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white shadow-theme-xs hover:bg-brand-600"
+            >
+                <svg class="fill-current" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                    <path d="M8 1a7 7 0 100 14A7 7 0 008 1zM7.5 4v4l3.5 2 .5-.866L8.5 7.5V4h-1z" fill="currentColor"/>
+                </svg>
+                Nouvelle Famille
+            </button>
+        </div>
+        <div class="border-t border-gray-100 p-4 dark:border-gray-800 sm:p-6">
+            <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
+                {% for family in families %}
+                <div>
+                    <div class="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] sm:p-6">
+                        <div class="mb-4 flex items-center justify-between">
+                            <span class="text-theme-xs font-medium text-gray-500 dark:text-gray-400">{{ family.identifier }}</span>
+                            {% if family.isActive %}
+                            <span class="inline-flex items-center rounded-full bg-success-100 px-2.5 py-0.5 text-xs font-medium text-success-600 dark:bg-success-900/30 dark:text-success-400">
+                                Actif
+                            </span>
+                            {% else %}
+                            <span class="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-600 dark:bg-gray-800 dark:text-gray-400">
+                                Inactif
+                            </span>
+                            {% endif %}
+                        </div>
+
+                        <h4 class="mb-3 text-theme-xl font-medium text-gray-800 dark:text-white/90">
+                            Famille {{ family.identifier }}
+                        </h4>
+
+                        <div class="mb-4 space-y-2">
+                            <div class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                                <svg class="fill-gray-400" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                                    <path d="M8 8a3 3 0 100-6 3 3 0 000 6zM8 10.5a5.5 5.5 0 00-5.5 5.5h11A5.5 5.5 0 008 10.5z" fill=""/>
+                                </svg>
+                                <span>Coach: {{ family.coachName }}</span>
+                            </div>
+                            <div class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                                <svg class="fill-gray-400" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                                    <path d="M8 8a3 3 0 100-6 3 3 0 000 6zM8 10.5a5.5 5.5 0 00-5.5 5.5h11A5.5 5.5 0 008 10.5z" fill=""/>
+                                </svg>
+                                <span>Parent: {{ family.parent.firstName }} {{ family.parent.lastName }}</span>
+                            </div>
+                            <div class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+                                <svg class="fill-gray-400" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                                    <path d="M8 1a7 7 0 100 14A7 7 0 008 1zM7.5 4v4l3.5 2 .5-.866L8.5 7.5V4h-1z" fill=""/>
+                                </svg>
+                                <span>Créée le {{ family.createdAt }}</span>
+                            </div>
+                        </div>
+
+                        <!-- Students Section -->
+                        <div class="mb-4 border-t border-gray-100 pt-4 dark:border-gray-800">
+                            <div class="mb-3 flex items-center justify-between">
+                                <h5 class="text-sm font-medium text-gray-700 dark:text-gray-300">Élèves ({{ family.students|length }})</h5>
+                                <button
+                                    @click="openStudentCreate({{ family.id }})"
+                                    class="inline-flex items-center gap-1 rounded-lg bg-brand-500 px-3 py-1.5 text-xs font-medium text-white shadow-theme-xs hover:bg-brand-600"
+                                >
+                                    <svg class="fill-current" width="14" height="14" viewBox="0 0 14 14" fill="none">
+                                        <path d="M7 1a6 6 0 100 12A6 6 0 007 1zM6.5 4v2.5H4v1h2.5V10h1V7.5H10v-1H7.5V4h-1z" fill="currentColor"/>
+                                    </svg>
+                                    Ajouter
+                                </button>
+                            </div>
+                            <div class="space-y-2">
+                                {% for student in family.students %}
+                                <div class="flex items-center justify-between rounded-lg border border-gray-200 bg-gray-50 p-3 dark:border-gray-700 dark:bg-gray-800/50">
+                                    <div class="flex-1">
+                                        <p class="text-sm font-medium text-gray-800 dark:text-white/90">{{ student.firstName }} {{ student.lastName }}</p>
+                                        <div class="mt-1 flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
+                                            <span>Pseudo: {{ student.pseudo }}</span>
+                                            {% if student.class %}
+                                            <span>•</span>
+                                            <span>{{ student.class }}</span>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    <button
+                                        @click="openStudentEdit({{ family.id }}, {{ student.id }})"
+                                        class="ml-2 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+                                    >
+                                        Éditer
+                                    </button>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+
+                        <div class="flex gap-2">
+                            <button
+                                @click="openParentEdit({{ family.id }})"
+                                class="flex-1 inline-flex items-center justify-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-theme-xs transition-colors hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+                            >
+                                <svg class="fill-current" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                                    <path d="M11.333 2.667a2.667 2.667 0 0 1 3.774 3.774l-8 8a2.667 2.667 0 0 1-1.886.78H2.667v-2.554a2.667 2.667 0 0 1 .78-1.886l8-8zm2.554 1.22L12.113 2.113a1.333 1.333 0 0 0-1.886 0L9.333 3.007l2.667 2.667 1.554-1.554a1.333 1.333 0 0 0 0-1.886z" fill=""/>
+                                </svg>
+                                Éditer Parent
+                            </button>
+                            <a href="#" class="flex-1 inline-flex items-center justify-center gap-2 rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white shadow-theme-xs hover:bg-brand-600">
+                                Voir détails
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Sheet Overlay -->
+    <div
+        x-show="rightSheetOpen"
+        @click="closeSheet()"
+        x-transition:enter="transition-opacity ease-out duration-300"
+        x-transition:enter-start="opacity-0"
+        x-transition:enter-end="opacity-100"
+        x-transition:leave="transition-opacity ease-in duration-200"
+        x-transition:leave-start="opacity-100"
+        x-transition:leave-end="opacity-0"
+        class="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm"
+        style="display: none;"
+    ></div>
+
+    <!-- Right Sheet Panel -->
+    <div
+        x-show="rightSheetOpen"
+        @click.away="closeSheet()"
+        x-transition:enter="transition-transform ease-out duration-300"
+        x-transition:enter-start="translate-x-full"
+        x-transition:enter-end="translate-x-0"
+        x-transition:leave="transition-transform ease-in duration-200"
+        x-transition:leave-start="translate-x-0"
+        x-transition:leave-end="translate-x-full"
+        class="fixed right-0 top-0 z-50 h-full w-full max-w-md overflow-y-auto bg-white shadow-2xl dark:bg-gray-900"
+        style="display: none;"
+    >
+        <!-- Parent Sheet -->
+        <template x-if="currentType === 'parent' && currentData">
+            <div class="flex h-full flex-col">
+                <!-- Header -->
+                <div class="sticky top-0 z-10 border-b border-gray-200 bg-white px-6 py-4 dark:border-gray-800 dark:bg-gray-900">
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">
+                            <span x-show="!editMode">Informations Parent</span>
+                            <span x-show="editMode">Modifier Parent</span>
+                        </h3>
+                        <button
+                            @click="closeSheet()"
+                            class="rounded-lg p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-300"
+                        >
+                            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Content -->
+                <div class="flex-1 p-6">
+                    <!-- View Mode -->
+                    <template x-if="!editMode">
+                        <div class="space-y-6">
+                            <div>
+                                <label class="text-sm font-medium text-gray-500 dark:text-gray-400">Prénom</label>
+                                <p class="mt-1 text-base text-gray-800 dark:text-white/90" x-text="currentData.firstName"></p>
+                            </div>
+                            <div>
+                                <label class="text-sm font-medium text-gray-500 dark:text-gray-400">Nom</label>
+                                <p class="mt-1 text-base text-gray-800 dark:text-white/90" x-text="currentData.lastName"></p>
+                            </div>
+                            <div>
+                                <label class="text-sm font-medium text-gray-500 dark:text-gray-400">Email</label>
+                                <p class="mt-1 text-base text-gray-800 dark:text-white/90" x-text="currentData.email"></p>
+                            </div>
+                            <div>
+                                <label class="text-sm font-medium text-gray-500 dark:text-gray-400">Téléphone</label>
+                                <p class="mt-1 text-base text-gray-800 dark:text-white/90" x-text="currentData.phone || 'Non renseigné'"></p>
+                            </div>
+                        </div>
+                    </template>
+
+                    <!-- Edit Mode -->
+                    <template x-if="editMode">
+                        <form class="space-y-6">
+                            <div>
+                                <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Prénom</label>
+                                <input
+                                    type="text"
+                                    x-model="currentData.firstName"
+                                    class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+                                />
+                            </div>
+                            <div>
+                                <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Nom</label>
+                                <input
+                                    type="text"
+                                    x-model="currentData.lastName"
+                                    class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+                                />
+                            </div>
+                            <div>
+                                <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Email</label>
+                                <input
+                                    type="email"
+                                    x-model="currentData.email"
+                                    class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+                                />
+                            </div>
+                            <div>
+                                <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Téléphone</label>
+                                <input
+                                    type="tel"
+                                    x-model="currentData.phone"
+                                    class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+                                />
+                            </div>
+                        </form>
+                    </template>
+                </div>
+
+                <!-- Footer -->
+                <div class="sticky bottom-0 border-t border-gray-200 bg-white px-6 py-4 dark:border-gray-800 dark:bg-gray-900">
+                    <div class="flex gap-3">
+                        <button
+                            x-show="!editMode"
+                            @click="toggleEdit()"
+                            class="flex-1 rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white shadow-theme-xs hover:bg-brand-600"
+                        >
+                            Modifier
+                        </button>
+                        <template x-if="editMode">
+                            <div class="flex flex-1 gap-3">
+                                <button
+                                    @click="toggleEdit()"
+                                    class="flex-1 rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+                                >
+                                    Annuler
+                                </button>
+                                <button
+                                    @click="saveParent()"
+                                    class="flex-1 rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white shadow-theme-xs hover:bg-brand-600"
+                                >
+                                    Enregistrer
+                                </button>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+            </div>
+        </template>
+
+        <!-- Create Family Sheet -->
+        <template x-if="currentType === 'create'">
+            <div class="flex h-full flex-col">
+                <!-- Header -->
+                <div class="sticky top-0 z-10 border-b border-gray-200 bg-white px-6 py-4 dark:border-gray-800 dark:bg-gray-900">
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">
+                            Créer une nouvelle famille
+                        </h3>
+                        <button
+                            @click="closeSheet()"
+                            class="rounded-lg p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-300"
+                        >
+                            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Content -->
+                <div class="flex-1 overflow-y-auto p-6">
+                    <form class="space-y-6" @submit.prevent="saveFamily()">
+                        <div class="border-t border-gray-200 pt-6 dark:border-gray-800">
+                            <h4 class="mb-4 text-sm font-semibold text-gray-800 dark:text-white/90">
+                                Informations du Parent
+                            </h4>
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                        Prénom <span class="text-error-500">*</span>
+                                    </label>
+                                    <input
+                                        type="text"
+                                        x-model="newFamilyData.parentFirstName"
+                                        required
+                                        placeholder="Prénom"
+                                        class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+                                    />
+                                </div>
+                                <div>
+                                    <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                        Nom <span class="text-error-500">*</span>
+                                    </label>
+                                    <input
+                                        type="text"
+                                        x-model="newFamilyData.parentLastName"
+                                        required
+                                        placeholder="Nom"
+                                        class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+                                    />
+                                </div>
+                                <div>
+                                    <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                        Email <span class="text-error-500">*</span>
+                                    </label>
+                                    <input
+                                        type="email"
+                                        x-model="newFamilyData.parentEmail"
+                                        required
+                                        placeholder="email@example.com"
+                                        class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+                                    />
+                                </div>
+                                <div>
+                                    <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                        Téléphone
+                                    </label>
+                                    <input
+                                        type="tel"
+                                        x-model="newFamilyData.parentPhone"
+                                        placeholder="06 12 34 56 78"
+                                        class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Footer -->
+                <div class="sticky bottom-0 border-t border-gray-200 bg-white px-6 py-4 dark:border-gray-800 dark:bg-gray-900">
+                    <div class="flex gap-3">
+                        <button
+                            @click="closeSheet()"
+                            class="flex-1 rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+                        >
+                            Annuler
+                        </button>
+                        <button
+                            @click="saveFamily()"
+                            class="flex-1 rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white shadow-theme-xs hover:bg-brand-600"
+                        >
+                            Créer la famille
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </template>
+
+        <!-- Create Student Sheet -->
+        <template x-if="currentType === 'create-student'">
+            <div class="flex h-full flex-col">
+                <!-- Header -->
+                <div class="sticky top-0 z-10 border-b border-gray-200 bg-white px-6 py-4 dark:border-gray-800 dark:bg-gray-900">
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">
+                            Ajouter un élève
+                        </h3>
+                        <button
+                            @click="closeSheet()"
+                            class="rounded-lg p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-300"
+                        >
+                            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Content -->
+                <div class="flex-1 overflow-y-auto p-6">
+                    <form class="space-y-6" @submit.prevent="saveStudent()">
+                        <div>
+                            <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                Prénom <span class="text-error-500">*</span>
+                            </label>
+                            <input
+                                type="text"
+                                x-model="newStudentData.firstName"
+                                @input="generatePseudo()"
+                                required
+                                placeholder="Prénom"
+                                class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+                            />
+                        </div>
+                        <div>
+                            <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                Nom <span class="text-error-500">*</span>
+                            </label>
+                            <input
+                                type="text"
+                                x-model="newStudentData.lastName"
+                                @input="generatePseudo()"
+                                required
+                                placeholder="Nom"
+                                class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+                            />
+                        </div>
+                        <div>
+                            <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                Pseudo <span class="text-error-500">*</span>
+                            </label>
+                            <input
+                                type="text"
+                                x-model="newStudentData.pseudo"
+                                required
+                                placeholder="pseudo"
+                                class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+                            />
+                            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                                Le pseudo sera utilisé pour l'email (pseudo@sara.education). Généré automatiquement à partir du prénom et du nom.
+                            </p>
+                        </div>
+                        <div>
+                            <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                Classe
+                            </label>
+                            <select
+                                x-model="newStudentData.class"
+                                class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+                            >
+                                <option value="">Sélectionner une classe</option>
+                                <optgroup label="École primaire">
+                                    <option value="CP">CP</option>
+                                    <option value="CE1">CE1</option>
+                                    <option value="CE2">CE2</option>
+                                    <option value="CM1">CM1</option>
+                                    <option value="CM2">CM2</option>
+                                </optgroup>
+                                <optgroup label="Collège">
+                                    <option value="6ème">6ème</option>
+                                    <option value="5ème">5ème</option>
+                                    <option value="4ème">4ème</option>
+                                    <option value="3ème">3ème</option>
+                                </optgroup>
+                                <optgroup label="Lycée">
+                                    <option value="2nde">2nde</option>
+                                    <option value="1ère">1ère</option>
+                                    <option value="Terminale">Terminale</option>
+                                </optgroup>
+                            </select>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Footer -->
+                <div class="sticky bottom-0 border-t border-gray-200 bg-white px-6 py-4 dark:border-gray-800 dark:bg-gray-900">
+                    <div class="flex gap-3">
+                        <button
+                            @click="closeSheet()"
+                            class="flex-1 rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+                        >
+                            Annuler
+                        </button>
+                        <button
+                            @click="saveStudent()"
+                            class="flex-1 rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white shadow-theme-xs hover:bg-brand-600"
+                        >
+                            Créer l'élève
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </template>
+
+        <!-- Student Sheet -->
+        <template x-if="currentType === 'student' && currentData">
+            <div class="flex h-full flex-col">
+                <!-- Header -->
+                <div class="sticky top-0 z-10 border-b border-gray-200 bg-white px-6 py-4 dark:border-gray-800 dark:bg-gray-900">
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">
+                            <span x-show="!editMode">Informations Élève</span>
+                            <span x-show="editMode">Modifier Élève</span>
+                        </h3>
+                        <button
+                            @click="closeSheet()"
+                            class="rounded-lg p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-300"
+                        >
+                            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Content -->
+                <div class="flex-1 p-6">
+                    <!-- View Mode -->
+                    <template x-if="!editMode">
+                        <div class="space-y-6">
+                            <div>
+                                <label class="text-sm font-medium text-gray-500 dark:text-gray-400">Prénom</label>
+                                <p class="mt-1 text-base text-gray-800 dark:text-white/90" x-text="currentData.firstName"></p>
+                            </div>
+                            <div>
+                                <label class="text-sm font-medium text-gray-500 dark:text-gray-400">Nom</label>
+                                <p class="mt-1 text-base text-gray-800 dark:text-white/90" x-text="currentData.lastName"></p>
+                            </div>
+                            <div>
+                                <label class="text-sm font-medium text-gray-500 dark:text-gray-400">Pseudo</label>
+                                <p class="mt-1 text-base text-gray-800 dark:text-white/90" x-text="currentData.pseudo"></p>
+                            </div>
+                            <div>
+                                <label class="text-sm font-medium text-gray-500 dark:text-gray-400">Classe</label>
+                                <p class="mt-1 text-base text-gray-800 dark:text-white/90" x-text="currentData.class || 'Non renseignée'"></p>
+                            </div>
+                        </div>
+                    </template>
+
+                    <!-- Edit Mode -->
+                    <template x-if="editMode">
+                        <form class="space-y-6">
+                            <div>
+                                <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Prénom</label>
+                                <input
+                                    type="text"
+                                    x-model="currentData.firstName"
+                                    class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+                                />
+                            </div>
+                            <div>
+                                <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Nom</label>
+                                <input
+                                    type="text"
+                                    x-model="currentData.lastName"
+                                    class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+                                />
+                            </div>
+                            <div>
+                                <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Pseudo</label>
+                                <input
+                                    type="text"
+                                    x-model="currentData.pseudo"
+                                    class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+                                />
+                            </div>
+                            <div>
+                                <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Classe</label>
+                                <select
+                                    x-model="currentData.class"
+                                    class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+                                >
+                                    <option value="">Sélectionner une classe</option>
+                                    <optgroup label="École primaire">
+                                        <option value="CP">CP</option>
+                                        <option value="CE1">CE1</option>
+                                        <option value="CE2">CE2</option>
+                                        <option value="CM1">CM1</option>
+                                        <option value="CM2">CM2</option>
+                                    </optgroup>
+                                    <optgroup label="Collège">
+                                        <option value="6ème">6ème</option>
+                                        <option value="5ème">5ème</option>
+                                        <option value="4ème">4ème</option>
+                                        <option value="3ème">3ème</option>
+                                    </optgroup>
+                                    <optgroup label="Lycée">
+                                        <option value="2nde">2nde</option>
+                                        <option value="1ère">1ère</option>
+                                        <option value="Terminale">Terminale</option>
+                                    </optgroup>
+                                </select>
+                            </div>
+                        </form>
+                    </template>
+                </div>
+
+                <!-- Footer -->
+                <div class="sticky bottom-0 border-t border-gray-200 bg-white px-6 py-4 dark:border-gray-800 dark:bg-gray-900">
+                    <div class="flex gap-3">
+                        <button
+                            x-show="!editMode"
+                            @click="toggleEdit()"
+                            class="flex-1 rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white shadow-theme-xs hover:bg-brand-600"
+                        >
+                            Modifier
+                        </button>
+                        <template x-if="editMode">
+                            <div class="flex flex-1 gap-3">
+                                <button
+                                    @click="toggleEdit()"
+                                    class="flex-1 rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+                                >
+                                    Annuler
+                                </button>
+                                <button
+                                    x-show="currentType === 'parent'"
+                                    @click="saveParent()"
+                                    class="flex-1 rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white shadow-theme-xs hover:bg-brand-600"
+                                >
+                                    Enregistrer
+                                </button>
+                                <button
+                                    x-show="currentType === 'student'"
+                                    @click="saveStudent()"
+                                    class="flex-1 rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white shadow-theme-xs hover:bg-brand-600"
+                                >
+                                    Enregistrer
+                                </button>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+            </div>
+        </template>
+    </div>
+</div>
+
+<script>
+function familyManager() {
+    return {
+        rightSheetOpen: false,
+        editMode: false,
+        currentType: '',
+        currentData: null,
+        familiesData: [],
+        newFamilyData: {
+            parentFirstName: '',
+            parentLastName: '',
+            parentEmail: '',
+            parentPhone: '',
+        },
+        newStudentData: {
+            firstName: '',
+            lastName: '',
+            pseudo: '',
+            class: '',
+        },
+        init() {
+            const familiesJson = this.$el.getAttribute('data-families');
+            if (familiesJson) {
+                this.familiesData = JSON.parse(familiesJson);
+            }
+        },
+        currentFamilyId: null,
+        currentStudentId: null,
+        openCreate() {
+            this.currentType = 'create';
+            this.newFamilyData = {
+                parentFirstName: '',
+                parentLastName: '',
+                parentEmail: '',
+                parentPhone: '',
+            };
+            this.rightSheetOpen = true;
+        },
+        saveFamily() {
+            if (!this.newFamilyData.parentFirstName || 
+                !this.newFamilyData.parentLastName || !this.newFamilyData.parentEmail) {
+                this.showMessage('Veuillez remplir tous les champs obligatoires', 'error');
+                return;
+            }
+
+            fetch('/admin/families/create', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                body: JSON.stringify({
+                    parent: {
+                        firstName: this.newFamilyData.parentFirstName,
+                        lastName: this.newFamilyData.parentLastName,
+                        email: this.newFamilyData.parentEmail,
+                        phone: this.newFamilyData.parentPhone || null,
+                    },
+                }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    this.showMessage(data.message || 'Famille créée avec succès', 'success');
+                    this.closeSheet();
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    this.showMessage(data.message || 'Erreur lors de la création', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                this.showMessage('Erreur de connexion', 'error');
+            });
+        },
+        openParentEdit(familyId) {
+            const family = this.familiesData.find(f => f.id === familyId);
+            if (family) {
+                this.currentType = 'parent';
+                this.currentFamilyId = familyId;
+                this.currentStudentId = null;
+                this.currentData = JSON.parse(JSON.stringify(family.parent));
+                this.editMode = false;
+                this.rightSheetOpen = true;
+            }
+        },
+        openStudentCreate(familyId) {
+            this.currentType = 'create-student';
+            this.currentFamilyId = familyId;
+            this.currentStudentId = null;
+            
+            // Récupérer le nom de famille du parent
+            const family = this.familiesData.find(f => f.id === familyId);
+            const parentLastName = family?.parent?.lastName || '';
+            
+            this.newStudentData = {
+                firstName: '',
+                lastName: parentLastName, // Préremplir avec le nom du parent
+                pseudo: '',
+                class: '',
+            };
+            this.rightSheetOpen = true;
+        },
+        generatePseudo() {
+            // Générer le pseudo automatiquement si prénom et nom sont remplis
+            if (this.newStudentData.firstName && this.newStudentData.lastName) {
+                // Normaliser : minuscules, remplacer espaces et caractères spéciaux
+                const firstName = this.newStudentData.firstName
+                    .toLowerCase()
+                    .normalize('NFD')
+                    .replace(/[\u0300-\u036f]/g, '') // Supprimer les accents
+                    .replace(/[^a-z0-9]/g, '') // Supprimer tout ce qui n'est pas alphanumérique
+                    .trim();
+                
+                const lastName = this.newStudentData.lastName
+                    .toLowerCase()
+                    .normalize('NFD')
+                    .replace(/[\u0300-\u036f]/g, '') // Supprimer les accents
+                    .replace(/[^a-z0-9]/g, '') // Supprimer tout ce qui n'est pas alphanumérique
+                    .trim();
+                
+                if (firstName && lastName) {
+                    this.newStudentData.pseudo = `${firstName}.${lastName}`;
+                }
+            }
+        },
+        openStudentEdit(familyId, studentId) {
+            const family = this.familiesData.find(f => f.id === familyId);
+            if (family) {
+                const student = family.students.find(s => s.id === studentId);
+                if (student) {
+                    this.currentType = 'student';
+                    this.currentFamilyId = familyId;
+                    this.currentStudentId = studentId;
+                    this.currentData = JSON.parse(JSON.stringify(student));
+                    this.editMode = false;
+                    this.rightSheetOpen = true;
+                }
+            }
+        },
+        saveStudent() {
+            // Si c'est une création
+            if (this.currentType === 'create-student') {
+                if (!this.currentFamilyId || !this.newStudentData.firstName || 
+                    !this.newStudentData.lastName || !this.newStudentData.pseudo) {
+                    this.showMessage('Veuillez remplir tous les champs obligatoires', 'error');
+                    return;
+                }
+
+                // Générer l'email à partir du pseudo
+                const email = this.newStudentData.pseudo + '@sara.education';
+
+                fetch(`/admin/families/${this.currentFamilyId}/students/create`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    body: JSON.stringify({
+                        firstName: this.newStudentData.firstName,
+                        lastName: this.newStudentData.lastName,
+                        pseudo: this.newStudentData.pseudo,
+                        email: email,
+                        class: this.newStudentData.class || '',
+                    }),
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        this.showMessage(data.message || 'Élève créé avec succès', 'success');
+                        this.closeSheet();
+                        setTimeout(() => location.reload(), 1000);
+                    } else {
+                        this.showMessage(data.message || 'Erreur lors de la création', 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    this.showMessage('Erreur de connexion', 'error');
+                });
+                return;
+            }
+
+            // Si c'est une modification (code existant)
+            if (!this.currentFamilyId || !this.currentStudentId || !this.currentData) return;
+            
+            fetch(`/admin/families/${this.currentFamilyId}/students/${this.currentStudentId}/update`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                body: JSON.stringify(this.currentData),
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    this.showMessage(data.message || 'Élève modifié avec succès', 'success');
+                    this.toggleEdit();
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    this.showMessage(data.message || 'Erreur lors de l\'enregistrement', 'error');
+                }
+            })
+            .catch(error => {
+                this.showMessage('Erreur de connexion', 'error');
+            });
+        },
+        saveParent() {
+            if (!this.currentFamilyId || !this.currentData) return;
+            
+            fetch(`/admin/families/${this.currentFamilyId}/parent/update`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                body: JSON.stringify(this.currentData),
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    this.showMessage(data.message || 'Parent modifié avec succès', 'success');
+                    this.toggleEdit();
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    this.showMessage(data.message || 'Erreur lors de l\'enregistrement', 'error');
+                }
+            })
+            .catch(error => {
+                this.showMessage('Erreur de connexion', 'error');
+            });
+        },
+        showMessage(message, type = 'info') {
+            // Utiliser la fonction globale showToast si disponible
+            if (typeof window.showToast === 'function') {
+                window.showToast(message, type);
+                return;
+            }
+            
+            // Sinon, essayer d'accéder directement au toast manager
+            const toastElement = document.querySelector('[x-data="toastManager()"]');
+            if (toastElement?.__x?.$data) {
+                toastElement.__x.$data.show(message, type);
+            } else {
+                // Fallback: utiliser un événement personnalisé
+                window.dispatchEvent(new CustomEvent('show-toast', { 
+                    detail: { message, type } 
+                }));
+            }
+        },
+        toggleEdit() {
+            this.editMode = !this.editMode;
+        },
+        closeSheet() {
+            this.rightSheetOpen = false;
+            this.editMode = false;
+            this.currentData = null;
+            this.currentFamilyId = null;
+            this.currentStudentId = null;
+            this.currentType = '';
+            this.newStudentData = {
+                firstName: '',
+                lastName: '',
+                pseudo: '',
+                class: '',
+            };
+        }
+    };
+}
+</script>
+{% endblock %}

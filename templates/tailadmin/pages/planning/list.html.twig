@@ -1,0 +1,447 @@
+{% extends 'tailadmin/layouts/base.html.twig' %}
+
+{% block content %}
+<div 
+    x-data="planningManager()"
+    data-students='{{ students|json_encode|e('html_attr') }}'
+    class="p-4 mx-auto max-w-(--breakpoint-2xl) md:p-6"
+>
+    {% include 'tailadmin/components/breadcrumb.html.twig' %}
+
+    <div class="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
+        <!-- Week Navigation Header -->
+        <div class="px-6 py-5 border-b border-gray-100 dark:border-gray-800">
+            <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                    <h3 class="text-base font-medium text-gray-800 dark:text-white/90">
+                        Planning hebdomadaire
+                    </h3>
+                    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400" id="week-range">
+                        {{ weekRange }}
+                    </p>
+                </div>
+                <div class="flex items-center gap-3">
+                    <!-- Navigation buttons -->
+                    <div class="flex items-center gap-2 rounded-lg border border-gray-200 bg-white p-1 dark:border-gray-700 dark:bg-gray-800">
+                        <a
+                            href="{{ path('admin_planning_list', {'week': prevWeek}) }}"
+                            class="flex h-9 w-9 items-center justify-center rounded-lg text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-300"
+                            title="Semaine précédente"
+                        >
+                            <svg class="fill-current" width="20" height="20" viewBox="0 0 20 20" fill="none">
+                                <path d="M12.5 15L7.5 10L12.5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </a>
+                        <a
+                            href="{{ path('admin_planning_list', {'week': 0}) }}"
+                            class="px-3 py-1.5 text-sm font-medium text-gray-700 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white"
+                            title="Cette semaine"
+                        >
+                            Aujourd'hui
+                        </a>
+                        <a
+                            href="{{ path('admin_planning_list', {'week': nextWeek}) }}"
+                            class="flex h-9 w-9 items-center justify-center rounded-lg text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-300"
+                            title="Semaine suivante"
+                        >
+                            <svg class="fill-current" width="20" height="20" viewBox="0 0 20 20" fill="none">
+                                <path d="M7.5 15L12.5 10L7.5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </a>
+                    </div>
+                    <button
+                        @click="openCreate()"
+                        class="inline-flex items-center gap-2 rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white shadow-theme-xs hover:bg-brand-600"
+                    >
+                        <svg class="fill-current" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                            <path d="M8 1a7 7 0 100 14A7 7 0 008 1zM7.5 4v4l3.5 2 .5-.866L8.5 7.5V4h-1z" fill=""/>
+                        </svg>
+                        Nouvel événement
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Weekly Calendar Grid -->
+        <div class="p-4 sm:p-6">
+            <div class="grid grid-cols-1 gap-4 lg:grid-cols-7">
+                {% for day in weekDays %}
+                <div class="rounded-xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
+                    <!-- Day Header -->
+                    <div class="border-b border-gray-100 bg-gray-50 px-4 py-3 dark:border-gray-800 dark:bg-gray-900/50">
+                        <div class="text-center">
+                            <p class="text-sm font-medium text-gray-600 dark:text-gray-400">{{ day.name }}</p>
+                            <p class="mt-1 text-lg font-semibold text-gray-800 dark:text-white/90">{{ day.day }}/{{ day.month }}</p>
+                        </div>
+                    </div>
+
+                    <!-- Events List -->
+                    <div class="min-h-[200px] p-3 space-y-2">
+                        {% if day.events|length > 0 %}
+                            {% for event in day.events %}
+                            <div class="group rounded-lg border border-gray-200 bg-white p-3 transition-all hover:shadow-theme-xs dark:border-gray-700 dark:bg-gray-800/50">
+                                <div class="mb-2 flex items-start justify-between">
+                                    <div class="flex-1">
+                                        <h4 class="text-sm font-semibold text-gray-800 dark:text-white/90 line-clamp-1">
+                                            {{ event.title }}
+                                        </h4>
+                                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                                            {{ event.studentName }}
+                                        </p>
+                                    </div>
+                                    {% if event.status == 'completed' %}
+                                    <span class="inline-flex items-center rounded-full bg-success-100 px-2 py-0.5 text-xs font-medium text-success-600 dark:bg-success-900/30 dark:text-success-400">
+                                        Terminé
+                                    </span>
+                                    {% elseif event.status == 'in_progress' %}
+                                    <span class="inline-flex items-center rounded-full bg-brand-100 px-2 py-0.5 text-xs font-medium text-brand-600 dark:bg-brand-900/30 dark:text-brand-400">
+                                        En cours
+                                    </span>
+                                    {% else %}
+                                    <span class="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600 dark:bg-gray-800 dark:text-gray-400">
+                                        Planifié
+                                    </span>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+                                    <svg class="fill-current" width="14" height="14" viewBox="0 0 16 16" fill="none">
+                                        <path d="M8 1a7 7 0 100 14A7 7 0 008 1zM7.5 4v4l3.5 2 .5-.866L8.5 7.5V4h-1z" fill=""/>
+                                    </svg>
+                                    {% set startTime = event.startDate|split(' ')[1]|slice(0, 5) %}
+                                    {% set endTime = event.endDate|split(' ')[1]|slice(0, 5) %}
+                                    <span>{{ startTime }} - {{ endTime }}</span>
+                                </div>
+                                
+                                <div class="mt-2 flex items-center justify-between">
+                                    <span class="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600 dark:bg-gray-800 dark:text-gray-400">
+                                        {{ event.type|upper }}
+                                    </span>
+                                    <div class="flex gap-1">
+                                        <button
+                                            @click="openEdit({{ event.id }}, '{{ event.title|e('js') }}', '{{ event.startDate }}', '{{ event.endDate }}', {{ event.studentId }}, '{{ event.type }}', '{{ event.status }}')"
+                                            class="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-700"
+                                            title="Modifier"
+                                        >
+                                            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                            </svg>
+                                        </button>
+                                        <button
+                                            @click="openDelete({{ event.id }})"
+                                            class="rounded p-1 text-red-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20"
+                                            title="Supprimer"
+                                        >
+                                            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                            </svg>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="flex h-full min-h-[150px] items-center justify-center text-center">
+                                <div class="text-gray-400 dark:text-gray-500">
+                                    <svg class="mx-auto h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                    </svg>
+                                    <p class="mt-2 text-sm">Aucun événement</p>
+                                </div>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Summary Footer -->
+        <div class="border-t border-gray-100 bg-gray-50 px-6 py-4 dark:border-gray-800 dark:bg-gray-900/50">
+            <div class="flex flex-wrap items-center justify-between gap-4">
+                <div class="flex flex-wrap items-center gap-4">
+                    <div class="flex items-center gap-2">
+                        <div class="h-3 w-3 rounded-full bg-brand-500"></div>
+                        <span class="text-sm text-gray-600 dark:text-gray-400">Planifié</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <div class="h-3 w-3 rounded-full bg-brand-600"></div>
+                        <span class="text-sm text-gray-600 dark:text-gray-400">En cours</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <div class="h-3 w-3 rounded-full bg-success-500"></div>
+                        <span class="text-sm text-gray-600 dark:text-gray-400">Terminé</span>
+                    </div>
+                </div>
+                <div class="text-sm text-gray-600 dark:text-gray-400">
+                    <span class="font-medium">Total événements cette semaine:</span>
+                    <span class="ml-2 font-semibold text-brand-600 dark:text-brand-400">
+                        {% set totalEvents = 0 %}
+                        {% for day in weekDays %}
+                            {% set totalEvents = totalEvents + day.events|length %}
+                        {% endfor %}
+                        {{ totalEvents }}
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Sheet -->
+    <div
+        x-show="rightSheetOpen"
+        @click="closeSheet()"
+        x-transition:enter="transition-opacity ease-out duration-300"
+        x-transition:enter-start="opacity-0"
+        x-transition:enter-end="opacity-100"
+        x-transition:leave="transition-opacity ease-in duration-200"
+        x-transition:leave-start="opacity-100"
+        x-transition:leave-end="opacity-0"
+        class="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm"
+        style="display: none;"
+    ></div>
+
+    <div
+        x-show="rightSheetOpen"
+        @click.away="closeSheet()"
+        x-transition:enter="transition-transform ease-out duration-300"
+        x-transition:enter-start="translate-x-full"
+        x-transition:enter-end="translate-x-0"
+        x-transition:leave="transition-transform ease-in duration-200"
+        x-transition:leave-start="translate-x-0"
+        x-transition:leave-end="translate-x-full"
+        class="fixed right-0 top-0 z-50 h-full w-full max-w-md overflow-y-auto bg-white shadow-2xl dark:bg-gray-900"
+        style="display: none;"
+    >
+        <div class="flex h-full flex-col">
+            <div class="sticky top-0 z-10 border-b border-gray-200 bg-white px-6 py-4 dark:border-gray-800 dark:bg-gray-900">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">
+                        <span x-show="!isEdit">Nouvel Événement</span>
+                        <span x-show="isEdit">Modifier Événement</span>
+                    </h3>
+                    <button
+                        @click="closeSheet()"
+                        class="rounded-lg p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-300"
+                    >
+                        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <div class="flex-1 p-6">
+                <form @submit.prevent="saveEvent()" class="space-y-6">
+                    <div>
+                        <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Titre *</label>
+                        <input
+                            type="text"
+                            x-model="formData.title"
+                            required
+                            class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+                        />
+                    </div>
+                    <div>
+                        <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Description</label>
+                        <textarea
+                            x-model="formData.description"
+                            rows="3"
+                            class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+                        ></textarea>
+                    </div>
+                    <div>
+                        <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Type *</label>
+                        <select
+                            x-model="formData.type"
+                            required
+                            class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+                        >
+                            <option value="">Sélectionner...</option>
+                            <option value="course">Cours</option>
+                            <option value="revision">Révision</option>
+                            <option value="homework">Devoir</option>
+                            <option value="activity">Activité</option>
+                            <option value="assessment">Évaluation</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Statut *</label>
+                        <select
+                            x-model="formData.status"
+                            required
+                            class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+                        >
+                            <option value="scheduled">Planifié</option>
+                            <option value="in_progress">En cours</option>
+                            <option value="to_do">À faire</option>
+                            <option value="completed">Terminé</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Élève *</label>
+                        <select
+                            x-model="formData.studentId"
+                            required
+                            class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+                        >
+                            <option value="">Sélectionner un élève...</option>
+                            <template x-for="student in studentsData" :key="student.id">
+                                <option :value="student.id" x-text="student.firstName + ' ' + student.lastName"></option>
+                            </template>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Date et heure de début *</label>
+                        <input
+                            type="datetime-local"
+                            x-model="formData.startDate"
+                            required
+                            class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+                        />
+                    </div>
+                    <div>
+                        <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Date et heure de fin *</label>
+                        <input
+                            type="datetime-local"
+                            x-model="formData.endDate"
+                            required
+                            class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+                        />
+                    </div>
+                </form>
+            </div>
+
+            <div class="sticky bottom-0 border-t border-gray-200 bg-white px-6 py-4 dark:border-gray-800 dark:bg-gray-900">
+                <div class="flex gap-3">
+                    <button
+                        @click="closeSheet()"
+                        class="flex-1 rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+                    >
+                        Annuler
+                    </button>
+                    <button
+                        @click="saveEvent()"
+                        class="flex-1 rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white shadow-theme-xs hover:bg-brand-600"
+                    >
+                        Enregistrer
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function planningManager() {
+    return {
+        rightSheetOpen: false,
+        isEdit: false,
+        currentId: null,
+        formData: {
+            title: '',
+            description: '',
+            type: '',
+            status: 'scheduled',
+            studentId: '',
+            startDate: '',
+            endDate: '',
+        },
+        studentsData: [],
+        init() {
+            const studentsJson = this.$el.getAttribute('data-students');
+            if (studentsJson) {
+                this.studentsData = JSON.parse(studentsJson);
+            }
+        },
+        openCreate() {
+            this.isEdit = false;
+            this.currentId = null;
+            this.formData = {
+                title: '',
+                description: '',
+                type: '',
+                status: 'scheduled',
+                studentId: '',
+                startDate: '',
+                endDate: '',
+            };
+            this.rightSheetOpen = true;
+        },
+        openEdit(id, title, startDate, endDate, studentId, type, status) {
+            this.isEdit = true;
+            this.currentId = id;
+            this.formData = {
+                title: title || '',
+                description: '',
+                type: type || '',
+                status: status || 'scheduled',
+                studentId: studentId || '',
+                startDate: startDate ? new Date(startDate).toISOString().slice(0, 16) : '',
+                endDate: endDate ? new Date(endDate).toISOString().slice(0, 16) : '',
+            };
+            this.rightSheetOpen = true;
+        },
+        openDelete(id) {
+            if (confirm('Êtes-vous sûr de vouloir supprimer cet événement ?')) {
+                fetch(`/admin/planning/${id}`, {
+                    method: 'DELETE',
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        this.showMessage(data.message || 'Événement supprimé avec succès', 'success');
+                        setTimeout(() => location.reload(), 1000);
+                    } else {
+                        this.showMessage(data.message || 'Erreur lors de la suppression', 'error');
+                    }
+                })
+                .catch(error => {
+                    this.showMessage('Erreur de connexion', 'error');
+                });
+            }
+        },
+        saveEvent() {
+            const url = this.isEdit 
+                ? `/admin/planning/${this.currentId}/update`
+                : '/admin/planning/create';
+            
+            fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                body: JSON.stringify(this.formData),
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    this.showMessage(data.message || 'Événement enregistré avec succès', 'success');
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    this.showMessage(data.message || 'Erreur lors de l\'enregistrement', 'error');
+                }
+            })
+            .catch(error => {
+                this.showMessage('Erreur de connexion', 'error');
+            });
+        },
+        showMessage(message, type = 'info') {
+            const toastManager = document.querySelector('[x-data="toastManager()"]')?.__x?.$data;
+            if (toastManager) {
+                toastManager.show(message, type);
+            } else {
+                alert(message);
+            }
+        },
+        closeSheet() {
+            this.rightSheetOpen = false;
+            this.isEdit = false;
+            this.currentId = null;
+        }
+    };
+}
+</script>
+{% endblock %}

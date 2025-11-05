@@ -1,0 +1,437 @@
+{% extends 'tailadmin/layouts/base.html.twig' %}
+
+{% block content %}
+<div 
+    x-data="availabilityManager()"
+    data-availabilities='{{ availabilities|json_encode|e('html_attr') }}'
+    data-students='{{ students|json_encode|e('html_attr') }}'
+    data-parents='{{ parents|json_encode|e('html_attr') }}'
+    data-specialists='{{ specialists|json_encode|e('html_attr') }}'
+    class="p-4 mx-auto max-w-(--breakpoint-2xl) md:p-6"
+>
+    {% include 'tailadmin/components/breadcrumb.html.twig' %}
+
+    <div class="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
+        <div class="px-6 py-5 border-b border-gray-100 dark:border-gray-800">
+            <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                    <h3 class="text-base font-medium text-gray-800 dark:text-white/90">
+                        Sélection des créneaux horaires
+                    </h3>
+                    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                        Cliquez sur les créneaux pour sélectionner vos disponibilités
+                    </p>
+                </div>
+                <div class="flex items-center gap-3">
+                    <button
+                        @click="openCreate()"
+                        class="inline-flex items-center gap-2 rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white shadow-theme-xs hover:bg-brand-600"
+                    >
+                        <svg class="fill-current" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                            <path d="M8 1a7 7 0 100 14A7 7 0 008 1zM7.5 4v4l3.5 2 .5-.866L8.5 7.5V4h-1z" fill=""/>
+                        </svg>
+                        Nouveau créneau
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="p-4 sm:p-6">
+            <div class="grid grid-cols-1 gap-6 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+                {% for dayData in weekDays %}
+                <div class="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-white/[0.03]">
+                    <!-- Day Header -->
+                    <div class="mb-4 flex items-center justify-between border-b border-gray-100 pb-3 dark:border-gray-800">
+                        <h4 class="text-lg font-semibold text-gray-800 dark:text-white/90">{{ dayData.day }}</h4>
+                        <span class="text-theme-xs font-medium text-gray-500 dark:text-gray-400">
+                            {% set selectedCount = dayData.slots|filter(s => s.selected)|length %}
+                            {{ selectedCount }} / {{ dayData.slots|length }}
+                        </span>
+                    </div>
+
+                    <!-- Time Slots Grid -->
+                    <div class="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-2 xl:grid-cols-3">
+                        {% for slot in dayData.slots %}
+                        <button
+                            type="button"
+                            @click="openEdit({{ slot.id ?? 'null' }}, '{{ dayData.day }}', '{{ slot.time }}')"
+                            class="group relative flex items-center justify-center rounded-lg border px-3 py-2.5 text-sm font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900 {% if slot.selected %}bg-brand-500 text-white border-brand-600 shadow-theme-xs hover:bg-brand-600{% else %}bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700 dark:hover:bg-gray-700{% endif %}"
+                        >
+                            <span class="text-xs sm:text-sm">{{ slot.time }}</span>
+                            {% if slot.selected %}
+                            <svg 
+                                class="absolute -top-1 -right-1 h-4 w-4 fill-brand-600 dark:fill-brand-400" 
+                                width="16" 
+                                height="16" 
+                                viewBox="0 0 16 16"
+                            >
+                                <path d="M8 0a8 8 0 100 16A8 8 0 008 0zm3.5 6.5L7 11 4.5 8.5l1.414-1.414L7 8.172l3.086-3.086L11.5 6.5z" fill=""/>
+                            </svg>
+                            {% endif %}
+                        </button>
+                        {% endfor %}
+                    </div>
+
+                    <!-- Quick Actions -->
+                    <div class="mt-4 flex items-center gap-2 border-t border-gray-100 pt-3 dark:border-gray-800">
+                        <button
+                            @click="selectAllDay('{{ dayData.day }}')"
+                            class="flex-1 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+                        >
+                            Tout sélectionner
+                        </button>
+                        <button
+                            @click="deselectAllDay('{{ dayData.day }}')"
+                            class="flex-1 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+                        >
+                            Tout désélectionner
+                        </button>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Summary Section -->
+        <div class="border-t border-gray-100 bg-gray-50 px-6 py-4 dark:border-gray-800 dark:bg-gray-900/50">
+            <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div class="flex flex-wrap items-center gap-4">
+                    <div class="flex items-center gap-2">
+                        <div class="h-4 w-4 rounded border-2 border-brand-500 bg-brand-500"></div>
+                        <span class="text-sm text-gray-600 dark:text-gray-400">Sélectionné</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <div class="h-4 w-4 rounded border-2 border-gray-300 bg-gray-50 dark:border-gray-700 dark:bg-gray-800"></div>
+                        <span class="text-sm text-gray-600 dark:text-gray-400">Non sélectionné</span>
+                    </div>
+                </div>
+                <div class="text-sm text-gray-600 dark:text-gray-400">
+                    <span class="font-medium">Total sélectionné:</span>
+                    <span class="ml-2 font-semibold text-brand-600 dark:text-brand-400">
+                        {% set totalSelected = 0 %}
+                        {% for dayData in weekDays %}
+                            {% for slot in dayData.slots %}
+                                {% if slot.selected %}
+                                    {% set totalSelected = totalSelected + 1 %}
+                                {% endif %}
+                            {% endfor %}
+                        {% endfor %}
+                        {{ totalSelected }}
+                    </span>
+                    <span>créneaux</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Sheet -->
+    <div
+        x-show="rightSheetOpen"
+        @click="closeSheet()"
+        x-transition:enter="transition-opacity ease-out duration-300"
+        x-transition:enter-start="opacity-0"
+        x-transition:enter-end="opacity-100"
+        x-transition:leave="transition-opacity ease-in duration-200"
+        x-transition:leave-start="opacity-100"
+        x-transition:leave-end="opacity-0"
+        class="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm"
+        style="display: none;"
+    ></div>
+
+    <div
+        x-show="rightSheetOpen"
+        @click.away="closeSheet()"
+        x-transition:enter="transition-transform ease-out duration-300"
+        x-transition:enter-start="translate-x-full"
+        x-transition:enter-end="translate-x-0"
+        x-transition:leave="transition-transform ease-in duration-200"
+        x-transition:leave-start="translate-x-0"
+        x-transition:leave-end="translate-x-full"
+        class="fixed right-0 top-0 z-50 h-full w-full max-w-md overflow-y-auto bg-white shadow-2xl dark:bg-gray-900"
+        style="display: none;"
+    >
+        <div class="flex h-full flex-col">
+            <div class="sticky top-0 z-10 border-b border-gray-200 bg-white px-6 py-4 dark:border-gray-800 dark:bg-gray-900">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">
+                        <span x-show="!isEdit">Nouveau Créneau</span>
+                        <span x-show="isEdit">Modifier Créneau</span>
+                    </h3>
+                    <button
+                        @click="closeSheet()"
+                        class="rounded-lg p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-300"
+                    >
+                        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <div class="flex-1 p-6">
+                <form @submit.prevent="saveAvailability()" class="space-y-6">
+                    <div>
+                        <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Jour de la semaine *</label>
+                        <select
+                            x-model="formData.dayOfWeek"
+                            required
+                            class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+                        >
+                            <option value="">Sélectionner...</option>
+                            <option value="monday">Lundi</option>
+                            <option value="tuesday">Mardi</option>
+                            <option value="wednesday">Mercredi</option>
+                            <option value="thursday">Jeudi</option>
+                            <option value="friday">Vendredi</option>
+                            <option value="saturday">Samedi</option>
+                            <option value="sunday">Dimanche</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Heure de début *</label>
+                        <input
+                            type="time"
+                            x-model="formData.startTime"
+                            required
+                            class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+                        />
+                    </div>
+                    <div>
+                        <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Heure de fin *</label>
+                        <input
+                            type="time"
+                            x-model="formData.endTime"
+                            required
+                            class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+                        />
+                    </div>
+                    <div>
+                        <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Type de propriétaire *</label>
+                        <select
+                            x-model="formData.ownerType"
+                            @change="formData.ownerId = ''"
+                            required
+                            class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+                        >
+                            <option value="">Sélectionner...</option>
+                            <option value="coach">Coach</option>
+                            <option value="specialist">Spécialiste</option>
+                            <option value="parent">Parent</option>
+                            <option value="student">Élève</option>
+                        </select>
+                    </div>
+                    <div x-show="formData.ownerType === 'specialist'">
+                        <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Spécialiste</label>
+                        <select
+                            x-model="formData.ownerId"
+                            class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+                        >
+                            <option value="">Sélectionner...</option>
+                            <template x-for="specialist in specialistsData" :key="specialist.id">
+                                <option :value="specialist.id" x-text="specialist.firstName + ' ' + specialist.lastName"></option>
+                            </template>
+                        </select>
+                    </div>
+                    <div x-show="formData.ownerType === 'parent'">
+                        <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Parent</label>
+                        <select
+                            x-model="formData.ownerId"
+                            class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+                        >
+                            <option value="">Sélectionner...</option>
+                            <template x-for="parent in parentsData" :key="parent.id">
+                                <option :value="parent.id" x-text="parent.firstName + ' ' + parent.lastName"></option>
+                            </template>
+                        </select>
+                    </div>
+                    <div x-show="formData.ownerType === 'student'">
+                        <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Élève</label>
+                        <select
+                            x-model="formData.ownerId"
+                            class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+                        >
+                            <option value="">Sélectionner...</option>
+                            <template x-for="student in studentsData" :key="student.id">
+                                <option :value="student.id" x-text="student.firstName + ' ' + student.lastName"></option>
+                            </template>
+                        </select>
+                    </div>
+                </form>
+            </div>
+
+            <div class="sticky bottom-0 border-t border-gray-200 bg-white px-6 py-4 dark:border-gray-800 dark:bg-gray-900">
+                <div class="flex gap-3">
+                    <button
+                        x-show="isEdit"
+                        @click="openDelete()"
+                        class="rounded-lg border border-red-200 bg-white px-4 py-2.5 text-sm font-medium text-red-600 shadow-theme-xs hover:bg-red-50 dark:border-red-800 dark:bg-gray-800 dark:text-red-400 dark:hover:bg-red-900/20"
+                    >
+                        Supprimer
+                    </button>
+                    <button
+                        @click="closeSheet()"
+                        class="flex-1 rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+                    >
+                        Annuler
+                    </button>
+                    <button
+                        @click="saveAvailability()"
+                        class="flex-1 rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white shadow-theme-xs hover:bg-brand-600"
+                    >
+                        Enregistrer
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function availabilityManager() {
+    return {
+        rightSheetOpen: false,
+        isEdit: false,
+        currentId: null,
+        formData: {
+            dayOfWeek: '',
+            startTime: '',
+            endTime: '',
+            ownerType: 'coach',
+            ownerId: '',
+        },
+        availabilitiesData: [],
+        studentsData: [],
+        parentsData: [],
+        specialistsData: [],
+        init() {
+            const availabilitiesJson = this.$el.getAttribute('data-availabilities');
+            const studentsJson = this.$el.getAttribute('data-students');
+            const parentsJson = this.$el.getAttribute('data-parents');
+            const specialistsJson = this.$el.getAttribute('data-specialists');
+            if (availabilitiesJson) this.availabilitiesData = JSON.parse(availabilitiesJson);
+            if (studentsJson) this.studentsData = JSON.parse(studentsJson);
+            if (parentsJson) this.parentsData = JSON.parse(parentsJson);
+            if (specialistsJson) this.specialistsData = JSON.parse(specialistsJson);
+        },
+        openCreate() {
+            this.isEdit = false;
+            this.currentId = null;
+            this.formData = {
+                dayOfWeek: '',
+                startTime: '',
+                endTime: '',
+                ownerType: 'coach',
+                ownerId: '',
+            };
+            this.rightSheetOpen = true;
+        },
+        openEdit(id, day, time) {
+            if (!id) {
+                this.openCreate();
+                const dayMap = {
+                    'Lundi': 'monday', 'Mardi': 'tuesday', 'Mercredi': 'wednesday',
+                    'Jeudi': 'thursday', 'Vendredi': 'friday', 'Samedi': 'saturday', 'Dimanche': 'sunday'
+                };
+                this.formData.dayOfWeek = dayMap[day] || '';
+                this.formData.startTime = time;
+                const [hours, minutes] = time.split(':');
+                const endHour = parseInt(hours) + 1;
+                this.formData.endTime = `${endHour.toString().padStart(2, '0')}:${minutes}`;
+                return;
+            }
+            const availability = this.availabilitiesData.find(a => a.id === id);
+            if (availability) {
+                this.isEdit = true;
+                this.currentId = id;
+                this.formData = {
+                    dayOfWeek: availability.dayOfWeek || '',
+                    startTime: availability.startTime || '',
+                    endTime: availability.endTime || '',
+                    ownerType: availability.ownerType || 'coach',
+                    ownerId: '',
+                };
+                this.rightSheetOpen = true;
+            }
+        },
+        openDelete() {
+            if (this.currentId && confirm('Êtes-vous sûr de vouloir supprimer ce créneau ?')) {
+                fetch(`/admin/availabilities/${this.currentId}`, {
+                    method: 'DELETE',
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        this.showMessage(data.message || 'Créneau supprimé avec succès', 'success');
+                        setTimeout(() => location.reload(), 1000);
+                    } else {
+                        this.showMessage(data.message || 'Erreur lors de la suppression', 'error');
+                    }
+                });
+            }
+        },
+        saveAvailability() {
+            const data = {
+                dayOfWeek: this.formData.dayOfWeek,
+                startTime: this.formData.startTime + ':00',
+                endTime: this.formData.endTime + ':00',
+            };
+            
+            if (this.formData.ownerType === 'coach') {
+                data.coachId = true;
+            } else if (this.formData.ownerType === 'specialist') {
+                data.specialistId = this.formData.ownerId;
+            } else if (this.formData.ownerType === 'parent') {
+                data.parentId = this.formData.ownerId;
+            } else if (this.formData.ownerType === 'student') {
+                data.studentId = this.formData.ownerId;
+            }
+            
+            const url = this.isEdit 
+                ? `/admin/availabilities/${this.currentId}/update`
+                : '/admin/availabilities/create';
+            
+            fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                body: JSON.stringify(data),
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    this.showMessage(data.message || 'Créneau enregistré avec succès', 'success');
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    this.showMessage(data.message || 'Erreur lors de l\'enregistrement', 'error');
+                }
+            })
+            .catch(error => {
+                this.showMessage('Erreur de connexion', 'error');
+            });
+        },
+        selectAllDay(day) {
+            // À implémenter si nécessaire
+        },
+        deselectAllDay(day) {
+            // À implémenter si nécessaire
+        },
+        showMessage(message, type = 'info') {
+            const toastManager = document.querySelector('[x-data="toastManager()"]')?.__x?.$data;
+            if (toastManager) {
+                toastManager.show(message, type);
+            } else {
+                alert(message);
+            }
+        },
+        closeSheet() {
+            this.rightSheetOpen = false;
+            this.isEdit = false;
+            this.currentId = null;
+        }
+    };
+}
+</script>
+{% endblock %}

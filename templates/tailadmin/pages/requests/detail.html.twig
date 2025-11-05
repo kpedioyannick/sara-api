@@ -1,0 +1,267 @@
+{% extends 'tailadmin/layouts/base.html.twig' %}
+
+{% block content %}
+<div class="mx-auto max-w-screen-2xl p-4 md:p-6 2xl:p-10">
+    {% include 'tailadmin/components/breadcrumb.html.twig' with { items: breadcrumbs } %}
+
+    <!-- Request Details Card -->
+    <div class="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03] mb-6">
+        <div class="p-4 xl:p-6">
+            <div class="flex items-start justify-between mb-4">
+                <div class="flex-1">
+                    <h3 class="text-2xl font-semibold text-gray-800 dark:text-white/90 mb-2">
+                        {{ request.title }}
+                    </h3>
+                    <div class="flex flex-wrap items-center gap-3 mb-4">
+                        <span class="inline-flex rounded-full bg-brand-50 px-3 py-1 text-sm font-medium text-brand-500 dark:bg-brand-500/15 dark:text-brand-400">
+                            {{ request.type|upper }}
+                        </span>
+                        {% if request.priority == 'high' %}
+                        <span class="inline-flex items-center rounded-full bg-error-100 px-2.5 py-0.5 text-xs font-medium text-error-600 dark:bg-error-900/30 dark:text-error-400">
+                            Priorité: Haute
+                        </span>
+                        {% elseif request.priority == 'medium' %}
+                        <span class="inline-flex items-center rounded-full bg-warning-100 px-2.5 py-0.5 text-xs font-medium text-warning-600 dark:bg-warning-900/30 dark:text-warning-400">
+                            Priorité: Moyenne
+                        </span>
+                        {% else %}
+                        <span class="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-600 dark:bg-gray-800 dark:text-gray-400">
+                            Priorité: Basse
+                        </span>
+                        {% endif %}
+                        {% if request.status == 'resolved' %}
+                        <span class="inline-flex items-center rounded-full bg-success-100 px-2.5 py-0.5 text-xs font-medium text-success-600 dark:bg-success-900/30 dark:text-success-400">
+                            Résolue
+                        </span>
+                        {% elseif request.status == 'in_progress' %}
+                        <span class="inline-flex items-center rounded-full bg-brand-100 px-2.5 py-0.5 text-xs font-medium text-brand-600 dark:bg-brand-900/30 dark:text-brand-400">
+                            En cours
+                        </span>
+                        {% else %}
+                        <span class="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-600 dark:bg-gray-800 dark:text-gray-400">
+                            En attente
+                        </span>
+                        {% endif %}
+                    </div>
+                </div>
+                <a href="{{ path('admin_requests_list') }}" class="inline-flex items-center gap-2 rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-white/[0.03]">
+                    <svg class="fill-current" width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path fill-rule="evenodd" clip-rule="evenodd" d="M9.70711 16.7071C9.31658 17.0976 8.68342 17.0976 8.29289 16.7071L2.29289 10.7071C1.90237 10.3166 1.90237 9.68342 2.29289 9.29289L8.29289 3.29289C8.68342 2.90237 9.31658 2.90237 9.70711 3.29289C10.0976 3.68342 10.0976 4.31658 9.70711 4.70711L5.41421 9H17C17.5523 9 18 9.44772 18 10C18 10.5523 17.5523 11 17 11H5.41421L9.70711 15.2929C10.0976 15.6834 10.0976 16.3166 9.70711 16.7071Z" fill=""/>
+                    </svg>
+                    Retour
+                </a>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div class="flex items-center gap-3">
+                    <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-brand-50 dark:bg-brand-500/15">
+                        <svg class="fill-current text-brand-500 dark:text-brand-400" width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M10 2C5.58172 2 2 5.58172 2 10C2 14.4183 5.58172 18 10 18C14.4183 18 18 14.4183 18 10C18 5.58172 14.4183 2 10 2ZM10 16C6.68629 16 4 13.3137 4 10C4 6.68629 6.68629 4 10 4C13.3137 4 16 6.68629 16 10C16 13.3137 13.3137 16 10 16ZM9 11V9H11V11H9ZM9 13V11H11V13H9Z" fill=""/>
+                        </svg>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">Créée par</p>
+                        <p class="text-base font-medium text-gray-800 dark:text-white/90">{{ request.creatorName }}</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-3">
+                    <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-warning-50 dark:bg-warning-500/15">
+                        <svg class="fill-current text-warning-500 dark:text-warning-400" width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M10 2C5.58172 2 2 5.58172 2 10C2 14.4183 5.58172 18 10 18C14.4183 18 18 14.4183 18 10C18 5.58172 14.4183 2 10 2ZM10 16C6.68629 16 4 13.3137 4 10C4 6.68629 6.68629 4 10 4C13.3137 4 16 6.68629 16 10C16 13.3137 13.3137 16 10 16ZM13.7071 8.29289C14.0976 7.90237 14.0976 7.26921 13.7071 6.87868C13.3166 6.48816 12.6834 6.48816 12.2929 6.87868L9 10.1716L7.70711 8.87868C7.31658 8.48816 6.68342 8.48816 6.29289 8.87868C5.90237 9.26921 5.90237 9.90237 6.29289 10.2929L8.29289 12.2929C8.68342 12.6834 9.31658 12.6834 9.70711 12.2929L13.7071 8.29289Z" fill=""/>
+                        </svg>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">Destinataire</p>
+                        <p class="text-base font-medium text-gray-800 dark:text-white/90">{{ request.recipientName }}</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Description</h4>
+                <p class="text-base text-gray-600 dark:text-gray-400 whitespace-pre-wrap">{{ request.description }}</p>
+            </div>
+
+            {% if request.response %}
+            <div class="mt-4">
+                <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Réponse</h4>
+                <p class="text-base text-gray-600 dark:text-gray-400 whitespace-pre-wrap">{{ request.response }}</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- ====== Chat Section Start ====== -->
+    <div class="rounded-lg border border-gray-200 bg-white shadow-default dark:border-gray-800 dark:bg-gray-900">
+        <!-- Header -->
+        <div class="border-b border-gray-200 px-6 py-4 dark:border-gray-800">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    {% if otherUser %}
+                    <div class="flex h-10 w-10 items-center justify-center rounded-full bg-gray-200 dark:bg-gray-700">
+                        <span class="font-semibold text-gray-600 dark:text-gray-300">
+                            {{ otherUser.firstName|first|upper }}{{ otherUser.lastName|first|upper }}
+                        </span>
+                    </div>
+                    <div>
+                        <h3 class="font-semibold text-gray-800 dark:text-white">
+                            {{ otherUser.firstName }} {{ otherUser.lastName }}
+                        </h3>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">
+                            {{ otherUser.email }}
+                            {% if otherUser.userType %}
+                                <span class="ml-2">({{ otherUser.userType|capitalize }})</span>
+                            {% endif %}
+                        </p>
+                    </div>
+                    {% else %}
+                    <div>
+                        <h3 class="font-semibold text-gray-800 dark:text-white">Messages</h3>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Messages Area -->
+        <div 
+            class="flex h-[600px] flex-col"
+            x-data="requestChatManager({{ requestId }})"
+            x-init="init()"
+        >
+            <!-- Messages List -->
+            <div
+                id="messages-container"
+                class="flex-1 space-y-4 overflow-y-auto p-6"
+            >
+                {% for message in messages %}
+                    <div class="flex {% if message.isFromMe %}justify-end{% else %}justify-start{% endif %}">
+                        <div class="flex max-w-[70%] flex-col {% if message.isFromMe %}items-end{% else %}items-start{% endif %}">
+                            {% if not message.isFromMe %}
+                                <span class="mb-1 text-xs text-gray-500 dark:text-gray-400">
+                                    {{ message.sender.firstName }} {{ message.sender.lastName }}
+                                    {% if message.sender.userType %}
+                                        <span class="text-gray-400">({{ message.sender.userType|capitalize }})</span>
+                                    {% endif %}
+                                </span>
+                            {% endif %}
+                            <div
+                                class="rounded-lg px-4 py-2 {% if message.isFromMe %}bg-brand-600 text-white{% else %}bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-white{% endif %}"
+                            >
+                                <p class="text-sm whitespace-pre-wrap">{{ message.content }}</p>
+                            </div>
+                            <span class="mt-1 text-xs text-gray-400 dark:text-gray-500">
+                                {% if message.createdAt %}
+                                    {{ message.createdAt|date('d/m/Y H:i') }}
+                                {% endif %}
+                            </span>
+                        </div>
+                    </div>
+                {% else %}
+                    <div class="flex items-center justify-center h-full">
+                        <p class="text-gray-500 dark:text-gray-400">Aucun message pour le moment</p>
+                    </div>
+                {% endfor %}
+            </div>
+
+            <!-- Message Input -->
+            <div class="border-t border-gray-200 p-4 dark:border-gray-800">
+                <form @submit.prevent="sendMessage()" class="flex gap-2">
+                    <input
+                        type="text"
+                        x-model="messageContent"
+                        placeholder="Tapez votre message..."
+                        class="flex-1 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                        required
+                    />
+                    <button
+                        type="submit"
+                        :disabled="sending"
+                        class="rounded-lg bg-brand-500 px-6 py-2 text-sm font-medium text-white hover:bg-brand-600 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 disabled:opacity-50"
+                    >
+                        <span x-show="!sending">Envoyer</span>
+                        <span x-show="sending">Envoi...</span>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+    <!-- ====== Chat Section End ====== -->
+</div>
+
+<script>
+function requestChatManager(requestId) {
+    return {
+        requestId: requestId,
+        messageContent: '',
+        messagesContainer: null,
+        sending: false,
+        
+        init() {
+            this.messagesContainer = document.getElementById('messages-container');
+            this.scrollToBottom();
+        },
+        
+        scrollToBottom() {
+            if (this.messagesContainer) {
+                this.messagesContainer.scrollTop = this.messagesContainer.scrollHeight;
+            }
+        },
+        
+        async sendMessage() {
+            if (!this.messageContent.trim() || this.sending) return;
+            
+            const content = this.messageContent.trim();
+            this.messageContent = '';
+            this.sending = true;
+            
+            try {
+                // Récupérer l'ID du destinataire depuis les données de la page
+                const otherUser = {{ otherUser ? otherUser|json_encode|raw : 'null' }};
+                if (!otherUser) {
+                    throw new Error('Destinataire non trouvé');
+                }
+                
+                const response = await fetch('/admin/messages/create', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        content: content,
+                        receiverId: otherUser.id,
+                        requestId: this.requestId,
+                    }),
+                });
+                
+                const result = await response.json().catch(() => ({ success: false, message: 'Erreur lors de l\'envoi' }));
+                
+                if (response.ok && result.success) {
+                    // Recharger la page pour afficher le nouveau message
+                    window.location.reload();
+                } else {
+                    const errorMessage = result.message || 'Erreur lors de l\'envoi du message';
+                    if (window.showToast) {
+                        window.showToast(errorMessage, 'error');
+                    } else {
+                        alert(errorMessage);
+                    }
+                    this.messageContent = content; // Restaurer le contenu en cas d'erreur
+                }
+            } catch (error) {
+                console.error('Erreur lors de l\'envoi du message:', error);
+                if (window.showToast) {
+                    window.showToast('Une erreur est survenue', 'error');
+                } else {
+                    alert('Une erreur est survenue');
+                }
+                this.messageContent = content; // Restaurer le contenu en cas d'erreur
+            } finally {
+                this.sending = false;
+            }
+        },
+    };
+}
+</script>
+{% endblock %}
+

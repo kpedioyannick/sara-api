@@ -1,0 +1,395 @@
+{% extends 'tailadmin/layouts/base.html.twig' %}
+
+{% block content %}
+<div 
+    x-data="requestManager()"
+    data-requests='{{ requests|json_encode|e('html_attr') }}'
+    data-families='{{ families|json_encode|e('html_attr') }}'
+    data-students='{{ students|json_encode|e('html_attr') }}'
+    data-specialists='{{ specialists|json_encode|e('html_attr') }}'
+    class="p-4 mx-auto max-w-(--breakpoint-2xl) md:p-6"
+>
+    {% include 'tailadmin/components/breadcrumb.html.twig' %}
+
+    <div class="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
+        <div class="px-6 py-5 flex items-center justify-between">
+            <h3 class="text-base font-medium text-gray-800 dark:text-white/90">
+                Liste des Demandes
+            </h3>
+            <button
+                @click="openCreate()"
+                class="inline-flex items-center gap-2 rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white shadow-theme-xs hover:bg-brand-600"
+            >
+                <svg class="fill-current" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                    <path d="M8 1a7 7 0 100 14A7 7 0 008 1zM7.5 4v4l3.5 2 .5-.866L8.5 7.5V4h-1z" fill=""/>
+                </svg>
+                Nouvelle Demande
+            </button>
+        </div>
+        <div class="border-t border-gray-100 p-4 dark:border-gray-800 sm:p-6">
+            <div class="grid grid-cols-1 gap-5 sm:grid-cols-2">
+                {% for request in requests %}
+                <div>
+                    <div class="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] sm:p-6">
+                        <div class="mb-4 flex items-center justify-between">
+                            <span class="text-theme-xs font-medium text-gray-500 dark:text-gray-400">{{ request.type|upper }}</span>
+                            <div class="flex items-center gap-2">
+                                {% if request.priority == 'high' %}
+                                <span class="inline-flex items-center rounded-full bg-error-100 px-2.5 py-0.5 text-xs font-medium text-error-600 dark:bg-error-900/30 dark:text-error-400">
+                                    Haute
+                                </span>
+                                {% elseif request.priority == 'medium' %}
+                                <span class="inline-flex items-center rounded-full bg-warning-100 px-2.5 py-0.5 text-xs font-medium text-warning-600 dark:bg-warning-900/30 dark:text-warning-400">
+                                    Moyenne
+                                </span>
+                                {% else %}
+                                <span class="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-600 dark:bg-gray-800 dark:text-gray-400">
+                                    Basse
+                                </span>
+                                {% endif %}
+                                {% if request.status == 'resolved' %}
+                                <span class="inline-flex items-center rounded-full bg-success-100 px-2.5 py-0.5 text-xs font-medium text-success-600 dark:bg-success-900/30 dark:text-success-400">
+                                    Résolue
+                                </span>
+                                {% elseif request.status == 'in_progress' %}
+                                <span class="inline-flex items-center rounded-full bg-brand-100 px-2.5 py-0.5 text-xs font-medium text-brand-600 dark:bg-brand-900/30 dark:text-brand-400">
+                                    En cours
+                                </span>
+                                {% else %}
+                                <span class="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-600 dark:bg-gray-800 dark:text-gray-400">
+                                    En attente
+                                </span>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <h4 class="mb-3 text-theme-xl font-medium text-gray-800 dark:text-white/90">
+                            {{ request.title }}
+                        </h4>
+
+                        <div class="mb-4 space-y-2">
+                            <div class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                                <span>De: {{ request.creatorName }}</span>
+                            </div>
+                            <div class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                                <span>Pour: {{ request.recipientName }}</span>
+                            </div>
+                            <div class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+                                <svg class="fill-gray-400" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                                    <path d="M8 1a7 7 0 100 14A7 7 0 008 1zM7.5 4v4l3.5 2 .5-.866L8.5 7.5V4h-1z" fill=""/>
+                                </svg>
+                                <span>Créée le {{ request.createdAt }}</span>
+                            </div>
+                        </div>
+
+                        <div class="mt-4 flex gap-2">
+                            <a
+                                href="{{ path('admin_requests_detail', {id: request.id}) }}"
+                                class="flex-1 inline-flex items-center justify-center gap-2 rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white shadow-theme-xs transition-colors hover:bg-brand-600"
+                            >
+                                <svg class="fill-current" width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M8 1C4.134 1 1 4.134 1 8s3.134 7 7 7 7-3.134 7-7-3.134-7-7-7zm0 12.5c-3.032 0-5.5-2.468-5.5-5.5S4.968 2.5 8 2.5 13.5 4.968 13.5 8 11.032 13.5 8 13.5z" fill=""/>
+                                    <path d="M8 4.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7zm0 6a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5z" fill=""/>
+                                </svg>
+                                Détails
+                            </a>
+                            <button
+                                @click="openEdit({{ request.id }})"
+                                class="inline-flex items-center justify-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-theme-xs transition-colors hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+                            >
+                                <svg class="fill-current" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                                    <path d="M11.333 2.667a2.667 2.667 0 0 1 3.774 3.774l-8 8a2.667 2.667 0 0 1-1.886.78H2.667v-2.554a2.667 2.667 0 0 1 .78-1.886l8-8zm2.554 1.22L12.113 2.113a1.333 1.333 0 0 0-1.886 0L9.333 3.007l2.667 2.667 1.554-1.554a1.333 1.333 0 0 0 0-1.886z" fill=""/>
+                                </svg>
+                                Modifier
+                            </button>
+                            <button
+                                @click="openDelete({{ request.id }})"
+                                class="inline-flex items-center justify-center gap-2 rounded-lg border border-red-200 bg-white px-4 py-2.5 text-sm font-medium text-red-600 shadow-theme-xs transition-colors hover:bg-red-50 dark:border-red-800 dark:bg-gray-800 dark:text-red-400 dark:hover:bg-red-900/20"
+                            >
+                                <svg class="fill-current" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                                    <path d="M5.5 5.5a.5.5 0 015 0v3a.5.5 0 01-5 0v-3zM2 4a2 2 0 012-2h8a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V4z" fill=""/>
+                                </svg>
+                                Supprimer
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Sheet -->
+    <div
+        x-show="rightSheetOpen"
+        @click="closeSheet()"
+        x-transition:enter="transition-opacity ease-out duration-300"
+        x-transition:enter-start="opacity-0"
+        x-transition:enter-end="opacity-100"
+        x-transition:leave="transition-opacity ease-in duration-200"
+        x-transition:leave-start="opacity-100"
+        x-transition:leave-end="opacity-0"
+        class="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm"
+        style="display: none;"
+    ></div>
+
+    <div
+        x-show="rightSheetOpen"
+        @click.away="closeSheet()"
+        x-transition:enter="transition-transform ease-out duration-300"
+        x-transition:enter-start="translate-x-full"
+        x-transition:enter-end="translate-x-0"
+        x-transition:leave="transition-transform ease-in duration-200"
+        x-transition:leave-start="translate-x-0"
+        x-transition:leave-end="translate-x-full"
+        class="fixed right-0 top-0 z-50 h-full w-full max-w-md overflow-y-auto bg-white shadow-2xl dark:bg-gray-900"
+        style="display: none;"
+    >
+        <div class="flex h-full flex-col">
+            <div class="sticky top-0 z-10 border-b border-gray-200 bg-white px-6 py-4 dark:border-gray-800 dark:bg-gray-900">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">
+                        <span x-show="!isEdit">Nouvelle Demande</span>
+                        <span x-show="isEdit">Modifier Demande</span>
+                    </h3>
+                    <button
+                        @click="closeSheet()"
+                        class="rounded-lg p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-300"
+                    >
+                        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <div class="flex-1 p-6">
+                <form @submit.prevent="saveRequest()" class="space-y-6">
+                    <div>
+                        <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Titre *</label>
+                        <input
+                            type="text"
+                            x-model="formData.title"
+                            required
+                            class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+                        />
+                    </div>
+                    <div>
+                        <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Description *</label>
+                        <textarea
+                            x-model="formData.description"
+                            required
+                            rows="4"
+                            class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+                        ></textarea>
+                    </div>
+                    <div>
+                        <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Type *</label>
+                        <select
+                            x-model="formData.type"
+                            required
+                            class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+                        >
+                            <option value="">Sélectionner...</option>
+                            <option value="general">Général</option>
+                            <option value="consultation">Consultation</option>
+                            <option value="aide">Aide</option>
+                            <option value="question">Question</option>
+                            <option value="specialiste">Spécialiste</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Statut *</label>
+                        <select
+                            x-model="formData.status"
+                            required
+                            class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+                        >
+                            <option value="pending">En attente</option>
+                            <option value="in_progress">En cours</option>
+                            <option value="resolved">Résolu</option>
+                            <option value="closed">Fermé</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Priorité *</label>
+                        <select
+                            x-model="formData.priority"
+                            required
+                            class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+                        >
+                            <option value="low">Faible</option>
+                            <option value="medium">Moyenne</option>
+                            <option value="high">Haute</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Élève</label>
+                        <select
+                            x-model="formData.studentId"
+                            class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+                        >
+                            <option value="">Sélectionner un élève...</option>
+                            <template x-for="student in studentsData" :key="student.id">
+                                <option :value="student.id" x-text="student.firstName + ' ' + student.lastName"></option>
+                            </template>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Spécialiste</label>
+                        <select
+                            x-model="formData.specialistId"
+                            class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+                        >
+                            <option value="">Sélectionner un spécialiste...</option>
+                            <template x-for="specialist in specialistsData" :key="specialist.id">
+                                <option :value="specialist.id" x-text="specialist.firstName + ' ' + specialist.lastName"></option>
+                            </template>
+                        </select>
+                    </div>
+                </form>
+            </div>
+
+            <div class="sticky bottom-0 border-t border-gray-200 bg-white px-6 py-4 dark:border-gray-800 dark:bg-gray-900">
+                <div class="flex gap-3">
+                    <button
+                        @click="closeSheet()"
+                        class="flex-1 rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+                    >
+                        Annuler
+                    </button>
+                    <button
+                        @click="saveRequest()"
+                        class="flex-1 rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white shadow-theme-xs hover:bg-brand-600"
+                    >
+                        Enregistrer
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function requestManager() {
+    return {
+        rightSheetOpen: false,
+        isEdit: false,
+        currentId: null,
+        formData: {
+            title: '',
+            description: '',
+            type: '',
+            status: 'pending',
+            priority: 'medium',
+            studentId: '',
+            specialistId: '',
+        },
+        requestsData: [],
+        familiesData: [],
+        studentsData: [],
+        specialistsData: [],
+        init() {
+            const requestsJson = this.$el.getAttribute('data-requests');
+            const familiesJson = this.$el.getAttribute('data-families');
+            const studentsJson = this.$el.getAttribute('data-students');
+            const specialistsJson = this.$el.getAttribute('data-specialists');
+            if (requestsJson) this.requestsData = JSON.parse(requestsJson);
+            if (familiesJson) this.familiesData = JSON.parse(familiesJson);
+            if (studentsJson) this.studentsData = JSON.parse(studentsJson);
+            if (specialistsJson) this.specialistsData = JSON.parse(specialistsJson);
+        },
+        openCreate() {
+            this.isEdit = false;
+            this.currentId = null;
+            this.formData = {
+                title: '',
+                description: '',
+                type: '',
+                status: 'pending',
+                priority: 'medium',
+                studentId: '',
+                specialistId: '',
+            };
+            this.rightSheetOpen = true;
+        },
+        openEdit(id) {
+            const request = this.requestsData.find(r => r.id === id);
+            if (request) {
+                this.isEdit = true;
+                this.currentId = id;
+                this.formData = {
+                    title: request.title || '',
+                    description: request.description || '',
+                    type: request.type || '',
+                    status: request.status || 'pending',
+                    priority: request.priority || 'medium',
+                    studentId: request.student?.id || '',
+                    specialistId: request.specialist?.id || '',
+                };
+                this.rightSheetOpen = true;
+            }
+        },
+        openDelete(id) {
+            if (confirm('Êtes-vous sûr de vouloir supprimer cette demande ?')) {
+                fetch(`/admin/requests/${id}`, {
+                    method: 'DELETE',
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        this.showMessage(data.message || 'Demande supprimée avec succès', 'success');
+                        setTimeout(() => location.reload(), 1000);
+                    } else {
+                        this.showMessage(data.message || 'Erreur lors de la suppression', 'error');
+                    }
+                })
+                .catch(error => {
+                    this.showMessage('Erreur de connexion', 'error');
+                });
+            }
+        },
+        saveRequest() {
+            const url = this.isEdit 
+                ? `/admin/requests/${this.currentId}/update`
+                : '/admin/requests/create';
+            
+            fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                body: JSON.stringify(this.formData),
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    this.showMessage(data.message || 'Demande enregistrée avec succès', 'success');
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    this.showMessage(data.message || 'Erreur lors de l\'enregistrement', 'error');
+                }
+            })
+            .catch(error => {
+                this.showMessage('Erreur de connexion', 'error');
+            });
+        },
+        showMessage(message, type = 'info') {
+            const toastManager = document.querySelector('[x-data="toastManager()"]')?.__x?.$data;
+            if (toastManager) {
+                toastManager.show(message, type);
+            } else {
+                alert(message);
+            }
+        },
+        closeSheet() {
+            this.rightSheetOpen = false;
+            this.isEdit = false;
+            this.currentId = null;
+        }
+    };
+}
+</script>
+{% endblock %}
