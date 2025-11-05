@@ -47,7 +47,7 @@ class Task
     #[ORM\JoinColumn(nullable: false)]
     private ?Coach $coach = null;
 
-    #[ORM\ManyToOne]
+    #[ORM\ManyToOne(inversedBy: 'tasks')]
     #[ORM\JoinColumn(nullable: false)]
     private ?Objective $objective = null;
 
@@ -66,16 +66,12 @@ class Task
     #[ORM\OneToMany(mappedBy: 'task', targetEntity: Proof::class, cascade: ['persist', 'remove'], fetch: 'EXTRA_LAZY')]
     private Collection $proofs;
 
-    #[ORM\OneToMany(mappedBy: 'task', targetEntity: TaskHistory::class, cascade: ['persist', 'remove'], fetch: 'EXTRA_LAZY')]
-    private Collection $taskHistories;
-
     public function __construct()
     {
         $this->createdAt = new \DateTimeImmutable();
         $this->updatedAt = new \DateTimeImmutable();
         $this->proofs = new ArrayCollection();
-        $this->taskHistories = new ArrayCollection();
-        $this->requiresProof = false;
+        $this->requiresProof = true;
     }
 
     public function getId(): ?int
@@ -130,6 +126,7 @@ class Task
 
     public function isRequiresProof(): ?bool
     {
+        return true;
         return $this->requiresProof;
     }
 
@@ -280,36 +277,6 @@ class Task
         return $this;
     }
 
-    /**
-     * @return Collection<int, TaskHistory>
-     */
-    public function getTaskHistories(): Collection
-    {
-        return $this->taskHistories;
-    }
-
-    public function addTaskHistory(TaskHistory $taskHistory): static
-    {
-        if (!$this->taskHistories->contains($taskHistory)) {
-            $this->taskHistories->add($taskHistory);
-            $taskHistory->setTask($this);
-        }
-
-        return $this;
-    }
-
-    public function removeTaskHistory(TaskHistory $taskHistory): static
-    {
-        if ($this->taskHistories->removeElement($taskHistory)) {
-            // set the owning side to null (unless already changed)
-            if ($taskHistory->getTask() === $this) {
-                $taskHistory->setTask(null);
-            }
-        }
-
-        return $this;
-    }
-
     public function toArray(): array
     {
         return [
@@ -326,7 +293,6 @@ class Task
             'objective' => $this->getObjective()?->toArray(),
             'coach' => $this->getCoach()?->toSimpleArray(),
             'proofsCount' => $this->getProofs()->count(),
-            'historyCount' => $this->getTaskHistories()->count(),
             'createdAt' => $this->getCreatedAt()?->format('Y-m-d H:i:s'),
             'updatedAt' => $this->getUpdatedAt()?->format('Y-m-d H:i:s')
         ];
@@ -382,6 +348,46 @@ class Task
         }
     }
 
+    /**
+     * Mappe le statut de la tâche pour le template
+     */
+    public function getMappedStatus(): string
+    {
+        return match ($this->getStatus()) {
+            'completed', 'done', 'finished' => 'completed',
+            'in_progress', 'ongoing' => 'in_progress',
+            default => 'pending',
+        };
+    }
+
+    /**
+     * Retourne les données formatées pour le template (liste des tâches)
+     */
+    public function toTemplateArray(): array
+    {
+        return [
+            'id' => $this->getId(),
+            'title' => $this->getTitle(),
+            'description' => $this->getDescription(),
+            'status' => $this->getStatus(),
+            'mappedStatus' => $this->getMappedStatus(),
+            'frequency' => $this->getFrequency(),
+            'requiresProof' => $this->isRequiresProof() ?? false,
+            'proofType' => $this->getProofType(),
+            'assignedType' => $this->getAssignedType(),
+            'student' => $this->getStudent() ? [
+                'id' => $this->getStudent()->getId(),
+            ] : null,
+            'parent' => $this->getParent() ? [
+                'id' => $this->getParent()->getId(),
+            ] : null,
+            'specialist' => $this->getSpecialist() ? [
+                'id' => $this->getSpecialist()->getId(),
+            ] : null,
+            'dueDate' => $this->getDueDate()?->format('Y-m-d'),
+        ];
+    }
+
     public static function createForCoach(array $data, Objective $objective, $assignedTo, string $assignedType): self
     {
         $task = new self();
@@ -390,7 +396,7 @@ class Task
         $task->setDescription($data['description']);
         $task->setStatus($data['status'] ?? 'pending');
         $task->setFrequency($data['frequency'] ?? null);
-        $task->setRequiresProof($data['requires_proof'] ?? false);
+        $task->setRequiresProof(true); // Par défaut, toutes les tâches nécessitent des preuves
         $task->setProofType($data['proof_type'] ?? null);
         $task->setAssignedType($assignedType);
         $task->setObjective($objective);

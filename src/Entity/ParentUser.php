@@ -17,10 +17,14 @@ class ParentUser extends User
     #[ORM\OneToMany(targetEntity: Request::class, mappedBy: 'parent')]
     private Collection $requests;
 
+    #[ORM\OneToMany(targetEntity: Availability::class, mappedBy: 'parent')]
+    private Collection $availabilities;
+
     public function __construct()
     {
         parent::__construct();
         $this->requests = new ArrayCollection();
+        $this->availabilities = new ArrayCollection();
         $this->setRoles(['ROLE_PARENT']);
     }
 
@@ -63,6 +67,33 @@ class ParentUser extends User
     }
 
     /**
+     * @return Collection<int, Availability>
+     */
+    public function getAvailabilities(): Collection
+    {
+        return $this->availabilities;
+    }
+
+    public function addAvailability(Availability $availability): static
+    {
+        if (!$this->availabilities->contains($availability)) {
+            $this->availabilities->add($availability);
+            $availability->setParent($this);
+        }
+        return $this;
+    }
+
+    public function removeAvailability(Availability $availability): static
+    {
+        if ($this->availabilities->removeElement($availability)) {
+            if ($availability->getParent() === $this) {
+                $availability->setParent(null);
+            }
+        }
+        return $this;
+    }
+
+    /**
      * Convertir l'entité ParentUser en tableau pour l'API
      */
     public function toArray(): array
@@ -84,7 +115,8 @@ class ParentUser extends User
                 'createdAt' => $this->family->getCreatedAt()?->format('Y-m-d H:i:s'),
                 'updatedAt' => $this->family->getUpdatedAt()?->format('Y-m-d H:i:s')
             ] : null,
-            'requestsCount' => $this->getRequests()->count()
+            'requestsCount' => $this->getRequests()->count(),
+            'availabilitiesCount' => $this->getAvailabilities()->count()
         ];
     }
 
@@ -119,7 +151,8 @@ class ParentUser extends User
     {
         return [
             'totalRequests' => $this->getRequests()->count(),
-            'familyMembers' => $this->getFamily()?->getStudents()->count() ?? 0
+            'familyMembers' => $this->getFamily()?->getStudents()->count() ?? 0,
+            'totalAvailabilities' => $this->getAvailabilities()->count()
         ];
     }
 

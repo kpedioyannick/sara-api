@@ -1,8 +1,13 @@
-Voici un **résumé clair et structuré** des fonctionnalités et des bugs à corriger pour la partie **Coach** :
+
+Les Profils sont : 
+**Coach** 
+**Parent** 
+**Student** 
+**Specialiste** 
 
 ---
 
-## 🎯 **Résumé des fonctionnalités - Espace Coach**
+## 🎯 **Résumé des fonctionnalités **
 
 ### 🏠 **Gestion des Familles**
 
@@ -61,6 +66,13 @@ Voici un **résumé clair et structuré** des fonctionnalités et des bugs à co
 * CRUD complet sur les événements du planning d’un élève.
 * Visualisation et filtrage du planning par élève ou par famille.
 * Accès rapide depuis le profil d’un enfant.
+* Un événement contient :
+
+  * **Titre** (choisi parmi les matières prédéfinies)
+  * **Description**
+  * **Date et heure** de début et fin
+  * **Type** (cours, révision, activité, etc.)
+  * **Preuves associées** (texte, photo, image)
 
 ---
 

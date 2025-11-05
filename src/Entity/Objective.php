@@ -293,6 +293,33 @@ class Objective
         return $data;
     }
 
+    /**
+     * Retourne les données formatées pour le template de liste
+     */
+    public function toTemplateArray(): array
+    {
+        $student = $this->getStudent();
+        $coach = $this->getCoach();
+        
+        return [
+            'id' => $this->getId(),
+            'title' => $this->getTitle(),
+            'description' => $this->getDescription(),
+            'category' => $this->getCategory(),
+            'status' => $this->getStatus(),
+            'progress' => $this->getProgress(),
+            'deadline' => $this->getDeadline()?->format('Y-m-d'),
+            'tasksCount' => $this->getTasks()->count(),
+            'studentName' => $student 
+                ? $student->getFirstName() . ' ' . $student->getLastName()
+                : 'N/A',
+            'coachName' => $coach 
+                ? $coach->getFirstName() . ' ' . $coach->getLastName()
+                : 'N/A',
+            'tasks' => array_map(fn($task) => $task->toTemplateArray(), $this->getTasks()->toArray()),
+        ];
+    }
+
     public function toPublicArray(): array
     {
         return [

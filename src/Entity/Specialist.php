@@ -208,6 +208,22 @@ class Specialist extends User
         return $specialist;
     }
 
+    /**
+     * Retourne les données formatées pour le template de liste
+     */
+    public function toTemplateArray(): array
+    {
+        $data = $this->toArray();
+        
+        // Formatage du nom complet
+        $data['name'] = $this->getFirstName() . ' ' . $this->getLastName();
+        
+        // Formatage des spécialisations
+        $data['specializations'] = $this->getSpecializations();
+        
+        return $data;
+    }
+
     public static function createForCoach(array $data): self
     {
         return self::create($data);

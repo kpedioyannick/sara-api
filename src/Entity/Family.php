@@ -186,6 +186,45 @@ class Family
         return $family;
     }
 
+    /**
+     * Retourne les données formatées pour le template de liste
+     */
+    public function toTemplateArray(?Coach $coach = null): array
+    {
+        $data = $this->toArray();
+        
+        // Ajout du nom du coach
+        if ($coach) {
+            $data['coachName'] = $coach->getFirstName() . ' ' . $coach->getLastName();
+        }
+        
+        // Formatage de la date
+        $data['createdAt'] = $this->getCreatedAt()?->format('Y-m-d');
+        
+        // Formatage de l'identifiant
+        $data['identifier'] = $this->getFamilyIdentifier();
+        
+        // Formatage du parent
+        $parent = $this->getParent();
+        if ($parent) {
+            $data['parent'] = $parent->toSimpleArray();
+        }
+        
+        // Formatage des étudiants
+        $data['students'] = array_map(function ($student) {
+            return [
+                'id' => $student->getId(),
+                'firstName' => $student->getFirstName(),
+                'lastName' => $student->getLastName(),
+                'pseudo' => $student->getPseudo(),
+                'class' => $student->getClass(),
+                'points' => $student->getPoints(),
+            ];
+        }, $this->getStudents()->toArray());
+        
+        return $data;
+    }
+
     public static function createForCoach(array $data, Coach $coach): self
     {
         return self::create($data, $coach);

@@ -286,6 +286,41 @@ class Request
         ];
     }
 
+    /**
+     * Retourne les données formatées pour le template de liste
+     */
+    public function toTemplateArray(): array
+    {
+        $data = $this->toArray();
+        
+        // Formatage des noms pour le template
+        $creator = $this->getCreator();
+        if ($creator) {
+            $userType = $creator->getUserType();
+            $typeLabel = match ($userType) {
+                'parent' => 'Parent',
+                'student' => 'Élève',
+                'specialist' => 'Spécialiste',
+                default => 'Utilisateur',
+            };
+            $data['creatorName'] = $creator->getFirstName() . ' ' . $creator->getLastName() . ' (' . $typeLabel . ')';
+        } else {
+            $data['creatorName'] = 'N/A';
+        }
+        
+        $recipient = $this->getRecipient();
+        if ($recipient) {
+            $data['recipientName'] = $recipient->getFirstName() . ' ' . $recipient->getLastName();
+        } else {
+            $data['recipientName'] = 'N/A';
+        }
+        
+        // Formatage de la date
+        $data['createdAt'] = $this->getCreatedAt()?->format('Y-m-d');
+        
+        return $data;
+    }
+
     public function getPriority(): string
     {
         return $this->priority ?? 'medium';

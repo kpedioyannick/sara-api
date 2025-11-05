@@ -43,50 +43,70 @@ class SeedDatabaseCommand extends Command
         $defaultPassword = 'password123';
 
         try {
-            // 1. Créer un Coach
-            $output->writeln('👨‍🏫 Création du Coach...');
-            $coachEmail = 'sara@coach.com';
-            $existingCoach = $this->em->getRepository(Coach::class)->findOneBy(['email' => $coachEmail]);
+            // 1. Créer des Coachs
+            $output->writeln('👨‍🏫 Création des Coachs...');
+            $coachesData = [
+                ['email' => 'sara@coach.com', 'firstName' => 'Sara', 'lastName' => 'Educateur', 'specialization' => 'Pédagogie adaptée'],
+                ['email' => 'marie@coach.com', 'firstName' => 'Marie', 'lastName' => 'Dupont', 'specialization' => 'Soutien scolaire'],
+                ['email' => 'pierre@coach.com', 'firstName' => 'Pierre', 'lastName' => 'Leroy', 'specialization' => 'Gestion comportementale'],
+            ];
+            
+            $coaches = [];
+            foreach ($coachesData as $coachData) {
+                $existingCoach = $this->em->getRepository(Coach::class)->findOneBy(['email' => $coachData['email']]);
             
             if ($existingCoach) {
-                $output->writeln('   ⚠️  Coach existe déjà, réutilisation...');
-                $coach = $existingCoach;
+                    $output->writeln("   ⚠️  Coach {$coachData['email']} existe déjà, réutilisation...");
+                    $coaches[] = $existingCoach;
             } else {
                 $coach = new Coach();
-                $coach->setEmail($coachEmail);
-                $coach->setFirstName('Sara');
-                $coach->setLastName('Educateur');
-                $coach->setSpecialization('Pédagogie adaptée');
+                    $coach->setEmail($coachData['email']);
+                    $coach->setFirstName($coachData['firstName']);
+                    $coach->setLastName($coachData['lastName']);
+                    $coach->setSpecialization($coachData['specialization']);
                 $hashedPassword = $this->passwordHasher->hashPassword($coach, $defaultPassword);
                 $coach->setPassword($hashedPassword);
                 $coach->setIsActive(true);
                 $this->em->persist($coach);
-                $this->em->flush();
-                $output->writeln("   ✅ Coach créé: {$coachEmail} / {$defaultPassword}");
+                    $coaches[] = $coach;
+                    $output->writeln("   ✅ Coach créé: {$coachData['email']} / {$defaultPassword}");
+                }
             }
+            $this->em->flush();
+            $coach = $coaches[0]; // Premier coach comme coach principal
 
-            // 2. Créer un Spécialiste
+            // 2. Créer des Spécialistes
             $output->writeln('');
-            $output->writeln('👨‍⚕️  Création du Spécialiste...');
-            $specialistEmail = 'prof@specialist.com';
-            $existingSpecialist = $this->em->getRepository(Specialist::class)->findOneBy(['email' => $specialistEmail]);
+            $output->writeln('👨‍⚕️  Création des Spécialistes...');
+            $specialistsData = [
+                ['email' => 'sarah@specialist.com', 'firstName' => 'Sarah', 'lastName' => 'Cohen', 'specializations' => ['Psychologie', 'Troubles de l\'apprentissage']],
+                ['email' => 'marc@specialist.com', 'firstName' => 'Marc', 'lastName' => 'Dubois', 'specializations' => ['Orthophonie', 'Langage']],
+                ['email' => 'julie@specialist.com', 'firstName' => 'Julie', 'lastName' => 'Moreau', 'specializations' => ['Psychomotricité', 'Développement moteur']],
+            ];
+            
+            $specialists = [];
+            foreach ($specialistsData as $specData) {
+                $existingSpecialist = $this->em->getRepository(Specialist::class)->findOneBy(['email' => $specData['email']]);
             
             if ($existingSpecialist) {
-                $output->writeln('   ⚠️  Spécialiste existe déjà, réutilisation...');
-                $specialist = $existingSpecialist;
+                    $output->writeln("   ⚠️  Spécialiste {$specData['email']} existe déjà, réutilisation...");
+                    $specialists[] = $existingSpecialist;
             } else {
                 $specialist = new Specialist();
-                $specialist->setEmail($specialistEmail);
-                $specialist->setFirstName('Marie');
-                $specialist->setLastName('Orthophoniste');
-                $specialist->setSpecializations(['orthophonie', 'dyslexie']);
+                    $specialist->setEmail($specData['email']);
+                    $specialist->setFirstName($specData['firstName']);
+                    $specialist->setLastName($specData['lastName']);
+                    $specialist->setSpecializations($specData['specializations']);
                 $hashedPassword = $this->passwordHasher->hashPassword($specialist, $defaultPassword);
                 $specialist->setPassword($hashedPassword);
                 $specialist->setIsActive(true);
                 $this->em->persist($specialist);
-                $this->em->flush();
-                $output->writeln("   ✅ Spécialiste créé: {$specialistEmail} / {$defaultPassword}");
+                    $specialists[] = $specialist;
+                    $output->writeln("   ✅ Spécialiste créé: {$specData['email']} / {$defaultPassword}");
+                }
             }
+            $this->em->flush();
+            $specialist = $specialists[0]; // Premier spécialiste comme spécialiste principal
 
             // 3. Créer une Famille avec un Parent
             $output->writeln('');
@@ -121,8 +141,8 @@ class SeedDatabaseCommand extends Command
             $output->writeln('');
             $output->writeln('👦 Création des Enfants...');
             $studentsData = [
-                ['pseudo' => 'lucas', 'class' => 'CM2', 'firstName' => 'Lucas', 'lastName' => 'Dupont'],
-                ['pseudo' => 'sophie', 'class' => '6ème', 'firstName' => 'Sophie', 'lastName' => 'Dupont'],
+                ['pseudo' => 'lucas', 'class' => 'CM2', 'firstName' => 'Lucas', 'lastName' => 'Dupont', 'points' => 150],
+                ['pseudo' => 'sophie', 'class' => '6ème', 'firstName' => 'Sophie', 'lastName' => 'Dupont', 'points' => 120],
             ];
             
             $students = [];
@@ -143,13 +163,72 @@ class SeedDatabaseCommand extends Command
                     $hashedPassword = $this->passwordHasher->hashPassword($student, $defaultPassword);
                     $student->setPassword($hashedPassword);
                     $student->setFamily($family);
-                    $student->setPoints(50);
+                    $student->setPoints($studentData['points']);
                     $student->setIsActive(true);
                     $this->em->persist($student);
                     $students[] = $student;
                     $output->writeln("   ✅ Étudiant créé: {$studentData['pseudo']} ({$studentEmail}) / {$defaultPassword}");
                 }
             }
+            
+            // Créer une deuxième famille avec plus d'enfants
+            $output->writeln('');
+            $output->writeln('👨‍👩‍👧 Création de la deuxième Famille...');
+            $parent2Email = 'sophie.martin@sara.education';
+            $existingParent2 = $this->em->getRepository(ParentUser::class)->findOneBy(['email' => $parent2Email]);
+            
+            if ($existingParent2) {
+                $output->writeln("   ⚠️  Parent {$parent2Email} existe déjà, réutilisation...");
+                $parent2 = $existingParent2;
+                $family2 = $parent2->getFamily();
+            } else {
+                $family2 = new Family();
+                $family2->setFamilyIdentifier('FAM_MARTIN_S');
+                $family2->setCoach($coach);
+                $this->em->persist($family2);
+                
+                $parent2 = new ParentUser();
+                $parent2->setEmail($parent2Email);
+                $parent2->setFirstName('Sophie');
+                $parent2->setLastName('Martin');
+                $hashedPassword = $this->passwordHasher->hashPassword($parent2, $defaultPassword);
+                $parent2->setPassword($hashedPassword);
+                $parent2->setFamily($family2);
+                $parent2->setIsActive(true);
+                $this->em->persist($parent2);
+                $this->em->flush();
+                $output->writeln("   ✅ Parent créé: {$parent2Email} / {$defaultPassword}");
+            }
+            
+            $studentsData2 = [
+                ['pseudo' => 'tom', 'class' => 'CM1', 'firstName' => 'Tom', 'lastName' => 'Martin', 'points' => 200],
+                ['pseudo' => 'emma', 'class' => 'CE2', 'firstName' => 'Emma', 'lastName' => 'Martin', 'points' => 180],
+            ];
+            
+            foreach ($studentsData2 as $studentData) {
+                $studentEmail = $studentData['pseudo'] . '@sara.education';
+                $existingStudent = $this->em->getRepository(Student::class)->findOneBy(['email' => $studentEmail]);
+                
+                if (!$existingStudent) {
+                    $student = new Student();
+                    $student->setEmail($studentEmail);
+                    $student->setFirstName($studentData['firstName']);
+                    $student->setLastName($studentData['lastName']);
+                    $student->setPseudo($studentData['pseudo']);
+                    $student->setClass($studentData['class']);
+                    $hashedPassword = $this->passwordHasher->hashPassword($student, $defaultPassword);
+                    $student->setPassword($hashedPassword);
+                    $student->setFamily($family2);
+                    $student->setPoints($studentData['points']);
+                    $student->setIsActive(true);
+                    $this->em->persist($student);
+                    $students[] = $student;
+                    $output->writeln("   ✅ Étudiant créé: {$studentData['pseudo']} ({$studentEmail}) / {$defaultPassword}");
+                } else {
+                    $students[] = $existingStudent;
+                }
+            }
+            
             $this->em->flush();
 
             // Note: L'assignation du spécialiste se fait via les demandes (Requests)
@@ -160,59 +239,103 @@ class SeedDatabaseCommand extends Command
             $output->writeln('🎯 Création des Objectifs et Tâches...');
             $lucas = $students[0];
             $sophie = $students[1] ?? $students[0];
+            $tom = $students[2] ?? $students[0];
+            $emma = $students[3] ?? $students[0];
             
-            // Objectif pour Lucas
-            $objective1 = new Objective();
-            $objective1->setTitle('Améliorer la lecture');
-            $objective1->setDescription('Lire plus couramment et comprendre les textes');
-            $objective1->setCategory('academic');
-            $objective1->setStatus('in_progress');
-            $objective1->setDeadline(new \DateTimeImmutable('+3 months'));
-            $objective1->setStudent($lucas);
-            $objective1->setCoach($coach);
-            $this->em->persist($objective1);
+            $objectivesData = [
+                [
+                    'student' => $lucas,
+                    'title' => 'Améliorer la concentration',
+                    'description' => 'Réviser les tables de multiplication et les divisions',
+                    'category' => 'Comportement',
+                    'status' => 'en_cours',
+                    'progress' => 65,
+                    'deadline' => new \DateTimeImmutable('+3 months'),
+                    'tasks' => [
+                        ['title' => 'Faire 10 minutes de méditation chaque matin', 'status' => 'completed', 'requiresProof' => false, 'assignedTo' => $lucas, 'type' => 'student'],
+                        ['title' => 'Réviser les tables de multiplication', 'status' => 'completed', 'requiresProof' => true, 'assignedTo' => $lucas, 'type' => 'student'],
+                        ['title' => 'Faire les exercices de concentration', 'status' => 'in_progress', 'requiresProof' => true, 'assignedTo' => $lucas, 'type' => 'student'],
+                        ['title' => 'Participer activement en classe', 'status' => 'pending', 'requiresProof' => false, 'assignedTo' => $lucas, 'type' => 'student'],
+                        ['title' => 'Noter les moments de distraction', 'status' => 'pending', 'requiresProof' => false, 'assignedTo' => $parent, 'type' => 'parent'],
+                    ],
+                ],
+                [
+                    'student' => $sophie,
+                    'title' => 'Développer l\'autonomie',
+                    'description' => 'Apprendre à gérer ses affaires et son temps',
+                    'category' => 'Autonomie',
+                    'status' => 'en_cours',
+                    'progress' => 40,
+                    'deadline' => new \DateTimeImmutable('+2 months'),
+                    'tasks' => [
+                        ['title' => 'Préparer son cartable le soir', 'status' => 'completed', 'requiresProof' => false, 'assignedTo' => $sophie, 'type' => 'student'],
+                        ['title' => 'Ranger sa chambre chaque semaine', 'status' => 'completed', 'requiresProof' => true, 'assignedTo' => $sophie, 'type' => 'student'],
+                        ['title' => 'Faire ses devoirs seul(e)', 'status' => 'in_progress', 'requiresProof' => false, 'assignedTo' => $sophie, 'type' => 'student'],
+                        ['title' => 'Gérer son réveil-matin', 'status' => 'pending', 'requiresProof' => false, 'assignedTo' => $parent, 'type' => 'parent'],
+                    ],
+                ],
+                [
+                    'student' => $lucas,
+                    'title' => 'Renforcer la confiance en soi',
+                    'description' => 'Participer plus activement en classe et aux activités sportives',
+                    'category' => 'Émotionnel',
+                    'status' => 'termine',
+                    'progress' => 100,
+                    'deadline' => new \DateTimeImmutable('-1 month'),
+                    'tasks' => [
+                        ['title' => 'Participer à une activité sportive', 'status' => 'completed', 'requiresProof' => true, 'assignedTo' => $lucas, 'type' => 'student'],
+                        ['title' => 'Lever la main en classe au moins 3 fois', 'status' => 'completed', 'requiresProof' => false, 'assignedTo' => $lucas, 'type' => 'student'],
+                        ['title' => 'Faire une présentation devant la classe', 'status' => 'completed', 'requiresProof' => true, 'assignedTo' => $lucas, 'type' => 'student'],
+                    ],
+                ],
+                [
+                    'student' => $tom,
+                    'title' => 'Améliorer les relations sociales',
+                    'description' => 'Développer les compétences sociales et la communication',
+                    'category' => 'Social',
+                    'status' => 'en_cours',
+                    'progress' => 25,
+                    'deadline' => new \DateTimeImmutable('+4 months'),
+                    'tasks' => [
+                        ['title' => 'Saluer 3 camarades chaque jour', 'status' => 'completed', 'requiresProof' => false, 'assignedTo' => $tom, 'type' => 'student'],
+                        ['title' => 'Participer à un jeu en groupe', 'status' => 'in_progress', 'requiresProof' => true, 'assignedTo' => $tom, 'type' => 'student'],
+                        ['title' => 'Inviter un ami à jouer', 'status' => 'pending', 'requiresProof' => false, 'assignedTo' => $tom, 'type' => 'student'],
+                    ],
+                ],
+            ];
             
-            // Tâches pour l'objectif 1
-            $task1 = Task::createForCoach([
-                'title' => 'Lire 15 minutes chaque jour',
-                'description' => 'Lecture quotidienne pendant 15 minutes',
-                'status' => 'in_progress',
+            foreach ($objectivesData as $objData) {
+                $existingObjective = $this->em->getRepository(Objective::class)->findOneBy([
+                    'title' => $objData['title'],
+                    'student' => $objData['student']
+                ]);
+                
+                if (!$existingObjective) {
+                    $objective = new Objective();
+                    $objective->setTitle($objData['title']);
+                    $objective->setDescription($objData['description']);
+                    $objective->setCategory($objData['category']);
+                    $objective->setStatus($objData['status']);
+                    $objective->setProgress($objData['progress']);
+                    $objective->setDeadline($objData['deadline']);
+                    $objective->setStudent($objData['student']);
+                    $objective->setCoach($coach);
+                    $this->em->persist($objective);
+                    
+                    // Créer les tâches
+                    foreach ($objData['tasks'] as $taskData) {
+                        $task = Task::createForCoach([
+                            'title' => $taskData['title'],
+                            'description' => $taskData['title'],
+                            'status' => $taskData['status'],
                 'frequency' => 'daily',
-                'requiresProof' => true,
-                'proofType' => 'text'
-            ], $objective1, $lucas, 'student');
-            $this->em->persist($task1);
-            
-            $task2 = Task::createForCoach([
-                'title' => 'Résumer un texte par semaine',
-                'description' => 'Faire un résumé d\'un texte lu dans la semaine',
-                'status' => 'pending',
-                'frequency' => 'weekly',
-                'requiresProof' => true,
-                'proofType' => 'text'
-            ], $objective1, $specialist, 'specialist');
-            $this->em->persist($task2);
-            
-            // Objectif pour Sophie
-            $objective2 = new Objective();
-            $objective2->setTitle('Maîtriser les tables de multiplication');
-            $objective2->setDescription('Connaître toutes les tables de 1 à 10 par cœur');
-            $objective2->setCategory('academic');
-            $objective2->setStatus('pending');
-            $objective2->setDeadline(new \DateTimeImmutable('+2 months'));
-            $objective2->setStudent($sophie);
-            $objective2->setCoach($coach);
-            $this->em->persist($objective2);
-            
-            $task3 = Task::createForCoach([
-                'title' => 'Réciter une table par jour',
-                'description' => 'Réciter une table de multiplication chaque jour',
-                'status' => 'pending',
-                'frequency' => 'daily',
-                'requiresProof' => true,
-                'proofType' => 'audio'
-            ], $objective2, $sophie, 'student');
-            $this->em->persist($task3);
+                            'requires_proof' => $taskData['requiresProof'],
+                            'proof_type' => $taskData['requiresProof'] ? 'text' : null,
+                        ], $objective, $taskData['assignedTo'], $taskData['type']);
+                        $this->em->persist($task);
+                    }
+                }
+            }
             
             $this->em->flush();
             $output->writeln('   ✅ Objectifs et tâches créés');
@@ -220,27 +343,29 @@ class SeedDatabaseCommand extends Command
             // 6. Créer des Planning Events
             $output->writeln('');
             $output->writeln('📅 Création des événements de Planning...');
-            $planning1Date = new \DateTimeImmutable('+2 days 14:00');
-            $planning1 = new Planning();
-            $planning1->setTitle('Révision mathématiques');
-            $planning1->setDescription('Révision des multiplications');
-            $planning1->setType('revision');
-            $planning1->setStatus('scheduled');
-            $planning1->setStartDate($planning1Date);
-            $planning1->setEndDate($planning1Date->modify('+1 hour'));
-            $planning1->setStudent($lucas);
-            $this->em->persist($planning1);
             
-            $planning2Date = new \DateTimeImmutable('+5 days 16:00');
-            $planning2 = new Planning();
-            $planning2->setTitle('Devoir de français');
-            $planning2->setDescription('Rédaction sur un sujet libre');
-            $planning2->setType('homework');
-            $planning2->setStatus('to_do');
-            $planning2->setStartDate($planning2Date);
-            $planning2->setEndDate($planning2Date->modify('+2 hours'));
-            $planning2->setStudent($sophie);
-            $this->em->persist($planning2);
+            $today = new \DateTimeImmutable();
+            $planningEvents = [
+                ['student' => $lucas, 'title' => 'Session de révision', 'type' => 'revision', 'status' => 'scheduled', 'date' => $today->modify('+2 days')->setTime(14, 0), 'duration' => 1],
+                ['student' => $sophie, 'title' => 'Atelier créatif', 'type' => 'activity', 'status' => 'in_progress', 'date' => $today->modify('+3 days')->setTime(10, 0), 'duration' => 2],
+                ['student' => $tom, 'title' => 'Soutien scolaire', 'type' => 'course', 'status' => 'scheduled', 'date' => $today->modify('+4 days')->setTime(15, 0), 'duration' => 2],
+                ['student' => $lucas, 'title' => 'Évaluation trimestrielle', 'type' => 'assessment', 'status' => 'completed', 'date' => $today->modify('+5 days')->setTime(9, 0), 'duration' => 2],
+                ['student' => $sophie, 'title' => 'Réunion parents', 'type' => 'activity', 'status' => 'scheduled', 'date' => $today->modify('+6 days')->setTime(14, 0), 'duration' => 1],
+                ['student' => $tom, 'title' => 'Atelier mathématiques', 'type' => 'activity', 'status' => 'scheduled', 'date' => $today->modify('+7 days')->setTime(10, 0), 'duration' => 2],
+                ['student' => $emma, 'title' => 'Devoir de français', 'type' => 'homework', 'status' => 'to_do', 'date' => $today->modify('+1 day')->setTime(16, 0), 'duration' => 2],
+            ];
+            
+            foreach ($planningEvents as $eventData) {
+                $planning = new Planning();
+                $planning->setTitle($eventData['title']);
+                $planning->setDescription($eventData['title']);
+                $planning->setType($eventData['type']);
+                $planning->setStatus($eventData['status']);
+                $planning->setStartDate($eventData['date']);
+                $planning->setEndDate($eventData['date']->modify('+' . $eventData['duration'] . ' hours'));
+                $planning->setStudent($eventData['student']);
+                $this->em->persist($planning);
+            }
             
             $this->em->flush();
             $output->writeln('   ✅ Événements de planning créés');
@@ -248,29 +373,75 @@ class SeedDatabaseCommand extends Command
             // 7. Créer des Demandes (Requests)
             $output->writeln('');
             $output->writeln('📋 Création des Demandes...');
-            $request1 = new RequestEntity();
-            $request1->setTitle('Besoin d\'aide en orthographe');
-            $request1->setDescription('Sophie a besoin de soutien supplémentaire en orthographe');
-            $request1->setStatus('pending');
-            $request1->setType('general');
-            $request1->setPriority('medium');
-            $request1->setStudent($sophie);
-            $request1->setParent($parent);
-            $request1->setCoach($coach);
-            $request1->setSpecialist($specialist);
-            $this->em->persist($request1);
             
-            $request2 = new RequestEntity();
-            $request2->setTitle('Suivi régulier');
-            $request2->setDescription('Suivi hebdomadaire de Lucas');
-            $request2->setStatus('in_progress');
-            $request2->setType('general');
-            $request2->setPriority('high');
-            $request2->setStudent($lucas);
-            $request2->setParent($parent);
-            $request2->setCoach($coach);
-            $request2->setSpecialist($specialist);
-            $this->em->persist($request2);
+            $requestsData = [
+                [
+                    'title' => 'Demande de consultation',
+                    'description' => 'Besoin d\'aide en orthographe pour Sophie',
+                    'status' => 'pending',
+                    'type' => 'consultation',
+                    'priority' => 'high',
+                    'student' => $sophie,
+                    'parent' => $parent,
+                    'creator' => $parent,
+                    'recipient' => $coach,
+                    'specialist' => $specialists[0],
+                ],
+                [
+                    'title' => 'Besoin d\'aide pour devoirs',
+                    'description' => 'Lucas a besoin d\'aide pour ses devoirs de mathématiques',
+                    'status' => 'in_progress',
+                    'type' => 'aide',
+                    'priority' => 'medium',
+                    'student' => $lucas,
+                    'parent' => $parent,
+                    'creator' => $lucas,
+                    'recipient' => $coach,
+                    'specialist' => null,
+                ],
+                [
+                    'title' => 'Question sur l\'objectif',
+                    'description' => 'Question concernant l\'objectif de développement de l\'autonomie',
+                    'status' => 'resolved',
+                    'type' => 'question',
+                    'priority' => 'low',
+                    'student' => $sophie,
+                    'parent' => $parent2,
+                    'creator' => $parent2,
+                    'recipient' => $coach,
+                    'specialist' => null,
+                ],
+                [
+                    'title' => 'Demande spécialiste',
+                    'description' => 'Demande d\'intervention d\'un spécialiste pour Tom',
+                    'status' => 'pending',
+                    'type' => 'specialiste',
+                    'priority' => 'high',
+                    'student' => $tom,
+                    'parent' => $parent2,
+                    'creator' => $tom,
+                    'recipient' => $specialists[0],
+                    'specialist' => $specialists[0],
+                ],
+            ];
+            
+            foreach ($requestsData as $reqData) {
+                $request = new RequestEntity();
+                $request->setTitle($reqData['title']);
+                $request->setDescription($reqData['description']);
+                $request->setStatus($reqData['status']);
+                $request->setType($reqData['type']);
+                $request->setPriority($reqData['priority']);
+                $request->setStudent($reqData['student']);
+                $request->setParent($reqData['parent']);
+                $request->setCoach($coach);
+                $request->setCreator($reqData['creator']);
+                $request->setRecipient($reqData['recipient']);
+                if ($reqData['specialist']) {
+                    $request->setSpecialist($reqData['specialist']);
+                }
+                $this->em->persist($request);
+            }
             
             $this->em->flush();
             $output->writeln('   ✅ Demandes créées');
@@ -278,43 +449,119 @@ class SeedDatabaseCommand extends Command
             // 8. Créer des Messages
             $output->writeln('');
             $output->writeln('💬 Création des Messages...');
-            $message1 = new Message();
-            $message1->setContent('Bonjour, je souhaite planifier un rendez-vous pour Sophie.');
-            $message1->setSender($parent);
-            $message1->setReceiver($specialist);
-            $message1->setCoach($coach);
-            $message1->setRecipient($specialist);
-            $message1->setRequest($request1);
-            $this->em->persist($message1);
             
-            $message2 = new Message();
-            $message2->setContent('Je suis disponible la semaine prochaine, quelle date vous convient ?');
-            $message2->setSender($specialist);
-            $message2->setReceiver($parent);
-            $message2->setCoach($coach);
-            $message2->setRecipient($parent);
-            $message2->setRequest($request1);
-            $this->em->persist($message2);
+            $requests = $this->em->getRepository(RequestEntity::class)->findAll();
+            if (!empty($requests)) {
+                $messagesData = [
+                    [
+                        'content' => 'Bonjour, je souhaite planifier un rendez-vous pour Sophie.',
+                        'sender' => $parent,
+                        'receiver' => $specialists[0],
+                        'recipient' => $specialists[0],
+                        'request' => $requests[0],
+                    ],
+                    [
+                        'content' => 'Je suis disponible la semaine prochaine, quelle date vous convient ?',
+                        'sender' => $specialists[0],
+                        'receiver' => $parent,
+                        'recipient' => $parent,
+                        'request' => $requests[0],
+                    ],
+                    [
+                        'content' => 'Merci pour votre aide, Lucas progresse bien.',
+                        'sender' => $parent,
+                        'receiver' => $coach,
+                        'recipient' => $coach,
+                        'request' => count($requests) > 1 ? $requests[1] : $requests[0],
+                    ],
+                ];
+                
+                foreach ($messagesData as $msgData) {
+                    if (isset($msgData['request'])) {
+                        $message = new Message();
+                        $message->setContent($msgData['content']);
+                        $message->setSender($msgData['sender']);
+                        $message->setReceiver($msgData['receiver']);
+                        $message->setCoach($coach);
+                        $message->setRecipient($msgData['recipient']);
+                        $message->setRequest($msgData['request']);
+                        $this->em->persist($message);
+                    }
+                }
+            }
             
             $this->em->flush();
             $output->writeln('   ✅ Messages créés');
 
-            // 9. Créer des Disponibilités pour le Spécialiste
+            // 9. Créer des Disponibilités
             $output->writeln('');
             $output->writeln('⏰ Création des Disponibilités...');
-            $availability1 = new Availability();
-            $availability1->setSpecialist($specialist);
-            $availability1->setDayOfWeek('monday');
-            $availability1->setStartTime(new \DateTimeImmutable('2025-01-01 09:00:00'));
-            $availability1->setEndTime(new \DateTimeImmutable('2025-01-01 12:00:00'));
-            $this->em->persist($availability1);
             
-            $availability2 = new Availability();
-            $availability2->setSpecialist($specialist);
-            $availability2->setDayOfWeek('wednesday');
-            $availability2->setStartTime(new \DateTimeImmutable('2025-01-01 14:00:00'));
-            $availability2->setEndTime(new \DateTimeImmutable('2025-01-01 17:00:00'));
-            $this->em->persist($availability2);
+            // Disponibilités pour le coach
+            $coachAvailabilities = [
+                ['day' => 'monday', 'start' => 9, 'end' => 12],
+                ['day' => 'monday', 'start' => 14, 'end' => 17],
+                ['day' => 'wednesday', 'start' => 9, 'end' => 12],
+                ['day' => 'friday', 'start' => 14, 'end' => 18],
+            ];
+            
+            foreach ($coachAvailabilities as $availData) {
+                $availability = new Availability();
+                $availability->setCoach($coach);
+                $availability->setDayOfWeek($availData['day']);
+                $availability->setStartTime(new \DateTimeImmutable('2025-01-01 ' . str_pad($availData['start'], 2, '0', STR_PAD_LEFT) . ':00:00'));
+                $availability->setEndTime(new \DateTimeImmutable('2025-01-01 ' . str_pad($availData['end'], 2, '0', STR_PAD_LEFT) . ':00:00'));
+                $this->em->persist($availability);
+            }
+            
+            // Disponibilités pour les spécialistes
+            foreach ($specialists as $spec) {
+                $specAvailabilities = [
+                    ['day' => 'tuesday', 'start' => 10, 'end' => 13],
+                    ['day' => 'thursday', 'start' => 14, 'end' => 17],
+                ];
+                
+                foreach ($specAvailabilities as $availData) {
+                    $availability = new Availability();
+                    $availability->setSpecialist($spec);
+                    $availability->setDayOfWeek($availData['day']);
+                    $availability->setStartTime(new \DateTimeImmutable('2025-01-01 ' . str_pad($availData['start'], 2, '0', STR_PAD_LEFT) . ':00:00'));
+                    $availability->setEndTime(new \DateTimeImmutable('2025-01-01 ' . str_pad($availData['end'], 2, '0', STR_PAD_LEFT) . ':00:00'));
+                    $this->em->persist($availability);
+                }
+            }
+            
+            // Disponibilités pour les parents
+            $parentAvailabilities = [
+                ['parent' => $parent, 'day' => 'monday', 'start' => 18, 'end' => 20],
+                ['parent' => $parent, 'day' => 'wednesday', 'start' => 18, 'end' => 20],
+                ['parent' => $parent2, 'day' => 'tuesday', 'start' => 17, 'end' => 19],
+            ];
+            
+            foreach ($parentAvailabilities as $availData) {
+                $availability = new Availability();
+                $availability->setParent($availData['parent']);
+                $availability->setDayOfWeek($availData['day']);
+                $availability->setStartTime(new \DateTimeImmutable('2025-01-01 ' . str_pad($availData['start'], 2, '0', STR_PAD_LEFT) . ':00:00'));
+                $availability->setEndTime(new \DateTimeImmutable('2025-01-01 ' . str_pad($availData['end'], 2, '0', STR_PAD_LEFT) . ':00:00'));
+                $this->em->persist($availability);
+            }
+            
+            // Disponibilités pour les élèves
+            $studentAvailabilities = [
+                ['student' => $lucas, 'day' => 'monday', 'start' => 16, 'end' => 18],
+                ['student' => $sophie, 'day' => 'tuesday', 'start' => 16, 'end' => 17],
+                ['student' => $tom, 'day' => 'wednesday', 'start' => 15, 'end' => 17],
+            ];
+            
+            foreach ($studentAvailabilities as $availData) {
+                $availability = new Availability();
+                $availability->setStudent($availData['student']);
+                $availability->setDayOfWeek($availData['day']);
+                $availability->setStartTime(new \DateTimeImmutable('2025-01-01 ' . str_pad($availData['start'], 2, '0', STR_PAD_LEFT) . ':00:00'));
+                $availability->setEndTime(new \DateTimeImmutable('2025-01-01 ' . str_pad($availData['end'], 2, '0', STR_PAD_LEFT) . ':00:00'));
+                $this->em->persist($availability);
+            }
             
             $this->em->flush();
             $output->writeln('   ✅ Disponibilités créées');
@@ -322,19 +569,35 @@ class SeedDatabaseCommand extends Command
             // 10. Créer des Commentaires
             $output->writeln('');
             $output->writeln('💭 Création des Commentaires...');
-            $comment1 = new Comment();
-            $comment1->setContent('Lucas progresse bien, continuez comme ça !');
-            $comment1->setObjective($objective1);
-            $comment1->setCoach($coach);
-            $comment1->setAuthorType('coach');
-            $this->em->persist($comment1);
             
-            $comment2 = new Comment();
-            $comment2->setContent('Sophie a besoin de plus d\'entraînement sur les tables de 7 et 8');
-            $comment2->setObjective($objective2);
-            $comment2->setSpecialist($specialist);
-            $comment2->setAuthorType('specialist');
-            $this->em->persist($comment2);
+            $objectives = $this->em->getRepository(Objective::class)->findAll();
+            if (!empty($objectives)) {
+                $commentsData = [
+                    ['objective' => $objectives[0], 'content' => 'Lucas progresse bien, continuez comme ça !', 'author' => $coach, 'type' => 'coach'],
+                    ['objective' => $objectives[0], 'content' => 'Très bien, on voit des améliorations', 'author' => $specialists[0], 'type' => 'specialist'],
+                    ['objective' => count($objectives) > 1 ? $objectives[1] : $objectives[0], 'content' => 'Sophie a besoin de plus d\'entraînement sur les tables de 7 et 8', 'author' => $specialists[0], 'type' => 'specialist'],
+                    ['objective' => count($objectives) > 2 ? $objectives[2] : $objectives[0], 'content' => 'Excellent travail sur la confiance en soi !', 'author' => $coach, 'type' => 'coach'],
+                ];
+                
+                foreach ($commentsData as $commentData) {
+                    if (isset($commentData['objective'])) {
+                        $comment = new Comment();
+                        $comment->setContent($commentData['content']);
+                        $comment->setObjective($commentData['objective']);
+                        $comment->setAuthorType($commentData['type']);
+                        
+                        if ($commentData['type'] === 'coach') {
+                            $comment->setCoach($commentData['author']);
+                        } elseif ($commentData['type'] === 'specialist') {
+                            $comment->setSpecialist($commentData['author']);
+                        } elseif ($commentData['type'] === 'parent') {
+                            $comment->setParent($commentData['author']);
+                        }
+                        
+                        $this->em->persist($comment);
+                    }
+                }
+            }
             
             $this->em->flush();
             $output->writeln('   ✅ Commentaires créés');
@@ -344,12 +607,35 @@ class SeedDatabaseCommand extends Command
             $output->writeln('');
             $output->writeln('📋 Récapitulatif des comptes créés :');
             $output->writeln('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-            $output->writeln("👨‍🏫 Coach:       {$coachEmail}         / {$defaultPassword}");
-            $output->writeln("👨‍⚕️  Spécialiste: {$specialistEmail}      / {$defaultPassword}");
-            $output->writeln("👨‍👩 Parent:      {$parentEmail}     / {$defaultPassword}");
-            $output->writeln("👦 Lucas:        lucas@sara.education        / {$defaultPassword}");
-            $output->writeln("👧 Sophie:       sophie@sara.education       / {$defaultPassword}");
+            $output->writeln('👨‍🏫 COACHS:');
+            foreach ($coaches as $c) {
+                $output->writeln("   - {$c->getEmail()} ({$c->getFirstName()} {$c->getLastName()}) / {$defaultPassword}");
+            }
+            $output->writeln('');
+            $output->writeln('👨‍⚕️  SPÉCIALISTES:');
+            foreach ($specialists as $s) {
+                $output->writeln("   - {$s->getEmail()} ({$s->getFirstName()} {$s->getLastName()}) / {$defaultPassword}");
+            }
+            $output->writeln('');
+            $output->writeln('👨‍👩 PARENTS:');
+            $output->writeln("   - {$parent->getEmail()} ({$parent->getFirstName()} {$parent->getLastName()}) / {$defaultPassword}");
+            if (isset($parent2)) {
+                $output->writeln("   - {$parent2->getEmail()} ({$parent2->getFirstName()} {$parent2->getLastName()}) / {$defaultPassword}");
+            }
+            $output->writeln('');
+            $output->writeln('👦👧 ÉLÈVES:');
+            foreach ($students as $student) {
+                $output->writeln("   - {$student->getEmail()} ({$student->getFirstName()} {$student->getLastName()}) / {$defaultPassword}");
+            }
             $output->writeln('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+            $output->writeln('');
+            $output->writeln('📊 Statistiques :');
+            $output->writeln('   - ' . count($coaches) . ' coach(s)');
+            $output->writeln('   - ' . count($specialists) . ' spécialiste(s)');
+            $output->writeln('   - ' . count($students) . ' élève(s)');
+            $output->writeln('   - ' . count($objectives) . ' objectif(s)');
+            $output->writeln('   - ' . count($planningEvents) . ' événement(s) de planning');
+            $output->writeln('   - ' . count($requestsData) . ' demande(s)');
             $output->writeln('');
 
             return Command::SUCCESS;

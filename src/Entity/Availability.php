@@ -28,13 +28,21 @@ class Availability
     #[ORM\Column]
     private ?\DateTimeImmutable $updatedAt = null;
 
-    #[ORM\ManyToOne]
+    #[ORM\ManyToOne(inversedBy: 'availabilities')]
     #[ORM\JoinColumn(nullable: true)]
     private ?Coach $coach = null;
 
-    #[ORM\ManyToOne]
+    #[ORM\ManyToOne(inversedBy: 'availabilities')]
     #[ORM\JoinColumn(nullable: true)]
     private ?Specialist $specialist = null;
+
+    #[ORM\ManyToOne(inversedBy: 'availabilities')]
+    #[ORM\JoinColumn(nullable: true)]
+    private ?ParentUser $parent = null;
+
+    #[ORM\ManyToOne(inversedBy: 'availabilities')]
+    #[ORM\JoinColumn(nullable: true)]
+    private ?Student $student = null;
 
     public function __construct()
     {
@@ -124,6 +132,68 @@ class Availability
         return $this;
     }
 
+    public function getParent(): ?ParentUser
+    {
+        return $this->parent;
+    }
+
+    public function setParent(?ParentUser $parent): static
+    {
+        $this->parent = $parent;
+        return $this;
+    }
+
+    public function getStudent(): ?Student
+    {
+        return $this->student;
+    }
+
+    public function setStudent(?Student $student): static
+    {
+        $this->student = $student;
+        return $this;
+    }
+
+    /**
+     * Obtenir le propriétaire de la disponibilité (coach, specialist, parent ou student)
+     */
+    public function getOwner(): ?User
+    {
+        if ($this->coach) {
+            return $this->coach;
+        }
+        if ($this->specialist) {
+            return $this->specialist;
+        }
+        if ($this->parent) {
+            return $this->parent;
+        }
+        if ($this->student) {
+            return $this->student;
+        }
+        return null;
+    }
+
+    /**
+     * Obtenir le type de propriétaire
+     */
+    public function getOwnerType(): ?string
+    {
+        if ($this->coach) {
+            return 'coach';
+        }
+        if ($this->specialist) {
+            return 'specialist';
+        }
+        if ($this->parent) {
+            return 'parent';
+        }
+        if ($this->student) {
+            return 'student';
+        }
+        return null;
+    }
+
     public function toArray(): array
     {
         return [
@@ -131,8 +201,12 @@ class Availability
             'startTime' => $this->getStartTime()?->format('H:i'),
             'endTime' => $this->getEndTime()?->format('H:i'),
             'dayOfWeek' => $this->getDayOfWeek(),
-            'coach' => $this->getCoach()?->toArray(),
-            'specialist' => $this->getSpecialist()?->toArray(),
+            'ownerType' => $this->getOwnerType(),
+            'coach' => $this->getCoach()?->toSimpleArray(),
+            'specialist' => $this->getSpecialist()?->toSimpleArray(),
+            'parent' => $this->getParent()?->toSimpleArray(),
+            'student' => $this->getStudent()?->toSimpleArray(),
+            'owner' => $this->getOwner()?->toSimpleArray(),
             'createdAt' => $this->getCreatedAt()?->format('Y-m-d H:i:s'),
             'updatedAt' => $this->getUpdatedAt()?->format('Y-m-d H:i:s')
         ];
@@ -187,6 +261,43 @@ class Availability
         return $this->getStartTime()?->setTime(0, 0, 0);
     }
 
+    /**
+     * Retourne les heures de début et fin formatées
+     */
+    public function getTimeRange(): array
+    {
+        $startTime = $this->getStartTime();
+        $endTime = $this->getEndTime();
+        
+        if (!$startTime || !$endTime) {
+            return ['start' => null, 'end' => null];
+        }
+        
+        return [
+            'start' => (int) $startTime->format('H'),
+            'end' => (int) $endTime->format('H'),
+        ];
+    }
+
+    /**
+     * Retourne le nom du jour de la semaine en français
+     */
+    public function getDayName(): ?string
+    {
+        $dayMapping = [
+            'monday' => 'Lundi',
+            'tuesday' => 'Mardi',
+            'wednesday' => 'Mercredi',
+            'thursday' => 'Jeudi',
+            'friday' => 'Vendredi',
+            'saturday' => 'Samedi',
+            'sunday' => 'Dimanche',
+        ];
+        
+        $dayOfWeek = strtolower($this->getDayOfWeek() ?? '');
+        return $dayMapping[$dayOfWeek] ?? $this->getDayOfWeek();
+    }
+
     public static function create(array $data, Coach $coach): self
     {
         $availability = new self();
@@ -238,6 +349,56 @@ class Availability
         $availability->setEndTime($endTime);
         $availability->setDayOfWeek($data['day_of_week']);
         $availability->setSpecialist($specialist);
+        
+        return $availability;
+    }
+
+    public static function createForParent(array $data, ParentUser $parent): self
+    {
+        $availability = new self();
+        
+        // Créer des DateTimeImmutable avec la date d'aujourd'hui et l'heure spécifiée
+        $today = new \DateTimeImmutable();
+        $startTime = $today->setTime(
+            (int) explode(':', $data['start_time'])[0],
+            (int) explode(':', $data['start_time'])[1],
+            0
+        );
+        $endTime = $today->setTime(
+            (int) explode(':', $data['end_time'])[0],
+            (int) explode(':', $data['end_time'])[1],
+            0
+        );
+        
+        $availability->setStartTime($startTime);
+        $availability->setEndTime($endTime);
+        $availability->setDayOfWeek($data['day_of_week']);
+        $availability->setParent($parent);
+        
+        return $availability;
+    }
+
+    public static function createForStudent(array $data, Student $student): self
+    {
+        $availability = new self();
+        
+        // Créer des DateTimeImmutable avec la date d'aujourd'hui et l'heure spécifiée
+        $today = new \DateTimeImmutable();
+        $startTime = $today->setTime(
+            (int) explode(':', $data['start_time'])[0],
+            (int) explode(':', $data['start_time'])[1],
+            0
+        );
+        $endTime = $today->setTime(
+            (int) explode(':', $data['end_time'])[0],
+            (int) explode(':', $data['end_time'])[1],
+            0
+        );
+        
+        $availability->setStartTime($startTime);
+        $availability->setEndTime($endTime);
+        $availability->setDayOfWeek($data['day_of_week']);
+        $availability->setStudent($student);
         
         return $availability;
     }

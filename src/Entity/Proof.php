@@ -46,11 +46,11 @@ class Proof
     #[ORM\Column(type: 'datetime_immutable')]
     private ?\DateTimeImmutable $updatedAt = null;
 
-    #[ORM\ManyToOne]
+    #[ORM\ManyToOne(inversedBy: 'proofs')]
     #[ORM\JoinColumn(nullable: true)]
     private ?Task $task = null;
 
-    #[ORM\ManyToOne]
+    #[ORM\ManyToOne(inversedBy: 'proofs')]
     #[ORM\JoinColumn(nullable: true)]
     private ?Planning $planning = null;
 

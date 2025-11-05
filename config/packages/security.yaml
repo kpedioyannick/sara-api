@@ -7,9 +7,7 @@ security:
     # https://symfony.com/doc/current/security.html#loading-the-user-the-user-provider
     providers:
         app_user_provider:
-            entity:
-                class: App\Entity\User
-                property: email
+            id: App\Security\UserProvider
     firewalls:
         dev:
             pattern: ^/(_(profiler|wdt)|css|images|js)/
@@ -46,6 +44,8 @@ security:
         - { path: ^/api, roles: IS_AUTHENTICATED_FULLY }
         # Web routes
         - { path: ^/login, roles: PUBLIC_ACCESS }
+        - { path: ^/register, roles: PUBLIC_ACCESS }
+        - { path: ^/admin, roles: ROLE_COACH }
         - { path: ^/coach, roles: ROLE_COACH }
         - { path: ^/parent, roles: ROLE_PARENT }
         - { path: ^/student, roles: ROLE_STUDENT }

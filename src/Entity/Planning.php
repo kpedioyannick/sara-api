@@ -276,6 +276,39 @@ class Planning
         ];
     }
 
+    /**
+     * Mappe le statut du planning pour le template
+     */
+    public function getMappedStatus(): string
+    {
+        return match ($this->getStatus()) {
+            'completed', 'done' => 'termine',
+            'in_progress', 'ongoing' => 'en_cours',
+            default => 'planifie',
+        };
+    }
+
+    /**
+     * Retourne les données formatées pour le template de liste
+     */
+    public function toTemplateArray(): array
+    {
+        $student = $this->getStudent();
+        
+        return [
+            'id' => $this->getId(),
+            'title' => $this->getTitle(),
+            'studentId' => $student?->getId(),
+            'studentName' => $student 
+                ? $student->getFirstName() . ' ' . $student->getLastName()
+                : 'N/A',
+            'type' => $this->getType(),
+            'startDate' => $this->getStartDate()?->format('Y-m-d H:i:s'),
+            'endDate' => $this->getEndDate()?->format('Y-m-d H:i:s'),
+            'status' => $this->getMappedStatus(),
+        ];
+    }
+
     public function getDate(): ?\DateTimeImmutable
     {
         return $this->getStartDate();

@@ -33,4 +33,60 @@ class AvailabilityRepository extends ServiceEntityRepository
             $this->getEntityManager()->flush();
         }
     }
+
+    /**
+     * Récupère les disponibilités d'un coach
+     */
+    public function findByCoach($coach): array
+    {
+        return $this->createQueryBuilder('a')
+            ->where('a.coach = :coach')
+            ->setParameter('coach', $coach)
+            ->orderBy('a.dayOfWeek', 'ASC')
+            ->addOrderBy('a.startTime', 'ASC')
+            ->getQuery()
+            ->getResult();
+    }
+
+    /**
+     * Récupère les disponibilités d'un spécialiste
+     */
+    public function findBySpecialist($specialist): array
+    {
+        return $this->createQueryBuilder('a')
+            ->where('a.specialist = :specialist')
+            ->setParameter('specialist', $specialist)
+            ->orderBy('a.dayOfWeek', 'ASC')
+            ->addOrderBy('a.startTime', 'ASC')
+            ->getQuery()
+            ->getResult();
+    }
+
+    /**
+     * Récupère les disponibilités d'un parent
+     */
+    public function findByParent($parent): array
+    {
+        return $this->createQueryBuilder('a')
+            ->where('a.parent = :parent')
+            ->setParameter('parent', $parent)
+            ->orderBy('a.dayOfWeek', 'ASC')
+            ->addOrderBy('a.startTime', 'ASC')
+            ->getQuery()
+            ->getResult();
+    }
+
+    /**
+     * Récupère les disponibilités d'un élève
+     */
+    public function findByStudent($student): array
+    {
+        return $this->createQueryBuilder('a')
+            ->where('a.student = :student')
+            ->setParameter('student', $student)
+            ->orderBy('a.dayOfWeek', 'ASC')
+            ->addOrderBy('a.startTime', 'ASC')
+            ->getQuery()
+            ->getResult();
+    }
 }

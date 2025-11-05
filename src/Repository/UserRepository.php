@@ -49,4 +49,25 @@ class UserRepository extends ServiceEntityRepository implements PasswordUpgrader
         $user->setPassword($newHashedPassword);
         $this->save($user, true);
     }
+
+    /**
+     * Trouve un utilisateur par email ou pseudo (pour les étudiants)
+     */
+    public function findByIdentifier(string $identifier): ?User
+    {
+        // Chercher d'abord par email
+        $user = $this->findOneBy(['email' => $identifier]);
+        
+        if ($user) {
+            return $user;
+        }
+
+        // Si pas trouvé, chercher par pseudo dans les étudiants
+        $qb = $this->createQueryBuilder('u');
+        $qb->where('u INSTANCE OF App\Entity\Student')
+           ->andWhere('u.pseudo = :identifier')
+           ->setParameter('identifier', $identifier);
+        
+        return $qb->getQuery()->getOneOrNullResult();
+    }
 }

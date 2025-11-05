@@ -32,12 +32,20 @@ class Student extends User
     #[ORM\OneToMany(targetEntity: Planning::class, mappedBy: 'student', fetch: 'EXTRA_LAZY')]
     private Collection $plannings;
 
+    #[ORM\ManyToMany(targetEntity: Specialist::class, mappedBy: 'students')]
+    private Collection $specialists;
+
+    #[ORM\OneToMany(targetEntity: Availability::class, mappedBy: 'student')]
+    private Collection $availabilities;
+
     public function __construct()
     {
         parent::__construct();
         $this->objectives = new ArrayCollection();
         $this->requests = new ArrayCollection();
         $this->plannings = new ArrayCollection();
+        $this->specialists = new ArrayCollection();
+        $this->availabilities = new ArrayCollection();
         $this->setRoles(['ROLE_STUDENT']);
     }
 
@@ -173,6 +181,58 @@ class Student extends User
     }
 
     /**
+     * @return Collection<int, Specialist>
+     */
+    public function getSpecialists(): Collection
+    {
+        return $this->specialists;
+    }
+
+    public function addSpecialist(Specialist $specialist): static
+    {
+        if (!$this->specialists->contains($specialist)) {
+            $this->specialists->add($specialist);
+            $specialist->addStudent($this);
+        }
+        return $this;
+    }
+
+    public function removeSpecialist(Specialist $specialist): static
+    {
+        if ($this->specialists->removeElement($specialist)) {
+            $specialist->removeStudent($this);
+        }
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Availability>
+     */
+    public function getAvailabilities(): Collection
+    {
+        return $this->availabilities;
+    }
+
+    public function addAvailability(Availability $availability): static
+    {
+        if (!$this->availabilities->contains($availability)) {
+            $this->availabilities->add($availability);
+            $availability->setStudent($this);
+        }
+        return $this;
+    }
+
+    public function removeAvailability(Availability $availability): static
+    {
+        if ($this->availabilities->removeElement($availability)) {
+            if ($availability->getStudent() === $this) {
+                $availability->setStudent(null);
+            }
+        }
+        return $this;
+    }
+
+    /**
      * Convertir l'entité Student en tableau pour l'API
      */
     public function toArray(): array
@@ -192,7 +252,8 @@ class Student extends User
             'family' => $this->family ? $this->family->toArray() : null,
             'objectivesCount' => $this->getObjectives()->count(),
             'requestsCount' => $this->getRequests()->count(),
-            'planningsCount' => $this->getPlannings()->count()
+            'planningsCount' => $this->getPlannings()->count(),
+            'availabilitiesCount' => $this->getAvailabilities()->count()
         ];
     }
 
@@ -234,6 +295,7 @@ class Student extends User
             'totalObjectives' => $this->getObjectives()->count(),
             'totalRequests' => $this->getRequests()->count(),
             'totalPlannings' => $this->getPlannings()->count(),
+            'totalAvailabilities' => $this->getAvailabilities()->count(),
             'currentPoints' => $this->getPoints()
         ];
     }
