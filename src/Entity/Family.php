@@ -208,6 +208,8 @@ class Family
         $parent = $this->getParent();
         if ($parent) {
             $data['parent'] = $parent->toSimpleArray();
+        } else {
+            $data['parent'] = null;
         }
         
         // Formatage des étudiants
