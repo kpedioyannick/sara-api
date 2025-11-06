@@ -8,21 +8,17 @@
     :class="sidebarToggle ? 'justify-center' : 'justify-between'"
     class="sidebar-header flex items-center gap-2 pt-8 pb-7"
   >
-    <a href="{{ path(app.user and app.user.isCoach() ? 'admin_dashboard' : 'app_dashboard') }}">
-      <span class="logo" :class="sidebarToggle ? 'hidden' : ''">
-        <img class="dark:hidden" src="{{ asset('tailadmin/src/images/logo/logo.svg') }}" alt="Logo" />
-        <img
-          class="hidden dark:block"
-          src="{{ asset('tailadmin/src/images/logo/logo-dark.svg') }}"
-          alt="Logo"
-        />
+    <a href="{{ path(app.user and app.user.isCoach() ? 'admin_dashboard' : 'app_dashboard') }}" class="flex items-center gap-2 whitespace-nowrap min-w-0">
+      <span class="logo flex items-center gap-2 whitespace-nowrap flex-shrink-0" :class="sidebarToggle ? 'hidden' : ''">
+        <img src="{{ asset('sara.png') }}" alt="SARA" class="h-8 w-auto flex-shrink-0" />
+        <span class="text-lg font-bold whitespace-nowrap flex-shrink-0" style="color: rgb(32, 129, 74);">SARA</span>
       </span>
 
       <img
-        class="logo-icon"
+        class="logo-icon h-8 w-auto flex-shrink-0"
         :class="sidebarToggle ? 'xl:block' : 'hidden'"
-        src="{{ asset('tailadmin/src/images/logo/logo-icon.svg') }}"
-        alt="Logo"
+        src="{{ asset('sara.png') }}"
+        alt="SARA"
       />
     </a>
   </div>

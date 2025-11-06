@@ -2,7 +2,12 @@
 
 {% block content %}
 <!-- ===== Main Content Start ===== -->
-<main x-data="taskManager()">
+<main 
+  x-data="taskManager()"
+  data-students='{{ students|json_encode|e('html_attr') }}'
+  data-parents='{{ parents|json_encode|e('html_attr') }}'
+  data-specialists='{{ specialists|json_encode|e('html_attr') }}'
+>
   <div class="p-4 mx-auto max-w-(--breakpoint-2xl) md:p-6">
     <!-- Breadcrumb Start -->
     <div x-data="{ pageName: 'Détail de l\'Objectif' }">
@@ -148,6 +153,15 @@
             <span class="text-sm text-gray-500 dark:text-gray-400">
               Total: {{ tasks.pending|length + tasks.in_progress|length + tasks.completed|length }}
             </span>
+            <button
+              @click="openTaskCreate()"
+              class="inline-flex items-center gap-2 rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white shadow-theme-xs hover:bg-brand-600 transition-colors"
+            >
+              <svg class="fill-current" width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M8 2.66667C8.36819 2.66667 8.66667 2.96514 8.66667 3.33333V7.33333H12.6667C13.0349 7.33333 13.3333 7.63181 13.3333 8C13.3333 8.36819 13.0349 8.66667 12.6667 8.66667H8.66667V12.6667C8.66667 13.0349 8.36819 13.3333 8 13.3333C7.63181 13.3333 7.33333 13.0349 7.33333 12.6667V8.66667H3.33333C2.96514 8.66667 2.66667 8.36819 2.66667 8C2.66667 7.63181 2.96514 7.33333 3.33333 7.33333H7.33333V3.33333C7.33333 2.96514 7.63181 2.66667 8 2.66667Z" fill=""/>
+              </svg>
+              Nouvelle tâche
+            </button>
           </div>
         </div>
       </div>
@@ -282,6 +296,11 @@
                     data-task-frequency="{{ task.frequency|default('none') }}"
                     data-task-requires-proof="{{ task.requiresProof ? 'true' : 'false' }}"
                     data-task-title="{{ task.title|e('html_attr') }}"
+                    data-task-description="{{ task.description|e('html_attr') }}"
+                    data-task-assigned-type="{{ task.assignedType|default('coach') }}"
+                    data-task-student-id="{{ task.student ? task.student.id : '' }}"
+                    data-task-parent-id="{{ task.parent ? task.parent.id : '' }}"
+                    data-task-specialist-id="{{ task.specialist ? task.specialist.id : '' }}"
                     @click="openTaskConfig($event)"
                     class="inline-flex items-center gap-1 rounded-full bg-gray-50 px-2 py-0.5 text-theme-xs font-medium text-gray-500 hover:bg-gray-100 dark:bg-white/[0.02] dark:text-gray-400 dark:hover:bg-white/[0.03]"
                     title="Configurer la tâche"
@@ -456,6 +475,11 @@
                     data-task-frequency="{{ task.frequency|default('none') }}"
                     data-task-requires-proof="{{ task.requiresProof ? 'true' : 'false' }}"
                     data-task-title="{{ task.title|e('html_attr') }}"
+                    data-task-description="{{ task.description|e('html_attr') }}"
+                    data-task-assigned-type="{{ task.assignedType|default('coach') }}"
+                    data-task-student-id="{{ task.student ? task.student.id : '' }}"
+                    data-task-parent-id="{{ task.parent ? task.parent.id : '' }}"
+                    data-task-specialist-id="{{ task.specialist ? task.specialist.id : '' }}"
                     @click="openTaskConfig($event)"
                     class="inline-flex items-center gap-1 rounded-full bg-gray-50 px-2 py-0.5 text-theme-xs font-medium text-gray-500 hover:bg-gray-100 dark:bg-white/[0.02] dark:text-gray-400 dark:hover:bg-white/[0.03]"
                     title="Configurer la tâche"
@@ -1028,7 +1052,8 @@
       <div class="sticky top-0 z-10 border-b border-gray-200 bg-white px-6 py-4 dark:border-gray-800 dark:bg-gray-900">
         <div class="flex items-center justify-between">
           <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">
-            Configuration de la tâche
+            <span x-show="!taskConfig.isNew">Configuration de la tâche</span>
+            <span x-show="taskConfig.isNew">Nouvelle tâche</span>
           </h3>
           <button
             @click="closeConfigSheet()"
@@ -1039,12 +1064,39 @@
             </svg>
           </button>
         </div>
-        <p class="text-sm text-gray-500 dark:text-gray-400 mt-1" x-text="configTaskTitle"></p>
+        <p class="text-sm text-gray-500 dark:text-gray-400 mt-1" x-show="!taskConfig.isNew" x-text="configTaskTitle"></p>
       </div>
 
       <!-- Content -->
       <div class="flex-1 overflow-y-auto p-6" x-show="taskConfig">
         <form @submit.prevent="saveTaskConfig()" class="space-y-6">
+          <!-- Titre -->
+          <div>
+            <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+              Titre <span class="text-error-500">*</span>
+            </label>
+            <input
+              type="text"
+              x-model="taskConfig.title"
+              required
+              class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+              placeholder="Titre de la tâche"
+            />
+          </div>
+
+          <!-- Description -->
+          <div>
+            <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+              Description
+            </label>
+            <textarea
+              x-model="taskConfig.description"
+              rows="4"
+              class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+              placeholder="Description de la tâche"
+            ></textarea>
+          </div>
+
           <!-- Statut -->
           <div>
             <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -1057,6 +1109,59 @@
               <option value="pending">En attente</option>
               <option value="in_progress">En cours</option>
               <option value="completed">Terminé</option>
+            </select>
+          </div>
+
+          <!-- Affectation -->
+          <div>
+            <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+              Affectation
+            </label>
+            <select
+              x-model="taskConfig.assignedType"
+              @change="taskConfig.studentId = ''; taskConfig.parentId = ''; taskConfig.specialistId = '';"
+              class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90 mb-3"
+            >
+              <option value="coach">Coach</option>
+              <option value="student">Élève</option>
+              <option value="parent">Parent</option>
+              <option value="specialist">Spécialiste</option>
+            </select>
+            
+            <!-- Sélecteur d'élève -->
+            <select
+              x-show="taskConfig.assignedType === 'student'"
+              x-model="taskConfig.studentId"
+              class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+            >
+              <option value="">Sélectionner un élève</option>
+              <template x-for="student in students" :key="student.id">
+                <option :value="student.id" x-text="student.firstName + ' ' + student.lastName"></option>
+              </template>
+            </select>
+            
+            <!-- Sélecteur de parent -->
+            <select
+              x-show="taskConfig.assignedType === 'parent'"
+              x-model="taskConfig.parentId"
+              class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+            >
+              <option value="">Sélectionner un parent</option>
+              <template x-for="parent in parents" :key="parent.id">
+                <option :value="parent.id" x-text="parent.firstName + ' ' + parent.lastName"></option>
+              </template>
+            </select>
+            
+            <!-- Sélecteur de spécialiste -->
+            <select
+              x-show="taskConfig.assignedType === 'specialist'"
+              x-model="taskConfig.specialistId"
+              class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+            >
+              <option value="">Sélectionner un spécialiste</option>
+              <template x-for="specialist in specialists" :key="specialist.id">
+                <option :value="specialist.id" x-text="specialist.firstName + ' ' + specialist.lastName"></option>
+              </template>
             </select>
           </div>
 
@@ -1119,8 +1224,10 @@
               :disabled="configSubmitting"
               class="flex-1 rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white shadow-theme-xs hover:bg-brand-600 disabled:opacity-50"
             >
-              <span x-show="!configSubmitting">Enregistrer</span>
-              <span x-show="configSubmitting">Enregistrement...</span>
+              <span x-show="!configSubmitting && !taskConfig.isNew">Enregistrer</span>
+              <span x-show="!configSubmitting && taskConfig.isNew">Créer</span>
+              <span x-show="configSubmitting && !taskConfig.isNew">Enregistrement...</span>
+              <span x-show="configSubmitting && taskConfig.isNew">Création...</span>
             </button>
           </div>
         </form>
@@ -1207,10 +1314,20 @@ function taskManager() {
     },
     configSubmitting: false,
     configTaskTitle: '',
+    students: [],
+    parents: [],
+    specialists: [],
     taskConfig: {
+      isNew: false,
+      title: '',
+      description: '',
       status: 'pending',
       requiresProof: true,
       frequency: 'none',
+      assignedType: 'coach',
+      studentId: '',
+      parentId: '',
+      specialistId: '',
     },
     commentFormOpen: false,
     commentEditMode: false,
@@ -1220,6 +1337,22 @@ function taskManager() {
       content: '',
     },
     objectiveId: {{ objective.id }},
+    
+    init() {
+      const studentsJson = this.$el.getAttribute('data-students');
+      const parentsJson = this.$el.getAttribute('data-parents');
+      const specialistsJson = this.$el.getAttribute('data-specialists');
+      
+      if (studentsJson) {
+        this.students = JSON.parse(studentsJson);
+      }
+      if (parentsJson) {
+        this.parents = JSON.parse(parentsJson);
+      }
+      if (specialistsJson) {
+        this.specialists = JSON.parse(specialistsJson);
+      }
+    },
     
     openProofModal(event, taskId, taskTitle) {
       console.log('openProofModal appelé', { taskId, taskTitle, checked: event.target.checked });
@@ -1497,15 +1630,27 @@ function taskManager() {
       const taskFrequency = button.getAttribute('data-task-frequency') || 'none';
       const taskRequiresProof = button.getAttribute('data-task-requires-proof') === 'true';
       const taskTitle = button.getAttribute('data-task-title');
+      const taskDescription = button.getAttribute('data-task-description') || '';
+      const taskAssignedType = button.getAttribute('data-task-assigned-type') || 'coach';
+      const taskStudentId = button.getAttribute('data-task-student-id') || '';
+      const taskParentId = button.getAttribute('data-task-parent-id') || '';
+      const taskSpecialistId = button.getAttribute('data-task-specialist-id') || '';
       
-      console.log('Données de la tâche:', { taskId, taskStatus, taskFrequency, taskRequiresProof, taskTitle });
+      console.log('Données de la tâche:', { taskId, taskStatus, taskFrequency, taskRequiresProof, taskTitle, taskDescription, taskAssignedType });
       
       this.currentTaskId = taskId;
       this.configTaskTitle = taskTitle || 'Tâche #' + taskId;
       this.taskConfig = {
+        isNew: false,
+        title: taskTitle || '',
+        description: taskDescription || '',
         status: taskStatus || 'pending',
         requiresProof: taskRequiresProof,
         frequency: taskFrequency || 'none',
+        assignedType: taskAssignedType,
+        studentId: taskStudentId,
+        parentId: taskParentId,
+        specialistId: taskSpecialistId,
       };
       
       console.log('Ouverture du configSheet - avant:', { configSheetOpen: this.configSheetOpen, taskConfig: this.taskConfig });
@@ -1524,40 +1669,109 @@ function taskManager() {
       }, 100);
     },
     
+    openTaskCreate() {
+      // Fermer les autres rightSheets
+      this.proofSheetOpen = false;
+      this.rightSheetOpen = false;
+      
+      this.currentTaskId = null;
+      this.configTaskTitle = '';
+      this.taskConfig = {
+        isNew: true,
+        title: '',
+        description: '',
+        status: 'pending',
+        requiresProof: true,
+        frequency: 'none',
+        assignedType: 'coach',
+        studentId: '',
+        parentId: '',
+        specialistId: '',
+      };
+      
+      this.configSheetOpen = true;
+    },
+    
     closeConfigSheet() {
       this.configSheetOpen = false;
       this.currentTaskId = null;
       this.configTaskTitle = '';
       this.taskConfig = {
+        isNew: false,
+        title: '',
+        description: '',
         status: 'pending',
         requiresProof: true,
         frequency: 'none',
+        assignedType: 'coach',
+        studentId: '',
+        parentId: '',
+        specialistId: '',
       };
     },
     
     async saveTaskConfig() {
-      if (!this.currentTaskId) return;
+      // Validation du titre
+      if (!this.taskConfig.title || this.taskConfig.title.trim() === '') {
+        if (window.showToast) {
+          window.showToast('Le titre est requis', 'error');
+        }
+        this.configSubmitting = false;
+        return;
+      }
+      
+      // Validation : en mode édition, currentTaskId doit être défini
+      if (!this.taskConfig.isNew && !this.currentTaskId) {
+        if (window.showToast) {
+          window.showToast('Erreur : ID de tâche manquant', 'error');
+        }
+        this.configSubmitting = false;
+        return;
+      }
       
       this.configSubmitting = true;
       
       try {
-        const response = await fetch(`/admin/tasks/${this.currentTaskId}/configure`, {
+        // Préparer les données à envoyer
+        const dataToSend = {
+          title: this.taskConfig.title,
+          description: this.taskConfig.description || '',
+          status: this.taskConfig.status,
+          requiresProof: this.taskConfig.requiresProof,
+          frequency: this.taskConfig.frequency,
+          assignedType: this.taskConfig.assignedType,
+        };
+        
+        // Ajouter l'ID selon le type d'affectation
+        if (this.taskConfig.assignedType === 'student' && this.taskConfig.studentId) {
+          dataToSend.studentId = parseInt(this.taskConfig.studentId);
+        } else if (this.taskConfig.assignedType === 'parent' && this.taskConfig.parentId) {
+          dataToSend.parentId = parseInt(this.taskConfig.parentId);
+        } else if (this.taskConfig.assignedType === 'specialist' && this.taskConfig.specialistId) {
+          dataToSend.specialistId = parseInt(this.taskConfig.specialistId);
+        }
+        
+        // Déterminer l'URL selon le mode (création ou édition)
+        const url = this.taskConfig.isNew 
+          ? `/admin/objectives/${this.objectiveId}/tasks/create`
+          : `/admin/tasks/${this.currentTaskId}/update`;
+        
+        const response = await fetch(url, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({
-            status: this.taskConfig.status,
-            requiresProof: this.taskConfig.requiresProof,
-            frequency: this.taskConfig.frequency,
-          }),
+          body: JSON.stringify(dataToSend),
         });
         
         const result = await response.json().catch(() => ({ success: false, message: 'Erreur lors de l\'enregistrement' }));
         
         if (response.ok && result.success) {
           if (window.showToast) {
-            window.showToast(result.message || 'Configuration enregistrée avec succès', 'success');
+            const message = this.taskConfig.isNew 
+              ? (result.message || 'Tâche créée avec succès')
+              : (result.message || 'Configuration enregistrée avec succès');
+            window.showToast(message, 'success');
           }
           
           // Fermer le rightSheet
@@ -1568,15 +1782,21 @@ function taskManager() {
             window.location.reload();
           }, 1000);
         } else {
-          const errorMessage = result.message || 'Erreur lors de l\'enregistrement de la configuration';
+          const errorMessage = result.message || (this.taskConfig.isNew 
+            ? 'Erreur lors de la création de la tâche'
+            : 'Erreur lors de l\'enregistrement de la configuration');
           if (window.showToast) {
             window.showToast(errorMessage, 'error');
           }
+          this.configSubmitting = false;
         }
       } catch (error) {
-        console.error('Erreur lors de l\'enregistrement de la configuration:', error);
+        console.error('Erreur lors de l\'enregistrement:', error);
         if (window.showToast) {
-          window.showToast('Une erreur est survenue', 'error');
+          const errorMessage = this.taskConfig.isNew 
+            ? 'Erreur lors de la création de la tâche'
+            : 'Erreur lors de l\'enregistrement de la configuration';
+          window.showToast(errorMessage, 'error');
         }
       } finally {
         this.configSubmitting = false;

@@ -281,15 +281,15 @@ pre[class*="language-"] {
     --text-theme-sm--line-height: 20px;
     --text-theme-xs: 12px;
     --text-theme-xs--line-height: 18px;
-    --color-brand-50: #ecf3ff;
-    --color-brand-100: #dde9ff;
-    --color-brand-200: #c2d6ff;
-    --color-brand-300: #9cb9ff;
-    --color-brand-400: #7592ff;
-    --color-brand-500: #465fff;
-    --color-brand-600: #3641f5;
-    --color-brand-800: #252dae;
-    --color-brand-950: #161950;
+    --color-brand-50: #e8f5ed;
+    --color-brand-100: #d1ead9;
+    --color-brand-200: #a8d5b8;
+    --color-brand-300: #7bb792;
+    --color-brand-400: #4d9969;
+    --color-brand-500: #20814a;
+    --color-brand-600: #1a6a3d;
+    --color-brand-800: #123d26;
+    --color-brand-950: #0a1f14;
     --color-blue-light-50: #f0f9ff;
     --color-blue-light-500: #0ba5ec;
     --color-blue-light-600: #0086c9;
@@ -6681,7 +6681,9 @@ pre[class*="language-"] {
   width: 290px;
 }
 .sidebar:hover .logo {
-  display: block;
+  display: flex !important;
+  align-items: center;
+  gap: 0.5rem;
 }
 .sidebar:hover .logo-icon {
   display: none;

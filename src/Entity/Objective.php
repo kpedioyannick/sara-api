@@ -21,7 +21,7 @@ class Objective
     #[ORM\Column(type: 'text')]
     private ?string $description = null;
 
-    #[ORM\Column]
+    #[ORM\Column(nullable: true)]
     private ?\DateTimeImmutable $deadline = null;
 
     #[ORM\Column(length: 100)]
@@ -92,7 +92,7 @@ class Objective
         return $this->deadline;
     }
 
-    public function setDeadline(\DateTimeImmutable $deadline): static
+    public function setDeadline(?\DateTimeImmutable $deadline): static
     {
         $this->deadline = $deadline;
         return $this;

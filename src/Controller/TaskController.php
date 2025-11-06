@@ -65,8 +65,8 @@ class TaskController extends AbstractController
             'title' => $data['title'] ?? '',
             'description' => $data['description'] ?? '',
             'status' => $data['status'] ?? 'pending',
-            'frequency' => $data['frequency'] ?? 'daily',
-            'requires_proof' => true, // Par défaut, toutes les tâches nécessitent des preuves
+            'frequency' => $data['frequency'] ?? 'none',
+            'requires_proof' => isset($data['requiresProof']) ? (bool)$data['requiresProof'] : true, // Par défaut, toutes les tâches nécessitent des preuves
             'proof_type' => $data['proofType'] ?? null,
             'due_date' => $data['dueDate'] ?? null,
         ], $objective, $assignedTo, $assignedType);
@@ -105,8 +105,10 @@ class TaskController extends AbstractController
         if (isset($data['description'])) $task->setDescription($data['description']);
         if (isset($data['status'])) $task->setStatus($data['status']);
         if (isset($data['frequency'])) $task->setFrequency($data['frequency']);
-        // Toujours forcer requiresProof à true (toutes les tâches nécessitent des preuves)
-        $task->setRequiresProof(true);
+        // Mettre à jour requiresProof si fourni, sinon garder la valeur actuelle
+        if (isset($data['requiresProof'])) {
+            $task->setRequiresProof((bool)$data['requiresProof']);
+        }
         if (isset($data['proofType'])) $task->setProofType($data['proofType']);
         if (isset($data['dueDate'])) {
             $task->setDueDate(new \DateTimeImmutable($data['dueDate']));
@@ -128,6 +130,9 @@ class TaskController extends AbstractController
             } elseif ($data['assignedType'] === 'specialist' && isset($data['specialistId'])) {
                 $specialist = $this->specialistRepository->find($data['specialistId']);
                 if ($specialist) $task->setSpecialist($specialist);
+            } elseif ($data['assignedType'] === 'coach') {
+                // S'assurer que le coach est bien assigné
+                $task->setCoach($coach);
             }
         }
         

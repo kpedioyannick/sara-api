@@ -1,4 +1,4 @@
-un élèveble intégra<?php
+<?php
 
 namespace App\Entity;
 

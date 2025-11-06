@@ -50,7 +50,7 @@
                                 </span>
                             {% endif %}
                             <div
-                                class="rounded-lg px-4 py-2 {% if message.isFromMe %}bg-blue-600 text-white{% else %}bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-white{% endif %}"
+                                class="rounded-lg px-4 py-2 {% if message.isFromMe %}bg-brand-500 text-white{% else %}bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-white{% endif %}"
                             >
                                 <p class="text-sm">{{ message.content }}</p>
                             </div>
@@ -69,12 +69,12 @@
                         type="text"
                         x-model="messageContent"
                         placeholder="Tapez votre message..."
-                        class="flex-1 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                        class="flex-1 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
                         required
                     />
                     <button
                         type="submit"
-                        class="rounded-lg bg-blue-600 px-6 py-2 text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                        class="rounded-lg bg-brand-500 px-6 py-2 text-sm font-medium text-white hover:bg-brand-600 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2"
                     >
                         Envoyer
                     </button>
@@ -245,7 +245,7 @@ function chatManager(conversationId) {
                             ${message.sender.firstName} ${message.sender.lastName}
                         </span>
                     ` : ''}
-                    <div class="rounded-lg px-4 py-2 ${message.isFromMe ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-white'}">
+                    <div class="rounded-lg px-4 py-2 ${message.isFromMe ? 'bg-brand-500 text-white' : 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-white'}">
                         <p class="text-sm">${this.escapeHtml(message.content)}</p>
                     </div>
                     <span class="mt-1 text-xs text-gray-400 dark:text-gray-500">

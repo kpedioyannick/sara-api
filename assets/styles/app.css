@@ -28,12 +28,12 @@ body {
 
 /* Sidebar avec fond teinté */
 .sidebar-gradient {
-  background: linear-gradient(180deg, hsl(239, 84%, 67%, 0.05) 0%, hsl(239, 84%, 67%, 0.02) 100%);
+  background: linear-gradient(180deg, rgba(32, 129, 74, 0.05) 0%, rgba(32, 129, 74, 0.02) 100%);
 }
 
 /* Badge gradient pour logo */
 .logo-badge {
-  background: linear-gradient(135deg, hsl(239, 84%, 67%) 0%, hsl(271, 91%, 65%) 100%);
+  background: linear-gradient(135deg, rgb(32, 129, 74) 0%, rgb(26, 106, 61) 100%);
   box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
 }
 
@@ -48,7 +48,7 @@ body {
 
 /* Navigation active state */
 .nav-active {
-  background-color: hsl(239, 84%, 67%);
+  background-color: rgb(32, 129, 74);
   color: hsl(0, 0%, 100%);
 }
 
@@ -60,7 +60,7 @@ body {
   transform: translateY(-50%);
   width: 4px;
   height: 60%;
-  background: hsl(239, 84%, 67%);
+  background: rgb(32, 129, 74);
   border-radius: 0 2px 2px 0;
 }
 
@@ -76,7 +76,7 @@ body {
   left: 0;
   right: 0;
   height: 3px;
-  background: linear-gradient(90deg, hsl(239, 84%, 67%) 0%, hsl(271, 91%, 65%) 100%);
+  background: linear-gradient(90deg, rgb(32, 129, 74) 0%, rgb(26, 106, 61) 100%);
   z-index: 9999;
   animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }

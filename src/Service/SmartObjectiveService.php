@@ -88,8 +88,8 @@ class SmartObjectiveService
                 {
                     \"title\": \"Titre de la tâche\",
                     \"description\": \"Description spécifique et claire de la tâche\",
-                    \"frequency\": \"daily|weekly|monthly|once\",
-                    \"requiresProof\": true ou false,
+                    \"frequency\": \"none|hourly|daily|half_day|every_2_days|weekly|monthly|yearly\",
+                    \"requiresProof\": true,
                     \"proofType\": \"image|audio|video|document|text\"
                 }
             ]

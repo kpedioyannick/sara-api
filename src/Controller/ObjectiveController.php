@@ -141,7 +141,133 @@ class ObjectiveController extends AbstractController
         ]);
     }
 
-    #[Route('/admin/objectives/{id}', name: 'admin_objectives_detail')]
+    #[Route('/admin/objectives/create', name: 'admin_objectives_create', methods: ['POST'])]
+    public function create(Request $request): JsonResponse
+    {
+        try {
+            $coach = $this->getCurrentCoach($this->coachRepository, $this->security);
+            if (!$coach) {
+                return new JsonResponse(['success' => false, 'message' => 'Coach non trouvé'], 404);
+            }
+
+            $data = json_decode($request->getContent(), true);
+            
+            // Validation des champs requis
+            if (empty($data['description'])) {
+                return new JsonResponse(['success' => false, 'message' => 'La description est requise'], 400);
+            }
+            if (empty($data['studentId'])) {
+                return new JsonResponse(['success' => false, 'message' => 'L\'élève est requis'], 400);
+            }
+            if (empty($data['category'])) {
+                return new JsonResponse(['success' => false, 'message' => 'La catégorie est requise'], 400);
+            }
+
+            // Récupérer l'élève
+            $student = $this->studentRepository->find($data['studentId']);
+            if (!$student) {
+                return new JsonResponse(['success' => false, 'message' => 'Élève non trouvé'], 400);
+            }
+
+            // Générer les suggestions avec SmartObjectiveService
+            try {
+                $suggestions = $this->smartObjectiveService->generateSuggestions(
+                    $data['description'],
+                    $data['category']
+                );
+            } catch (\Exception $e) {
+                $this->logger->error('Erreur lors de la génération des suggestions', [
+                    'error' => $e->getMessage()
+                ]);
+                return new JsonResponse([
+                    'success' => false, 
+                    'message' => 'Erreur lors de la génération des suggestions : ' . $e->getMessage()
+                ], 500);
+            }
+
+            // Créer l'objectif avec les données générées
+            $objective = new Objective();
+            $objective->setCoach($coach);
+            $objective->setStudent($student);
+            $objective->setDescription($data['description']);
+            $objective->setCategory($data['category']);
+            $objective->setStatus('pending');
+            $objective->setProgress(0);
+            
+            // Utiliser le titre généré par OpenAI
+            if (isset($suggestions['objective']['title'])) {
+                $objective->setTitle($suggestions['objective']['title']);
+            } else {
+                // Fallback si pas de titre généré
+                $objective->setTitle('Objectif - ' . substr($data['description'], 0, 50));
+            }
+
+            // Validation
+            $errors = $this->validator->validate($objective);
+            if (count($errors) > 0) {
+                $errorMessages = [];
+                foreach ($errors as $error) {
+                    $errorMessages[] = $error->getMessage();
+                }
+                return new JsonResponse(['success' => false, 'message' => implode(', ', $errorMessages)], 400);
+            }
+
+            $this->em->persist($objective);
+            $this->em->flush();
+
+            // Créer les tâches suggérées
+            if (isset($suggestions['tasks']) && is_array($suggestions['tasks'])) {
+                foreach ($suggestions['tasks'] as $taskData) {
+                    // Valider la fréquence
+                    $frequency = $taskData['frequency'] ?? 'none';
+                    $validFrequencies = [
+                        Task::FREQUENCY_NONE,
+                        Task::FREQUENCY_HOURLY,
+                        Task::FREQUENCY_DAILY,
+                        Task::FREQUENCY_HALF_DAY,
+                        Task::FREQUENCY_EVERY_2_DAYS,
+                        Task::FREQUENCY_WEEKLY,
+                        Task::FREQUENCY_MONTHLY,
+                        Task::FREQUENCY_YEARLY
+                    ];
+                    if (!in_array($frequency, $validFrequencies)) {
+                        $frequency = Task::FREQUENCY_NONE; // Fallback
+                    }
+                    
+                    $task = new Task();
+                    $task->setObjective($objective);
+                    $task->setCoach($coach);
+                    $task->setTitle($taskData['title'] ?? '');
+                    $task->setDescription($taskData['description'] ?? '');
+                    $task->setStatus('pending');
+                    $task->setFrequency($frequency);
+                    $task->setRequiresProof(true); // Par défaut, toutes les tâches nécessitent des preuves
+                    $task->setProofType($taskData['proofType'] ?? '');
+                    $task->setAssignedType('coach');
+                    
+                    $this->em->persist($task);
+                }
+                $this->em->flush();
+            }
+
+            return new JsonResponse([
+                'success' => true, 
+                'id' => $objective->getId(), 
+                'message' => 'Objectif créé avec succès avec ' . count($suggestions['tasks'] ?? []) . ' tâche(s) générée(s)'
+            ]);
+        } catch (\Exception $e) {
+            $this->logger->error('Erreur non capturée lors de la création d\'objectif', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return new JsonResponse([
+                'success' => false,
+                'message' => 'Erreur serveur: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    #[Route('/admin/objectives/{id}', name: 'admin_objectives_detail', requirements: ['id' => '\d+'])]
     #[IsGranted('ROLE_COACH')]
     public function detail(int $id): Response
     {
@@ -238,6 +364,37 @@ class ObjectiveController extends AbstractController
             ],
         ];
 
+                    // Récupérer les étudiants, parents et spécialistes pour les sélecteurs d'affectation
+                    $students = $this->studentRepository->findByCoach($coach);
+                    $studentsData = array_map(function($student) {
+                        return [
+                            'id' => $student->getId(),
+                            'firstName' => $student->getFirstName(),
+                            'lastName' => $student->getLastName(),
+                            'pseudo' => $student->getPseudo(),
+                        ];
+                    }, $students);
+                    
+                    $families = $this->familyRepository->findByCoachWithSearch($coach);
+                    $parentsData = [];
+                    foreach ($families as $family) {
+                        $parent = $family->getParent();
+                        if ($parent) {
+                            $parentsData[] = [
+                                'id' => $parent->getId(),
+                                'firstName' => $parent->getFirstName(),
+                                'lastName' => $parent->getLastName(),
+                            ];
+                        }
+                    }
+                    
+                    $specialists = $this->specialistRepository->findAll();
+                    $specialistsData = array_map(fn($s) => [
+                        'id' => $s->getId(),
+                        'firstName' => $s->getFirstName(),
+                        'lastName' => $s->getLastName(),
+                    ], $specialists);
+
                     // Déterminer le type d'utilisateur
                     $currentUser = $this->getUser();
                     $userType = 'coach'; // Par défaut
@@ -258,121 +415,15 @@ class ObjectiveController extends AbstractController
                         'tasks' => $tasksData,
                         'comments' => $commentsData,
                         'userType' => $userType,
+                        'students' => $studentsData,
+                        'parents' => $parentsData,
+                        'specialists' => $specialistsData,
                         'breadcrumbs' => [
                             ['label' => 'Dashboard', 'url' => $this->generateUrl('admin_dashboard')],
                             ['label' => 'Objectifs', 'url' => $this->generateUrl('admin_objectives_list')],
                             ['label' => 'Détail', 'url' => ''],
                         ],
                     ]);
-    }
-
-    #[Route('/admin/objectives/create', name: 'admin_objectives_create', methods: ['POST'])]
-    public function create(Request $request): JsonResponse
-    {
-        try {
-            $coach = $this->getCurrentCoach($this->coachRepository, $this->security);
-            if (!$coach) {
-                return new JsonResponse(['success' => false, 'message' => 'Coach non trouvé'], 404);
-            }
-
-            $data = json_decode($request->getContent(), true);
-            
-            // Validation des champs requis
-            if (empty($data['description'])) {
-                return new JsonResponse(['success' => false, 'message' => 'La description est requise'], 400);
-            }
-            if (empty($data['studentId'])) {
-                return new JsonResponse(['success' => false, 'message' => 'L\'élève est requis'], 400);
-            }
-            if (empty($data['category'])) {
-                return new JsonResponse(['success' => false, 'message' => 'La catégorie est requise'], 400);
-            }
-
-            // Récupérer l'élève
-            $student = $this->studentRepository->find($data['studentId']);
-            if (!$student) {
-                return new JsonResponse(['success' => false, 'message' => 'Élève non trouvé'], 400);
-            }
-
-            // Générer les suggestions avec SmartObjectiveService
-            try {
-                $suggestions = $this->smartObjectiveService->generateSuggestions(
-                    $data['description'],
-                    $data['category']
-                );
-            } catch (\Exception $e) {
-                $this->logger->error('Erreur lors de la génération des suggestions', [
-                    'error' => $e->getMessage()
-                ]);
-                return new JsonResponse([
-                    'success' => false, 
-                    'message' => 'Erreur lors de la génération des suggestions : ' . $e->getMessage()
-                ], 500);
-            }
-
-            // Créer l'objectif avec les données générées
-            $objective = new Objective();
-            $objective->setCoach($coach);
-            $objective->setStudent($student);
-            $objective->setDescription($data['description']);
-            $objective->setCategory($data['category']);
-            $objective->setStatus('pending');
-            $objective->setProgress(0);
-            
-            // Utiliser le titre généré par OpenAI
-            if (isset($suggestions['objective']['title'])) {
-                $objective->setTitle($suggestions['objective']['title']);
-            } else {
-                // Fallback si pas de titre généré
-                $objective->setTitle('Objectif - ' . substr($data['description'], 0, 50));
-            }
-
-            // Validation
-            $errors = $this->validator->validate($objective);
-            if (count($errors) > 0) {
-                $errorMessages = [];
-                foreach ($errors as $error) {
-                    $errorMessages[] = $error->getMessage();
-                }
-                return new JsonResponse(['success' => false, 'message' => implode(', ', $errorMessages)], 400);
-            }
-
-            $this->em->persist($objective);
-            $this->em->flush();
-
-            // Créer les tâches suggérées
-            if (isset($suggestions['tasks']) && is_array($suggestions['tasks'])) {
-                foreach ($suggestions['tasks'] as $taskData) {
-                    $task = new Task();
-                    $task->setObjective($objective);
-                    $task->setTitle($taskData['title'] ?? '');
-                    $task->setDescription($taskData['description'] ?? '');
-                    $task->setStatus('pending');
-                    $task->setFrequency($taskData['frequency'] ?? 'daily');
-                    $task->setRequiresProof(true); // Par défaut, toutes les tâches nécessitent des preuves
-                    $task->setProofType($taskData['proofType'] ?? '');
-                    $task->setAssignedType('coach');
-                    
-                    $this->em->persist($task);
-                }
-                $this->em->flush();
-            }
-
-            return new JsonResponse([
-                'success' => true, 
-                'id' => $objective->getId(), 
-                'message' => 'Objectif créé avec succès avec ' . count($suggestions['tasks'] ?? []) . ' tâche(s) générée(s)'
-            ]);
-        } catch (\Exception $e) {
-            $this->logger->error('Erreur non capturée lors de la création d\'objectif', [
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
-            return new JsonResponse([
-                'success' => false,
-                'message' => 'Erreur serveur: ' . $e->getMessage()
-            ], 500);
-        }
     }
 
     #[Route('/admin/objectives/{id}/update', name: 'admin_objectives_update', methods: ['POST'])]
