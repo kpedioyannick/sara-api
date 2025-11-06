@@ -1,0 +1,697 @@
+{% extends 'tailadmin/layouts/base.html.twig' %}
+
+{% block page_title %}{{ pageTitle|default('Profil') }}{% endblock %}
+
+{% block content %}
+<div class="mx-auto max-w-screen-2xl p-4 md:p-6 2xl:p-10" 
+     x-data="profileManager({{ userData|json_encode|e('html_attr') }}, '{{ userType }}')"
+     x-init="page = 'profile'">
+    <!-- Breadcrumb Start -->
+    <div x-data="{ pageName: 'Profil' }">
+        <div class="flex flex-wrap items-center justify-between gap-3 pb-6">
+            <h2 class="text-xl font-semibold text-gray-800 dark:text-white/90" x-text="pageName"></h2>
+            <nav>
+                <ol class="flex items-center gap-1.5">
+                    <li>
+                        <a
+                            class="inline-flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400"
+                            href="{{ path('admin_dashboard') }}"
+                        >
+                            Accueil
+                            <svg
+                                class="stroke-current"
+                                width="17"
+                                height="16"
+                                viewBox="0 0 17 16"
+                                fill="none"
+                                xmlns="http://www.w3.org/2000/svg"
+                            >
+                                <path
+                                    d="M6.0765 12.667L10.2432 8.50033L6.0765 4.33366"
+                                    stroke=""
+                                    stroke-width="1.2"
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                />
+                            </svg>
+                        </a>
+                    </li>
+                    <li class="text-sm text-gray-800 dark:text-white/90" x-text="pageName"></li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+    <!-- Breadcrumb End -->
+
+    <div class="rounded-2xl border border-gray-200 bg-white p-5 lg:p-6 dark:border-gray-800 dark:bg-white/[0.03]">
+        <h3 class="mb-5 text-lg font-semibold text-gray-800 lg:mb-7 dark:text-white/90">
+            Profil
+        </h3>
+
+        <!-- Profile Header Card -->
+        <div class="mb-6 rounded-2xl border border-gray-200 p-5 lg:p-6 dark:border-gray-800">
+            <div class="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
+                <div class="flex w-full flex-col items-center gap-6 xl:flex-row">
+                    <div class="h-20 w-20 overflow-hidden rounded-full border border-gray-200 dark:border-gray-800 flex items-center justify-center bg-gray-100 dark:bg-gray-800">
+                        <span class="text-2xl font-semibold text-gray-600 dark:text-gray-400">
+                            {{ userData.firstName|first|upper }}{{ userData.lastName|first|upper }}
+                        </span>
+                    </div>
+                    <div class="order-3 xl:order-2">
+                        <h4 class="mb-2 text-center text-lg font-semibold text-gray-800 xl:text-left dark:text-white/90">
+                            {{ userData.firstName }} {{ userData.lastName }}
+                        </h4>
+                        <div class="flex flex-col items-center gap-1 text-center xl:flex-row xl:gap-3 xl:text-left">
+                            <p class="text-sm text-gray-500 dark:text-gray-400">
+                                {% if userType == 'coach' %}
+                                    Coach
+                                {% elseif userType == 'parent' %}
+                                    Parent
+                                {% elseif userType == 'student' %}
+                                    Élève
+                                {% elseif userType == 'specialist' %}
+                                    Spécialiste
+                                {% endif %}
+                            </p>
+                            {% if userData.specialization is defined and userData.specialization %}
+                                <div class="hidden h-3.5 w-px bg-gray-300 xl:block dark:bg-gray-700"></div>
+                                <p class="text-sm text-gray-500 dark:text-gray-400">
+                                    {{ userData.specialization }}
+                                </p>
+                            {% endif %}
+                            {% if userData.class is defined and userData.class %}
+                                <div class="hidden h-3.5 w-px bg-gray-300 xl:block dark:bg-gray-700"></div>
+                                <p class="text-sm text-gray-500 dark:text-gray-400">
+                                    {{ userData.class }}
+                                </p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Personal Information -->
+        <div class="mb-6 rounded-2xl border border-gray-200 p-5 lg:p-6 dark:border-gray-800">
+            <div class="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+                <div class="flex-1">
+                    <h4 class="text-lg font-semibold text-gray-800 lg:mb-6 dark:text-white/90">
+                        Informations personnelles
+                    </h4>
+
+                    <div class="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-7 2xl:gap-x-32">
+                        <div>
+                            <p class="mb-2 text-xs leading-normal text-gray-500 dark:text-gray-400">
+                                Prénom
+                            </p>
+                            <p class="text-sm font-medium text-gray-800 dark:text-white/90">
+                                {{ userData.firstName }}
+                            </p>
+                        </div>
+
+                        <div>
+                            <p class="mb-2 text-xs leading-normal text-gray-500 dark:text-gray-400">
+                                Nom
+                            </p>
+                            <p class="text-sm font-medium text-gray-800 dark:text-white/90">
+                                {{ userData.lastName }}
+                            </p>
+                        </div>
+
+                        <div>
+                            <p class="mb-2 text-xs leading-normal text-gray-500 dark:text-gray-400">
+                                Email
+                            </p>
+                            <p class="text-sm font-medium text-gray-800 dark:text-white/90">
+                                {{ userData.email }}
+                            </p>
+                        </div>
+
+                        {% if userData.pseudo is defined %}
+                            <div>
+                                <p class="mb-2 text-xs leading-normal text-gray-500 dark:text-gray-400">
+                                    Pseudo
+                                </p>
+                                <p class="text-sm font-medium text-gray-800 dark:text-white/90">
+                                    {{ userData.pseudo }}
+                                </p>
+                            </div>
+                        {% endif %}
+
+                        {% if userData.class is defined %}
+                            <div>
+                                <p class="mb-2 text-xs leading-normal text-gray-500 dark:text-gray-400">
+                                    Classe
+                                </p>
+                                <p class="text-sm font-medium text-gray-800 dark:text-white/90">
+                                    {{ userData.class }}
+                                </p>
+                            </div>
+                        {% endif %}
+
+                        {% if userData.points is defined %}
+                            <div>
+                                <p class="mb-2 text-xs leading-normal text-gray-500 dark:text-gray-400">
+                                    Points
+                                </p>
+                                <p class="text-sm font-medium text-gray-800 dark:text-white/90">
+                                    {{ userData.points }}
+                                </p>
+                            </div>
+                        {% endif %}
+
+                        {% if userData.specialization is defined and userData.specialization %}
+                            <div>
+                                <p class="mb-2 text-xs leading-normal text-gray-500 dark:text-gray-400">
+                                    Spécialisation
+                                </p>
+                                <p class="text-sm font-medium text-gray-800 dark:text-white/90">
+                                    {{ userData.specialization }}
+                                </p>
+                            </div>
+                        {% endif %}
+
+                        {% if userData.specializations is defined and userData.specializations|length > 0 %}
+                            <div class="lg:col-span-2">
+                                <p class="mb-2 text-xs leading-normal text-gray-500 dark:text-gray-400">
+                                    Spécialisations
+                                </p>
+                                <div class="flex flex-wrap gap-2">
+                                    {% for specialization in userData.specializations %}
+                                        <span class="inline-flex items-center rounded-full bg-brand-50 px-3 py-1 text-xs font-medium text-brand-700 dark:bg-brand-500/10 dark:text-brand-400">
+                                            {{ specialization }}
+                                        </span>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        {% endif %}
+
+                        <div>
+                            <p class="mb-2 text-xs leading-normal text-gray-500 dark:text-gray-400">
+                                Statut
+                            </p>
+                            <p class="text-sm font-medium text-gray-800 dark:text-white/90">
+                                {% if userData.isActive %}
+                                    <span class="inline-flex items-center rounded-full bg-success-50 px-3 py-1 text-xs font-medium text-success-700 dark:bg-success-500/10 dark:text-success-400">
+                                        Actif
+                                    </span>
+                                {% else %}
+                                    <span class="inline-flex items-center rounded-full bg-error-50 px-3 py-1 text-xs font-medium text-error-700 dark:bg-error-500/10 dark:text-error-400">
+                                        Inactif
+                                    </span>
+                                {% endif %}
+                            </p>
+                        </div>
+
+                        <div>
+                            <p class="mb-2 text-xs leading-normal text-gray-500 dark:text-gray-400">
+                                Date de création
+                            </p>
+                            <p class="text-sm font-medium text-gray-800 dark:text-white/90">
+                                {{ userData.createdAt|date('d/m/Y') }}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Family Information (for Parent and Student) -->
+        {% if userData.family is defined and userData.family %}
+            <div class="mb-6 rounded-2xl border border-gray-200 p-5 lg:p-6 dark:border-gray-800">
+                <div class="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+                    <div>
+                        <h4 class="text-lg font-semibold text-gray-800 lg:mb-6 dark:text-white/90">
+                            Informations de la famille
+                        </h4>
+
+                        <div class="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-7 2xl:gap-x-32">
+                            <div>
+                                <p class="mb-2 text-xs leading-normal text-gray-500 dark:text-gray-400">
+                                    Identifiant de famille
+                                </p>
+                                <p class="text-sm font-medium text-gray-800 dark:text-white/90">
+                                    {{ userData.family.familyIdentifier }}
+                                </p>
+                            </div>
+
+                            <div>
+                                <p class="mb-2 text-xs leading-normal text-gray-500 dark:text-gray-400">
+                                    Statut de la famille
+                                </p>
+                                <p class="text-sm font-medium text-gray-800 dark:text-white/90">
+                                    {% if userData.family.isActive %}
+                                        <span class="inline-flex items-center rounded-full bg-success-50 px-3 py-1 text-xs font-medium text-success-700 dark:bg-success-500/10 dark:text-success-400">
+                                            Active
+                                        </span>
+                                    {% else %}
+                                        <span class="inline-flex items-center rounded-full bg-error-50 px-3 py-1 text-xs font-medium text-error-700 dark:bg-error-500/10 dark:text-error-400">
+                                            Inactive
+                                        </span>
+                                    {% endif %}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+
+        <!-- Statistics -->
+        {% if stats is defined and stats|length > 0 %}
+            <div class="rounded-2xl border border-gray-200 p-5 lg:p-6 dark:border-gray-800">
+                <h4 class="mb-6 text-lg font-semibold text-gray-800 dark:text-white/90">
+                    Statistiques
+                </h4>
+
+                <div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                    {% for key, value in stats %}
+                        {% if key != 'specializations' %}
+                            <div class="rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-800">
+                                <p class="mb-1 text-xs text-gray-500 dark:text-gray-400">
+                                    {{ key|replace({'_': ' '})|title }}
+                                </p>
+                                <p class="text-2xl font-semibold text-gray-800 dark:text-white/90">
+                                    {{ value }}
+                                </p>
+                            </div>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Modal Edit Info -->
+    <div
+        x-show="isEditInfoModal"
+        x-transition
+        class="fixed inset-0 flex items-center justify-center p-5 overflow-y-auto z-99999"
+        style="display: none;"
+    >
+        <div class="modal-close-btn fixed inset-0 h-full w-full bg-gray-400/50 backdrop-blur-[32px]"></div>
+        <div
+            @click.outside="isEditInfoModal = false"
+            class="no-scrollbar relative w-full max-w-[700px] overflow-y-auto rounded-3xl bg-white p-4 dark:bg-gray-900 lg:p-11"
+        >
+            <button
+                @click="isEditInfoModal = false"
+                class="transition-color absolute right-5 top-5 z-999 flex h-11 w-11 items-center justify-center rounded-full bg-gray-100 text-gray-400 hover:bg-gray-200 hover:text-gray-600 dark:bg-gray-700 dark:text-white/[0.05] dark:text-gray-400 dark:hover:bg-white/[0.07] dark:hover:text-gray-300"
+            >
+                <svg class="fill-current" width="24" height="24" viewBox="0 0 24 24" fill="none">
+                    <path
+                        fill-rule="evenodd"
+                        clip-rule="evenodd"
+                        d="M6.04289 16.5418C5.65237 16.9323 5.65237 17.5655 6.04289 17.956C6.43342 18.3465 7.06658 18.3465 7.45711 17.956L11.9987 13.4144L16.5408 17.9565C16.9313 18.347 17.5645 18.347 17.955 17.9565C18.3455 17.566 18.3455 16.9328 17.955 16.5423L13.4129 12.0002L17.955 7.45808C18.3455 7.06756 18.3455 6.43439 17.955 6.04387C17.5645 5.65335 16.9313 5.65335 16.5408 6.04387L11.9987 10.586L7.45711 6.04439C7.06658 5.65386 6.43342 5.65386 6.04289 6.04439C5.65237 6.43491 5.65237 7.06808 6.04289 7.4586L10.5845 12.0002L6.04289 16.5418Z"
+                        fill=""
+                    />
+                </svg>
+            </button>
+            <div class="px-2 pr-14">
+                <h4 class="mb-2 text-2xl font-semibold text-gray-800 dark:text-white/90">
+                    Modifier mes informations
+                </h4>
+                <p class="mb-6 text-sm text-gray-500 dark:text-gray-400 lg:mb-7">
+                    Mettez à jour vos informations personnelles (l'email ne peut pas être modifié).
+                </p>
+            </div>
+            <form @submit.prevent="updateProfile()" class="flex flex-col">
+                <div class="custom-scrollbar h-[450px] overflow-y-auto px-2">
+                    <div class="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2">
+                        <div class="col-span-2 lg:col-span-1">
+                            <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
+                                Prénom
+                            </label>
+                            <input
+                                type="text"
+                                x-model="formData.firstName"
+                                required
+                                class="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30 dark:focus:border-brand-800"
+                            />
+                        </div>
+
+                        <div class="col-span-2 lg:col-span-1">
+                            <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
+                                Nom
+                            </label>
+                            <input
+                                type="text"
+                                x-model="formData.lastName"
+                                required
+                                class="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30 dark:focus:border-brand-800"
+                            />
+                        </div>
+
+                        <div class="col-span-2">
+                            <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
+                                Email
+                            </label>
+                            <input
+                                type="email"
+                                :value="userData.email"
+                                disabled
+                                class="h-11 w-full rounded-lg border border-gray-300 bg-gray-100 px-4 py-2.5 text-sm text-gray-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400"
+                            />
+                            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">L'email ne peut pas être modifié</p>
+                        </div>
+
+                        <template x-if="userType === 'student'">
+                            <div class="col-span-2 lg:col-span-1">
+                                <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
+                                    Pseudo
+                                </label>
+                                <input
+                                    type="text"
+                                    x-model="formData.pseudo"
+                                    class="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30 dark:focus:border-brand-800"
+                                />
+                            </div>
+                        </template>
+
+                        <template x-if="userType === 'student'">
+                            <div class="col-span-2 lg:col-span-1">
+                                <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
+                                    Classe
+                                </label>
+                                <select
+                                    x-model="formData.class"
+                                    class="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:focus:border-brand-800"
+                                >
+                                    <option value="CP">CP</option>
+                                    <option value="CE1">CE1</option>
+                                    <option value="CE2">CE2</option>
+                                    <option value="CM1">CM1</option>
+                                    <option value="CM2">CM2</option>
+                                    <option value="6ème">6ème</option>
+                                    <option value="5ème">5ème</option>
+                                    <option value="4ème">4ème</option>
+                                    <option value="3ème">3ème</option>
+                                    <option value="2nde">2nde</option>
+                                    <option value="1ère">1ère</option>
+                                    <option value="Terminale">Terminale</option>
+                                </select>
+                            </div>
+                        </template>
+
+                        <template x-if="userType === 'coach'">
+                            <div class="col-span-2">
+                                <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
+                                    Spécialisation
+                                </label>
+                                <input
+                                    type="text"
+                                    x-model="formData.specialization"
+                                    class="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30 dark:focus:border-brand-800"
+                                />
+                            </div>
+                        </template>
+
+                        <template x-if="userType === 'specialist'">
+                            <div class="col-span-2">
+                                <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
+                                    Spécialisations
+                                </label>
+                                <div class="space-y-2">
+                                    <template x-for="spec in availableSpecializations" :key="spec">
+                                        <label class="flex items-center gap-2">
+                                            <input
+                                                type="checkbox"
+                                                :value="spec"
+                                                x-model="formData.specializations"
+                                                class="rounded border-gray-300 text-brand-500 focus:ring-brand-500"
+                                            />
+                                            <span class="text-sm text-gray-700 dark:text-gray-300" x-text="spec"></span>
+                                        </label>
+                                    </template>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+                <div class="flex items-center gap-3 px-2 mt-6 lg:justify-end">
+                    <button
+                        @click="isEditInfoModal = false"
+                        type="button"
+                        class="flex w-full justify-center rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03] sm:w-auto"
+                    >
+                        Annuler
+                    </button>
+                    <button
+                        type="submit"
+                        :disabled="submitting"
+                        class="flex w-full justify-center rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-50 sm:w-auto"
+                    >
+                        <span x-show="!submitting">Enregistrer</span>
+                        <span x-show="submitting">Enregistrement...</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Change Password -->
+    <div
+        x-show="isChangePasswordModal"
+        x-transition
+        class="fixed inset-0 flex items-center justify-center p-5 overflow-y-auto z-99999"
+        style="display: none;"
+    >
+        <div class="modal-close-btn fixed inset-0 h-full w-full bg-gray-400/50 backdrop-blur-[32px]"></div>
+        <div
+            @click.outside="isChangePasswordModal = false"
+            class="no-scrollbar relative w-full max-w-[500px] overflow-y-auto rounded-3xl bg-white p-4 dark:bg-gray-900 lg:p-11"
+        >
+            <button
+                @click="isChangePasswordModal = false"
+                class="transition-color absolute right-5 top-5 z-999 flex h-11 w-11 items-center justify-center rounded-full bg-gray-100 text-gray-400 hover:bg-gray-200 hover:text-gray-600 dark:bg-gray-700 dark:text-white/[0.05] dark:text-gray-400 dark:hover:bg-white/[0.07] dark:hover:text-gray-300"
+            >
+                <svg class="fill-current" width="24" height="24" viewBox="0 0 24 24" fill="none">
+                    <path
+                        fill-rule="evenodd"
+                        clip-rule="evenodd"
+                        d="M6.04289 16.5418C5.65237 16.9323 5.65237 17.5655 6.04289 17.956C6.43342 18.3465 7.06658 18.3465 7.45711 17.956L11.9987 13.4144L16.5408 17.9565C16.9313 18.347 17.5645 18.347 17.955 17.9565C18.3455 17.566 18.3455 16.9328 17.955 16.5423L13.4129 12.0002L17.955 7.45808C18.3455 7.06756 18.3455 6.43439 17.955 6.04387C17.5645 5.65335 16.9313 5.65335 16.5408 6.04387L11.9987 10.586L7.45711 6.04439C7.06658 5.65386 6.43342 5.65386 6.04289 6.04439C5.65237 6.43491 5.65237 7.06808 6.04289 7.4586L10.5845 12.0002L6.04289 16.5418Z"
+                        fill=""
+                    />
+                </svg>
+            </button>
+            <div class="px-2 pr-14">
+                <h4 class="mb-2 text-2xl font-semibold text-gray-800 dark:text-white/90">
+                    Changer le mot de passe
+                </h4>
+                <p class="mb-6 text-sm text-gray-500 dark:text-gray-400 lg:mb-7">
+                    Entrez votre mot de passe actuel et votre nouveau mot de passe.
+                </p>
+            </div>
+            <form @submit.prevent="changePassword()" class="flex flex-col">
+                <div class="px-2 space-y-5">
+                    <div>
+                        <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
+                            Mot de passe actuel
+                        </label>
+                        <input
+                            type="password"
+                            x-model="passwordData.currentPassword"
+                            required
+                            class="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30 dark:focus:border-brand-800"
+                        />
+                    </div>
+
+                    <div>
+                        <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
+                            Nouveau mot de passe
+                        </label>
+                        <input
+                            type="password"
+                            x-model="passwordData.newPassword"
+                            required
+                            minlength="6"
+                            class="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30 dark:focus:border-brand-800"
+                        />
+                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Minimum 6 caractères</p>
+                    </div>
+
+                    <div>
+                        <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
+                            Confirmer le nouveau mot de passe
+                        </label>
+                        <input
+                            type="password"
+                            x-model="passwordData.confirmPassword"
+                            required
+                            minlength="6"
+                            class="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30 dark:focus:border-brand-800"
+                        />
+                    </div>
+                </div>
+                <div class="flex items-center gap-3 px-2 mt-6 lg:justify-end">
+                    <button
+                        @click="isChangePasswordModal = false"
+                        type="button"
+                        class="flex w-full justify-center rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03] sm:w-auto"
+                    >
+                        Annuler
+                    </button>
+                    <button
+                        type="submit"
+                        :disabled="submitting"
+                        class="flex w-full justify-center rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-50 sm:w-auto"
+                    >
+                        <span x-show="!submitting">Changer le mot de passe</span>
+                        <span x-show="submitting">Enregistrement...</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+    function profileManager(userData, userType) {
+        return {
+            userData: userData,
+            userType: userType,
+            isEditInfoModal: false,
+            isChangePasswordModal: false,
+            submitting: false,
+            formData: {
+                firstName: userData.firstName || '',
+                lastName: userData.lastName || '',
+                pseudo: userData.pseudo || '',
+                class: userData.class || '',
+                specialization: userData.specialization || '',
+                specializations: userData.specializations ? [...userData.specializations] : []
+            },
+            passwordData: {
+                currentPassword: '',
+                newPassword: '',
+                confirmPassword: ''
+            },
+            availableSpecializations: [
+                'Orthophonie',
+                'Psychologie',
+                'Ergothérapie',
+                'Psychomotricité',
+                'Orthoptie',
+                'Kinésithérapie',
+                'Médecine',
+                'Autre'
+            ],
+            async updateProfile() {
+                this.submitting = true;
+                try {
+                    const data = {...this.formData};
+                    if (this.userType !== 'specialist') {
+                        delete data.specializations;
+                    }
+                    if (this.userType !== 'coach') {
+                        delete data.specialization;
+                    }
+                    if (this.userType !== 'student') {
+                        delete data.pseudo;
+                        delete data.class;
+                    }
+
+                    const response = await fetch('{{ path('admin_profile_update') }}', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest',
+                        },
+                        body: JSON.stringify(data),
+                    });
+
+                    const result = await response.json();
+
+                    if (result.success) {
+                        if (window.showAlert) {
+                            window.showAlert(result.message, 'success');
+                        } else {
+                            alert(result.message);
+                        }
+                        this.isEditInfoModal = false;
+                        setTimeout(() => location.reload(), 1000);
+                    } else {
+                        if (window.showAlert) {
+                            window.showAlert(result.message, 'error');
+                        } else {
+                            alert(result.message);
+                        }
+                    }
+                } catch (error) {
+                    console.error('Erreur:', error);
+                    if (window.showAlert) {
+                        window.showAlert('Une erreur est survenue', 'error');
+                    } else {
+                        alert('Une erreur est survenue');
+                    }
+                } finally {
+                    this.submitting = false;
+                }
+            },
+            async changePassword() {
+                if (this.passwordData.newPassword !== this.passwordData.confirmPassword) {
+                    if (window.showAlert) {
+                        window.showAlert('Les mots de passe ne correspondent pas', 'error');
+                    } else {
+                        alert('Les mots de passe ne correspondent pas');
+                    }
+                    return;
+                }
+
+                if (this.passwordData.newPassword.length < 6) {
+                    if (window.showAlert) {
+                        window.showAlert('Le mot de passe doit contenir au moins 6 caractères', 'error');
+                    } else {
+                        alert('Le mot de passe doit contenir au moins 6 caractères');
+                    }
+                    return;
+                }
+
+                this.submitting = true;
+                try {
+                    const response = await fetch('{{ path('admin_profile_change_password') }}', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest',
+                        },
+                        body: JSON.stringify(this.passwordData),
+                    });
+
+                    const result = await response.json();
+
+                    if (result.success) {
+                        if (window.showAlert) {
+                            window.showAlert(result.message, 'success');
+                        } else {
+                            alert(result.message);
+                        }
+                        this.isChangePasswordModal = false;
+                        this.passwordData = {
+                            currentPassword: '',
+                            newPassword: '',
+                            confirmPassword: ''
+                        };
+                    } else {
+                        if (window.showAlert) {
+                            window.showAlert(result.message, 'error');
+                        } else {
+                            alert(result.message);
+                        }
+                    }
+                } catch (error) {
+                    console.error('Erreur:', error);
+                    if (window.showAlert) {
+                        window.showAlert('Une erreur est survenue', 'error');
+                    } else {
+                        alert('Une erreur est survenue');
+                    }
+                } finally {
+                    this.submitting = false;
+                }
+            }
+        };
+    }
+    </script>
+</div>
+{% endblock %}
+

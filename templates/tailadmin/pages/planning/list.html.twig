@@ -21,6 +21,17 @@
                     </p>
                 </div>
                 <div class="flex items-center gap-3">
+                    <!-- Filtre par élève -->
+                    <select
+                        x-model="selectedStudent"
+                        @change="applyFilters()"
+                        class="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"
+                    >
+                        <option value="">Tous les élèves</option>
+                        <template x-for="student in students" :key="student.id">
+                            <option :value="student.id" x-text="student.firstName + ' ' + student.lastName"></option>
+                        </template>
+                    </select>
                     <!-- Navigation buttons -->
                     <div class="flex items-center gap-2 rounded-lg border border-gray-200 bg-white p-1 dark:border-gray-700 dark:bg-gray-800">
                         <a
@@ -235,12 +246,40 @@
                 <form @submit.prevent="saveEvent()" class="space-y-6">
                     <div>
                         <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Titre *</label>
-                        <input
-                            type="text"
-                            x-model="formData.title"
-                            required
-                            class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
-                        />
+                        <div class="space-y-2">
+                            <select
+                                x-model="formData.title"
+                                @change="if (formData.title === 'custom') { showCustomTitle = true; formData.title = ''; } else { showCustomTitle = false; }"
+                                required
+                                class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+                            >
+                                <option value="">Sélectionner une matière...</option>
+                                <option value="Français">Français</option>
+                                <option value="Mathématiques">Mathématiques</option>
+                                <option value="Histoire">Histoire</option>
+                                <option value="Géographie">Géographie</option>
+                                <option value="Sciences">Sciences</option>
+                                <option value="Physique-Chimie">Physique-Chimie</option>
+                                <option value="SVT">SVT</option>
+                                <option value="Anglais">Anglais</option>
+                                <option value="Espagnol">Espagnol</option>
+                                <option value="Allemand">Allemand</option>
+                                <option value="Arts plastiques">Arts plastiques</option>
+                                <option value="Musique">Musique</option>
+                                <option value="EPS">EPS</option>
+                                <option value="Technologie">Technologie</option>
+                                <option value="custom">+ Ajouter une nouvelle matière</option>
+                            </select>
+                            <input
+                                type="text"
+                                x-model="formData.title"
+                                x-show="showCustomTitle"
+                                x-cloak
+                                placeholder="Entrez le nom de la matière"
+                                required
+                                class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+                            />
+                        </div>
                     </div>
                     <div>
                         <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Description</label>
@@ -292,22 +331,36 @@
                         </select>
                     </div>
                     <div>
-                        <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Date et heure de début *</label>
+                        <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Date *</label>
                         <input
-                            type="datetime-local"
-                            x-model="formData.startDate"
+                            type="date"
+                            x-model="formData.date"
+                            @change="updateDateTime()"
                             required
                             class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
                         />
                     </div>
-                    <div>
-                        <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Date et heure de fin *</label>
-                        <input
-                            type="datetime-local"
-                            x-model="formData.endDate"
-                            required
-                            class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
-                        />
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Heure de début *</label>
+                            <input
+                                type="time"
+                                x-model="formData.startTime"
+                                @change="updateDateTime()"
+                                required
+                                class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+                            />
+                        </div>
+                        <div>
+                            <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Heure de fin *</label>
+                            <input
+                                type="time"
+                                x-model="formData.endTime"
+                                @change="updateDateTime()"
+                                required
+                                class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+                            />
+                        </div>
                     </div>
                 </form>
             </div>
@@ -338,48 +391,96 @@ function planningManager() {
         rightSheetOpen: false,
         isEdit: false,
         currentId: null,
+        showCustomTitle: false,
         formData: {
             title: '',
             description: '',
             type: '',
             status: 'scheduled',
             studentId: '',
+            date: '',
+            startTime: '',
+            endTime: '',
             startDate: '',
             endDate: '',
         },
         studentsData: [],
+        students: [],
+        selectedStudent: '{{ studentFilter|default('') }}',
         init() {
             const studentsJson = this.$el.getAttribute('data-students');
             if (studentsJson) {
                 this.studentsData = JSON.parse(studentsJson);
+                this.students = JSON.parse(studentsJson);
             }
+        },
+        
+        applyFilters() {
+            const params = new URLSearchParams();
+            const weekParam = new URLSearchParams(window.location.search).get('week');
+            if (weekParam) {
+                params.set('week', weekParam);
+            }
+            if (this.selectedStudent) {
+                params.set('student', this.selectedStudent);
+            }
+            const queryString = params.toString();
+            window.location.href = '/admin/planning' + (queryString ? '?' + queryString : '');
         },
         openCreate() {
             this.isEdit = false;
             this.currentId = null;
+            this.showCustomTitle = false;
+            const today = new Date().toISOString().split('T')[0];
             this.formData = {
                 title: '',
                 description: '',
                 type: '',
                 status: 'scheduled',
                 studentId: '',
+                date: today,
+                startTime: '09:00',
+                endTime: '10:00',
                 startDate: '',
                 endDate: '',
             };
+            this.updateDateTime();
             this.rightSheetOpen = true;
         },
         openEdit(id, title, startDate, endDate, studentId, type, status) {
             this.isEdit = true;
             this.currentId = id;
+            this.showCustomTitle = false;
+            
+            // Parser les dates
+            let date = '';
+            let startTime = '09:00';
+            let endTime = '10:00';
+            
+            if (startDate) {
+                const start = new Date(startDate);
+                date = start.toISOString().split('T')[0];
+                startTime = start.toTimeString().slice(0, 5);
+            }
+            
+            if (endDate) {
+                const end = new Date(endDate);
+                endTime = end.toTimeString().slice(0, 5);
+            }
+            
             this.formData = {
                 title: title || '',
                 description: '',
                 type: type || '',
                 status: status || 'scheduled',
                 studentId: studentId || '',
-                startDate: startDate ? new Date(startDate).toISOString().slice(0, 16) : '',
-                endDate: endDate ? new Date(endDate).toISOString().slice(0, 16) : '',
+                date: date || new Date().toISOString().split('T')[0],
+                startTime: startTime,
+                endTime: endTime,
+                startDate: '',
+                endDate: '',
             };
+            this.updateDateTime();
             this.rightSheetOpen = true;
         },
         openDelete(id) {
@@ -402,10 +503,39 @@ function planningManager() {
                 });
             }
         },
+        updateDateTime() {
+            // Combiner date + heures en datetime pour l'API
+            if (this.formData.date && this.formData.startTime) {
+                this.formData.startDate = `${this.formData.date}T${this.formData.startTime}:00`;
+            }
+            if (this.formData.date && this.formData.endTime) {
+                this.formData.endDate = `${this.formData.date}T${this.formData.endTime}:00`;
+            }
+        },
         saveEvent() {
+            // Mettre à jour les dates avant l'envoi
+            this.updateDateTime();
+            
+            // Vérifier que le titre est rempli
+            if (!this.formData.title || this.formData.title.trim() === '') {
+                this.showMessage('Veuillez sélectionner ou entrer un titre', 'error');
+                return;
+            }
+            
             const url = this.isEdit 
                 ? `/admin/planning/${this.currentId}/update`
                 : '/admin/planning/create';
+            
+            // Préparer les données pour l'API
+            const data = {
+                title: this.formData.title,
+                description: this.formData.description || '',
+                type: this.formData.type,
+                status: this.formData.status,
+                studentId: this.formData.studentId,
+                startDate: this.formData.startDate,
+                endDate: this.formData.endDate,
+            };
             
             fetch(url, {
                 method: 'POST',
@@ -413,7 +543,7 @@ function planningManager() {
                     'Content-Type': 'application/json',
                     'X-Requested-With': 'XMLHttpRequest',
                 },
-                body: JSON.stringify(this.formData),
+                body: JSON.stringify(data),
             })
             .then(response => response.json())
             .then(data => {
@@ -429,11 +559,13 @@ function planningManager() {
             });
         },
         showMessage(message, type = 'info') {
-            const toastManager = document.querySelector('[x-data="toastManager()"]')?.__x?.$data;
-            if (toastManager) {
-                toastManager.show(message, type);
+            if (window.showToast) {
+                window.showToast(message, type);
             } else {
-                alert(message);
+                const toastManager = document.querySelector('[x-data="toastManager()"]')?.__x?.$data;
+                if (toastManager) {
+                    toastManager.show(message, type);
+                }
             }
         },
         closeSheet() {

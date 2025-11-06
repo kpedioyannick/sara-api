@@ -209,12 +209,16 @@ function chatManager(conversationId) {
                     // Le message sera reçu via Mercure automatiquement
                     // Pas besoin de refresh manuel
                 } else {
-                    alert('Erreur: ' + data.message);
+                    if (window.showToast) {
+                        window.showToast('Erreur: ' + data.message, 'error');
+                    }
                     this.messageContent = content;
                 }
             } catch (error) {
                 console.error('Error sending message:', error);
-                alert('Erreur lors de l\'envoi du message');
+                if (window.showToast) {
+                    window.showToast('Erreur lors de l\'envoi du message', 'error');
+                }
                 this.messageContent = content;
             }
         },

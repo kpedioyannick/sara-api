@@ -6,25 +6,68 @@
     data-requests='{{ requests|json_encode|e('html_attr') }}'
     data-families='{{ families|json_encode|e('html_attr') }}'
     data-students='{{ students|json_encode|e('html_attr') }}'
+    data-parents='{{ parents|json_encode|e('html_attr') }}'
     data-specialists='{{ specialists|json_encode|e('html_attr') }}'
+    data-coaches='{{ coaches|json_encode|e('html_attr') }}'
     class="p-4 mx-auto max-w-(--breakpoint-2xl) md:p-6"
 >
     {% include 'tailadmin/components/breadcrumb.html.twig' %}
 
     <div class="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
-        <div class="px-6 py-5 flex items-center justify-between">
-            <h3 class="text-base font-medium text-gray-800 dark:text-white/90">
-                Liste des Demandes
-            </h3>
-            <button
-                @click="openCreate()"
-                class="inline-flex items-center gap-2 rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white shadow-theme-xs hover:bg-brand-600"
-            >
-                <svg class="fill-current" width="16" height="16" viewBox="0 0 16 16" fill="none">
-                    <path d="M8 1a7 7 0 100 14A7 7 0 008 1zM7.5 4v4l3.5 2 .5-.866L8.5 7.5V4h-1z" fill=""/>
-                </svg>
-                Nouvelle Demande
-            </button>
+        <div class="px-6 py-5 border-b border-gray-100 dark:border-gray-800">
+            <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                    <h3 class="text-base font-medium text-gray-800 dark:text-white/90">
+                        Liste des Demandes
+                    </h3>
+                </div>
+                <div class="flex items-center gap-3 flex-wrap">
+                    <!-- Filtre par profil du créateur -->
+                    <select
+                        x-model="selectedCreatorProfile"
+                        @change="selectedCreatorUser = ''; applyFilters()"
+                        class="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"
+                    >
+                        <option value="">Tous les profils</option>
+                        <option value="coach">Coach</option>
+                        <option value="parent">Parent</option>
+                        <option value="student">Élève</option>
+                        <option value="specialist">Spécialiste</option>
+                    </select>
+                    
+                    <!-- Filtre par utilisateur créateur -->
+                    <select
+                        x-model="selectedCreatorUser"
+                        @change="applyFilters()"
+                        x-show="selectedCreatorProfile"
+                        class="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"
+                    >
+                        <option value="">Tous les utilisateurs</option>
+                        <template x-for="coach in coaches" :key="coach.id">
+                            <option x-show="selectedCreatorProfile === 'coach'" :value="coach.id" x-text="coach.firstName + ' ' + coach.lastName"></option>
+                        </template>
+                        <template x-for="parent in parents" :key="parent.id">
+                            <option x-show="selectedCreatorProfile === 'parent'" :value="parent.id" x-text="parent.firstName + ' ' + parent.lastName"></option>
+                        </template>
+                        <template x-for="student in students" :key="student.id">
+                            <option x-show="selectedCreatorProfile === 'student'" :value="student.id" x-text="student.firstName + ' ' + student.lastName"></option>
+                        </template>
+                        <template x-for="specialist in specialists" :key="specialist.id">
+                            <option x-show="selectedCreatorProfile === 'specialist'" :value="specialist.id" x-text="specialist.firstName + ' ' + specialist.lastName"></option>
+                        </template>
+                    </select>
+                    
+                    <button
+                        @click="openCreate()"
+                        class="inline-flex items-center gap-2 rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white shadow-theme-xs hover:bg-brand-600"
+                    >
+                        <svg class="fill-current" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                            <path d="M8 1a7 7 0 100 14A7 7 0 008 1zM7.5 4v4l3.5 2 .5-.866L8.5 7.5V4h-1z" fill=""/>
+                        </svg>
+                        Nouvelle Demande
+                    </button>
+                </div>
+            </div>
         </div>
         <div class="border-t border-gray-100 p-4 dark:border-gray-800 sm:p-6">
             <div class="grid grid-cols-1 gap-5 sm:grid-cols-2">
@@ -273,6 +316,13 @@
 <script>
 function requestManager() {
     return {
+        selectedCreatorProfile: '{{ creatorProfileFilter|default('') }}',
+        selectedCreatorUser: '{{ creatorUserFilter|default('') }}',
+        families: [],
+        students: [],
+        parents: [],
+        specialists: [],
+        coaches: [],
         rightSheetOpen: false,
         isEdit: false,
         currentId: null,
@@ -294,10 +344,35 @@ function requestManager() {
             const familiesJson = this.$el.getAttribute('data-families');
             const studentsJson = this.$el.getAttribute('data-students');
             const specialistsJson = this.$el.getAttribute('data-specialists');
+            const parentsJson = this.$el.getAttribute('data-parents');
+            const coachesJson = this.$el.getAttribute('data-coaches');
             if (requestsJson) this.requestsData = JSON.parse(requestsJson);
-            if (familiesJson) this.familiesData = JSON.parse(familiesJson);
-            if (studentsJson) this.studentsData = JSON.parse(studentsJson);
-            if (specialistsJson) this.specialistsData = JSON.parse(specialistsJson);
+            if (familiesJson) {
+                this.familiesData = JSON.parse(familiesJson);
+                this.families = JSON.parse(familiesJson);
+            }
+            if (studentsJson) {
+                this.studentsData = JSON.parse(studentsJson);
+                this.students = JSON.parse(studentsJson);
+            }
+            if (specialistsJson) {
+                this.specialistsData = JSON.parse(specialistsJson);
+                this.specialists = JSON.parse(specialistsJson);
+            }
+            if (parentsJson) this.parents = JSON.parse(parentsJson);
+            if (coachesJson) this.coaches = JSON.parse(coachesJson);
+        },
+        
+        applyFilters() {
+            const params = new URLSearchParams();
+            if (this.selectedCreatorProfile) {
+                params.set('creatorProfile', this.selectedCreatorProfile);
+            }
+            if (this.selectedCreatorUser) {
+                params.set('creatorUser', this.selectedCreatorUser);
+            }
+            const queryString = params.toString();
+            window.location.href = '/admin/requests' + (queryString ? '?' + queryString : '');
         },
         openCreate() {
             this.isEdit = false;
@@ -377,11 +452,13 @@ function requestManager() {
             });
         },
         showMessage(message, type = 'info') {
-            const toastManager = document.querySelector('[x-data="toastManager()"]')?.__x?.$data;
-            if (toastManager) {
-                toastManager.show(message, type);
+            if (window.showToast) {
+                window.showToast(message, type);
             } else {
-                alert(message);
+                const toastManager = document.querySelector('[x-data="toastManager()"]')?.__x?.$data;
+                if (toastManager) {
+                    toastManager.show(message, type);
+                }
             }
         },
         closeSheet() {

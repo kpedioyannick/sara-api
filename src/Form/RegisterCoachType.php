@@ -7,6 +7,7 @@ use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\EmailType;
 use Symfony\Component\Form\Extension\Core\Type\PasswordType;
 use Symfony\Component\Form\Extension\Core\Type\RepeatedType;
+use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 use Symfony\Component\Validator\Constraints\Length;
@@ -14,6 +15,8 @@ use Symfony\Component\Validator\Constraints\NotBlank;
 
 class RegisterCoachType extends AbstractType
 {
+
+
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
         $builder
@@ -24,6 +27,16 @@ class RegisterCoachType extends AbstractType
                     'placeholder' => 'info@gmail.com',
                 ],
             ])
+            ->add('firstName', TextType::class, [
+                'label' => 'Prénom',
+                'required' => true,
+            ])
+            ->add('lastName', TextType::class, [
+                'label' => 'Nom',
+                'required' => true,
+            ])
+            // La spécialisation sera gérée via des boutons radio dans le template
+            // et traitée dans le contrôleur
             ->add('plainPassword', RepeatedType::class, [
                 'type' => PasswordType::class,
                 'mapped' => false,
@@ -55,5 +68,7 @@ class RegisterCoachType extends AbstractType
             'data_class' => Coach::class,
         ]);
     }
+
+   
 }
 

@@ -47,6 +47,10 @@ class AvailabilityController extends AbstractController
             throw $this->createNotFoundException('Aucun coach trouvé');
         }
 
+        // Récupérer les paramètres de filtrage
+        $profileFilter = $request->query->get('profile'); // 'coach', 'specialist', 'parent', 'student'
+        $userIdFilter = $request->query->get('user'); // ID de l'utilisateur spécifique
+        
         // Récupérer toutes les disponibilités du coach
         $coachAvailabilities = $this->availabilityRepository->findByCoach($coach);
         
@@ -75,8 +79,30 @@ class AvailabilityController extends AbstractController
             ];
         }
         
+        // Fonction helper pour vérifier si une disponibilité correspond aux filtres
+        $matchesFilter = function($availability, $ownerType) use ($profileFilter, $userIdFilter) {
+            // Filtrer par profile (ownerType)
+            if ($profileFilter && $ownerType !== $profileFilter) {
+                return false;
+            }
+            
+            // Filtrer par userId
+            if ($userIdFilter) {
+                $owner = $availability->getOwner();
+                if (!$owner || $owner->getId() != (int)$userIdFilter) {
+                    return false;
+                }
+            }
+            
+            return true;
+        };
+        
         // Traiter les disponibilités du coach
         foreach ($coachAvailabilities as $availability) {
+            if (!$matchesFilter($availability, 'coach')) {
+                continue;
+            }
+            
             $dayName = $availability->getDayName();
             
             if ($dayName && isset($weekDays[$dayName])) {
@@ -90,6 +116,7 @@ class AvailabilityController extends AbstractController
                             $slot['selected'] = true;
                             $slot['id'] = $availability->getId();
                             $slot['ownerType'] = 'coach';
+                            $slot['ownerId'] = $availability->getCoach()?->getId();
                         }
                     }
                     unset($slot);
@@ -103,6 +130,10 @@ class AvailabilityController extends AbstractController
             if ($parent) {
                 $parentAvailabilities = $this->availabilityRepository->findByParent($parent);
                 foreach ($parentAvailabilities as $availability) {
+                    if (!$matchesFilter($availability, 'parent')) {
+                        continue;
+                    }
+                    
                     $dayName = $availability->getDayName();
                     
                     if ($dayName && isset($weekDays[$dayName])) {
@@ -115,6 +146,7 @@ class AvailabilityController extends AbstractController
                                     $slot['selected'] = true;
                                     $slot['id'] = $availability->getId();
                                     $slot['ownerType'] = 'parent';
+                                    $slot['ownerId'] = $availability->getParent()?->getId();
                                 }
                             }
                             unset($slot);
@@ -127,6 +159,10 @@ class AvailabilityController extends AbstractController
             foreach ($family->getStudents() as $student) {
                 $studentAvailabilities = $this->availabilityRepository->findByStudent($student);
                 foreach ($studentAvailabilities as $availability) {
+                    if (!$matchesFilter($availability, 'student')) {
+                        continue;
+                    }
+                    
                     $dayName = $availability->getDayName();
                     
                     if ($dayName && isset($weekDays[$dayName])) {
@@ -139,10 +175,41 @@ class AvailabilityController extends AbstractController
                                     $slot['selected'] = true;
                                     $slot['id'] = $availability->getId();
                                     $slot['ownerType'] = 'student';
+                                    $slot['ownerId'] = $availability->getStudent()?->getId();
                                 }
                             }
                             unset($slot);
                         }
+                    }
+                }
+            }
+        }
+        
+        // Traiter les disponibilités des spécialistes
+        $specialists = $this->specialistRepository->findAll();
+        foreach ($specialists as $specialist) {
+            $specialistAvailabilities = $this->availabilityRepository->findBySpecialist($specialist);
+            foreach ($specialistAvailabilities as $availability) {
+                if (!$matchesFilter($availability, 'specialist')) {
+                    continue;
+                }
+                
+                $dayName = $availability->getDayName();
+                
+                if ($dayName && isset($weekDays[$dayName])) {
+                    $timeRange = $availability->getTimeRange();
+                    
+                    if ($timeRange['start'] !== null && $timeRange['end'] !== null) {
+                        foreach ($weekDays[$dayName]['slots'] as &$slot) {
+                            $slotHour = (int) substr($slot['time'], 0, 2);
+                            if ($slotHour >= $timeRange['start'] && $slotHour < $timeRange['end']) {
+                                $slot['selected'] = true;
+                                $slot['id'] = $availability->getId();
+                                $slot['ownerType'] = 'specialist';
+                                $slot['ownerId'] = $availability->getSpecialist()?->getId();
+                            }
+                        }
+                        unset($slot);
                     }
                 }
             }
@@ -200,6 +267,13 @@ class AvailabilityController extends AbstractController
             'firstName' => $s->getFirstName(),
             'lastName' => $s->getLastName(),
         ], $specialists);
+        
+        // Ajouter le coach aux données
+        $coachData = [[
+            'id' => $coach->getId(),
+            'firstName' => $coach->getFirstName(),
+            'lastName' => $coach->getLastName(),
+        ]];
 
         return $this->render('tailadmin/pages/availabilities/list.html.twig', [
             'pageTitle' => 'Gestion des Disponibilités | TailAdmin',
@@ -209,6 +283,9 @@ class AvailabilityController extends AbstractController
             'students' => $students,
             'parents' => $parents,
             'specialists' => $specialistsData,
+            'coaches' => $coachData,
+            'profileFilter' => $profileFilter,
+            'userIdFilter' => $userIdFilter,
             'breadcrumbs' => [
                 ['label' => 'Dashboard', 'url' => $this->generateUrl('admin_dashboard')],
             ],

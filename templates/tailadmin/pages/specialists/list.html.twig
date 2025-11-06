@@ -172,11 +172,97 @@
                         />
                     </div>
                     <div>
-                        <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Spécialisations (séparées par des virgules)</label>
+                        <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Spécialisations *</label>
+                        <div class="space-y-2 rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    value="orthophonie"
+                                    x-model="formData.specializations"
+                                    class="rounded border-gray-300 text-brand-600 focus:ring-brand-500"
+                                />
+                                <span class="text-sm text-gray-700 dark:text-gray-300">Orthophonie</span>
+                            </label>
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    value="psychologie"
+                                    x-model="formData.specializations"
+                                    class="rounded border-gray-300 text-brand-600 focus:ring-brand-500"
+                                />
+                                <span class="text-sm text-gray-700 dark:text-gray-300">Psychologie</span>
+                            </label>
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    value="ergothérapie"
+                                    x-model="formData.specializations"
+                                    class="rounded border-gray-300 text-brand-600 focus:ring-brand-500"
+                                />
+                                <span class="text-sm text-gray-700 dark:text-gray-300">Ergothérapie</span>
+                            </label>
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    value="psychomotricité"
+                                    x-model="formData.specializations"
+                                    class="rounded border-gray-300 text-brand-600 focus:ring-brand-500"
+                                />
+                                <span class="text-sm text-gray-700 dark:text-gray-300">Psychomotricité</span>
+                            </label>
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    value="orthoptie"
+                                    x-model="formData.specializations"
+                                    class="rounded border-gray-300 text-brand-600 focus:ring-brand-500"
+                                />
+                                <span class="text-sm text-gray-700 dark:text-gray-300">Orthoptie</span>
+                            </label>
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    value="neuropsychologie"
+                                    x-model="formData.specializations"
+                                    class="rounded border-gray-300 text-brand-600 focus:ring-brand-500"
+                                />
+                                <span class="text-sm text-gray-700 dark:text-gray-300">Neuropsychologie</span>
+                            </label>
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    value="soutien_scolaire"
+                                    x-model="formData.specializations"
+                                    class="rounded border-gray-300 text-brand-600 focus:ring-brand-500"
+                                />
+                                <span class="text-sm text-gray-700 dark:text-gray-300">Soutien scolaire</span>
+                            </label>
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    value="autre"
+                                    x-model="formData.specializations"
+                                    class="rounded border-gray-300 text-brand-600 focus:ring-brand-500"
+                                />
+                                <span class="text-sm text-gray-700 dark:text-gray-300">Autre</span>
+                            </label>
+                        </div>
+                    </div>
+                    <div x-show="!isEdit">
+                        <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Mot de passe *</label>
                         <input
-                            type="text"
-                            x-model="formData.specializationsText"
-                            placeholder="ex: Psychologie, Orthophonie, Ergothérapie"
+                            type="password"
+                            x-model="formData.password"
+                            required
+                            class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+                        />
+                    </div>
+                    <div x-show="!isEdit">
+                        <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Confirmation du mot de passe *</label>
+                        <input
+                            type="password"
+                            x-model="formData.passwordConfirmation"
+                            required
                             class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
                         />
                     </div>
@@ -223,7 +309,9 @@ function specialistManager() {
             email: '',
             firstName: '',
             lastName: '',
-            specializationsText: '',
+            specializations: [],
+            password: '',
+            passwordConfirmation: '',
             isActive: true,
         },
         specialistsData: [],
@@ -240,7 +328,9 @@ function specialistManager() {
                 email: '',
                 firstName: '',
                 lastName: '',
-                specializationsText: '',
+                specializations: [],
+                password: '',
+                passwordConfirmation: '',
                 isActive: true,
             };
             this.rightSheetOpen = true;
@@ -254,7 +344,7 @@ function specialistManager() {
                     email: specialist.email || '',
                     firstName: specialist.firstName || '',
                     lastName: specialist.lastName || '',
-                    specializationsText: specialist.specializations ? specialist.specializations.join(', ') : '',
+                    specializations: specialist.specializations ? [...specialist.specializations] : [],
                     isActive: specialist.isActive !== undefined ? specialist.isActive : true,
                 };
                 this.rightSheetOpen = true;
@@ -262,7 +352,7 @@ function specialistManager() {
         },
         openDelete(id) {
             if (confirm('Êtes-vous sûr de vouloir supprimer ce spécialiste ?')) {
-                fetch(`/admin/specialists/${id}`, {
+                fetch(`/admin/specialists/${id}/delete`, {
                     method: 'DELETE',
                     headers: { 'X-Requested-With': 'XMLHttpRequest' },
                 })
@@ -281,18 +371,37 @@ function specialistManager() {
             }
         },
         saveSpecialist() {
-            const specializations = this.formData.specializationsText
-                .split(',')
-                .map(s => s.trim())
-                .filter(s => s.length > 0);
+            // Vérifier qu'au moins une spécialisation est sélectionnée
+            if (!this.formData.specializations || this.formData.specializations.length === 0) {
+                this.showMessage('Veuillez sélectionner au moins une spécialisation', 'error');
+                return;
+            }
+            
+            // Vérifier le mot de passe si c'est une création
+            if (!this.isEdit) {
+                if (!this.formData.password || this.formData.password.length < 6) {
+                    this.showMessage('Le mot de passe doit contenir au moins 6 caractères', 'error');
+                    return;
+                }
+                if (this.formData.password !== this.formData.passwordConfirmation) {
+                    this.showMessage('Les mots de passe ne correspondent pas', 'error');
+                    return;
+                }
+            }
             
             const data = {
                 email: this.formData.email,
                 firstName: this.formData.firstName,
                 lastName: this.formData.lastName,
-                specializations: specializations,
+                specializations: Array.isArray(this.formData.specializations) ? this.formData.specializations : [],
                 isActive: this.formData.isActive,
             };
+            
+            // Ajouter le mot de passe seulement pour la création
+            if (!this.isEdit) {
+                data.password = this.formData.password;
+                data.passwordConfirmation = this.formData.passwordConfirmation;
+            }
             
             const url = this.isEdit 
                 ? `/admin/specialists/${this.currentId}/update`
@@ -320,11 +429,13 @@ function specialistManager() {
             });
         },
         showMessage(message, type = 'info') {
-            const toastManager = document.querySelector('[x-data="toastManager()"]')?.__x?.$data;
-            if (toastManager) {
-                toastManager.show(message, type);
+            if (window.showToast) {
+                window.showToast(message, type);
             } else {
-                alert(message);
+                const toastManager = document.querySelector('[x-data="toastManager()"]')?.__x?.$data;
+                if (toastManager) {
+                    toastManager.show(message, type);
+                }
             }
         },
         closeSheet() {

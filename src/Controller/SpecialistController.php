@@ -70,8 +70,18 @@ class SpecialistController extends AbstractController
         }
         if (isset($data['isActive'])) $specialist->setIsActive($data['isActive']);
         
-        $defaultPassword = 'password123';
-        $hashedPassword = $this->passwordHasher->hashPassword($specialist, $defaultPassword);
+        // Vérifier que le mot de passe et la confirmation sont fournis et correspondent
+        if (!isset($data['password']) || empty($data['password'])) {
+            return new JsonResponse(['success' => false, 'message' => 'Le mot de passe est requis'], 400);
+        }
+        if (!isset($data['passwordConfirmation']) || $data['password'] !== $data['passwordConfirmation']) {
+            return new JsonResponse(['success' => false, 'message' => 'Les mots de passe ne correspondent pas'], 400);
+        }
+        if (strlen($data['password']) < 6) {
+            return new JsonResponse(['success' => false, 'message' => 'Le mot de passe doit contenir au moins 6 caractères'], 400);
+        }
+        
+        $hashedPassword = $this->passwordHasher->hashPassword($specialist, $data['password']);
         $specialist->setPassword($hashedPassword);
 
         // Validation

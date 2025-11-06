@@ -34,13 +34,6 @@ class RegisterParentType extends AbstractType
                 'label' => 'Nom',
                 'required' => true,
             ])
-            ->add('email', EmailType::class, [
-                'label' => 'Email',
-                'required' => false,
-                'attr' => [
-                    'placeholder' => 'info@gmail.com',
-                ],
-            ])
             ->add('plainPassword', RepeatedType::class, [
                 'type' => PasswordType::class,
                 'mapped' => false,

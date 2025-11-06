@@ -7,6 +7,7 @@
     data-students='{{ students|json_encode|e('html_attr') }}'
     data-parents='{{ parents|json_encode|e('html_attr') }}'
     data-specialists='{{ specialists|json_encode|e('html_attr') }}'
+    data-coaches='{{ coaches|json_encode|e('html_attr') }}'
     class="p-4 mx-auto max-w-(--breakpoint-2xl) md:p-6"
 >
     {% include 'tailadmin/components/breadcrumb.html.twig' %}
@@ -23,6 +24,41 @@
                     </p>
                 </div>
                 <div class="flex items-center gap-3">
+                    <!-- Filtre par profile -->
+                    <select
+                        x-model="selectedProfile"
+                        @change="selectedUser = ''; applyFilters()"
+                        class="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"
+                    >
+                        <option value="">Tous les profils</option>
+                        <option value="coach">Coach</option>
+                        <option value="specialist">Spécialiste</option>
+                        <option value="parent">Parent</option>
+                        <option value="student">Élève</option>
+                    </select>
+                    
+                    <!-- Filtre par user -->
+                    <select
+                        x-model="selectedUser"
+                        @change="applyFilters()"
+                        x-show="selectedProfile"
+                        class="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"
+                    >
+                        <option value="">Tous les utilisateurs</option>
+                        <template x-for="coach in coaches" :key="coach.id">
+                            <option x-show="selectedProfile === 'coach'" :value="coach.id" x-text="coach.firstName + ' ' + coach.lastName"></option>
+                        </template>
+                        <template x-for="specialist in specialists" :key="specialist.id">
+                            <option x-show="selectedProfile === 'specialist'" :value="specialist.id" x-text="specialist.firstName + ' ' + specialist.lastName"></option>
+                        </template>
+                        <template x-for="parent in parents" :key="parent.id">
+                            <option x-show="selectedProfile === 'parent'" :value="parent.id" x-text="parent.firstName + ' ' + parent.lastName"></option>
+                        </template>
+                        <template x-for="student in students" :key="student.id">
+                            <option x-show="selectedProfile === 'student'" :value="student.id" x-text="student.firstName + ' ' + student.lastName"></option>
+                        </template>
+                    </select>
+                    
                     <button
                         @click="openCreate()"
                         class="inline-flex items-center gap-2 rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white shadow-theme-xs hover:bg-brand-600"
@@ -289,6 +325,12 @@
 <script>
 function availabilityManager() {
     return {
+        selectedProfile: '{{ profileFilter|default('') }}',
+        selectedUser: '{{ userIdFilter|default('') }}',
+        coaches: [],
+        specialists: [],
+        parents: [],
+        students: [],
         rightSheetOpen: false,
         isEdit: false,
         currentId: null,
@@ -308,10 +350,33 @@ function availabilityManager() {
             const studentsJson = this.$el.getAttribute('data-students');
             const parentsJson = this.$el.getAttribute('data-parents');
             const specialistsJson = this.$el.getAttribute('data-specialists');
+            const coachesJson = this.$el.getAttribute('data-coaches');
             if (availabilitiesJson) this.availabilitiesData = JSON.parse(availabilitiesJson);
-            if (studentsJson) this.studentsData = JSON.parse(studentsJson);
-            if (parentsJson) this.parentsData = JSON.parse(parentsJson);
-            if (specialistsJson) this.specialistsData = JSON.parse(specialistsJson);
+            if (studentsJson) {
+                this.studentsData = JSON.parse(studentsJson);
+                this.students = JSON.parse(studentsJson);
+            }
+            if (parentsJson) {
+                this.parentsData = JSON.parse(parentsJson);
+                this.parents = JSON.parse(parentsJson);
+            }
+            if (specialistsJson) {
+                this.specialistsData = JSON.parse(specialistsJson);
+                this.specialists = JSON.parse(specialistsJson);
+            }
+            if (coachesJson) this.coaches = JSON.parse(coachesJson);
+        },
+        
+        applyFilters() {
+            const params = new URLSearchParams();
+            if (this.selectedProfile) {
+                params.set('profile', this.selectedProfile);
+            }
+            if (this.selectedUser) {
+                params.set('user', this.selectedUser);
+            }
+            const queryString = params.toString();
+            window.location.href = '/admin/availabilities' + (queryString ? '?' + queryString : '');
         },
         openCreate() {
             this.isEdit = false;
@@ -355,7 +420,7 @@ function availabilityManager() {
         },
         openDelete() {
             if (this.currentId && confirm('Êtes-vous sûr de vouloir supprimer ce créneau ?')) {
-                fetch(`/admin/availabilities/${this.currentId}`, {
+                fetch(`/admin/availabilities/${this.currentId}/delete`, {
                     method: 'DELETE',
                     headers: { 'X-Requested-With': 'XMLHttpRequest' },
                 })

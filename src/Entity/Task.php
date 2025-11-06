@@ -10,6 +10,32 @@ use Doctrine\ORM\Mapping as ORM;
 #[ORM\Entity(repositoryClass: TaskRepository::class)]
 class Task
 {
+    // Constantes pour les statuts
+    public const STATUS_PENDING = 'pending';
+    public const STATUS_IN_PROGRESS = 'in_progress';
+    public const STATUS_COMPLETED = 'completed';
+
+    // Constantes pour les temporalités/fréquences
+    public const FREQUENCY_NONE = 'none';
+    public const FREQUENCY_HOURLY = 'hourly';
+    public const FREQUENCY_DAILY = 'daily';
+    public const FREQUENCY_HALF_DAY = 'half_day';
+    public const FREQUENCY_EVERY_2_DAYS = 'every_2_days';
+    public const FREQUENCY_WEEKLY = 'weekly';
+    public const FREQUENCY_MONTHLY = 'monthly';
+    public const FREQUENCY_YEARLY = 'yearly';
+
+    public const FREQUENCIES = [
+        self::FREQUENCY_NONE => 'Aucune',
+        self::FREQUENCY_HOURLY => 'Toutes les heures',
+        self::FREQUENCY_DAILY => 'Quotidienne',
+        self::FREQUENCY_HALF_DAY => 'Une demi-journée',
+        self::FREQUENCY_EVERY_2_DAYS => 'Tous les 2 jours',
+        self::FREQUENCY_WEEKLY => 'Hebdomadaire',
+        self::FREQUENCY_MONTHLY => 'Mensuelle',
+        self::FREQUENCY_YEARLY => 'Annuelle',
+    ];
+
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
@@ -126,8 +152,7 @@ class Task
 
     public function isRequiresProof(): ?bool
     {
-        return true;
-        return $this->requiresProof;
+        return $this->requiresProof ?? true;
     }
 
     public function setRequiresProof(bool $requiresProof): static

@@ -182,4 +182,34 @@ class MessageRepository extends ServiceEntityRepository
 
         $this->getEntityManager()->flush();
     }
+
+    /**
+     * Trouve les derniers messages reçus par un utilisateur (notifications)
+     */
+    public function findRecentNotifications(User $user, int $limit = 10): array
+    {
+        return $this->createQueryBuilder('m')
+            ->where('m.receiver = :user')
+            ->setParameter('user', $user)
+            ->orderBy('m.createdAt', 'DESC')
+            ->setMaxResults($limit)
+            ->getQuery()
+            ->getResult();
+    }
+
+    /**
+     * Trouve les derniers messages reçus par un coach (via coach ou receiver)
+     */
+    public function findRecentNotificationsForCoach($coach, User $user, int $limit = 10): array
+    {
+        return $this->createQueryBuilder('m')
+            ->where('(m.coach = :coach OR m.receiver = :user)')
+            ->andWhere('m.receiver = :user')
+            ->setParameter('coach', $coach)
+            ->setParameter('user', $user)
+            ->orderBy('m.createdAt', 'DESC')
+            ->setMaxResults($limit)
+            ->getQuery()
+            ->getResult();
+    }
 }

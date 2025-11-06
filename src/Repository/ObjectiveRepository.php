@@ -37,11 +37,12 @@ class ObjectiveRepository extends ServiceEntityRepository
     /**
      * Recherche des objectifs par coach avec critères de recherche
      */
-    public function findByCoachWithSearch($coach, $search = null, $studentId = null, $familyId = null, $status = null): array
+    public function findByCoachWithSearch($coach, $search = null, $creatorProfile = null, $creatorUserId = null, $status = null): array
     {
         $qb = $this->createQueryBuilder('o')
             ->leftJoin('o.student', 's')
             ->leftJoin('s.family', 'f')
+            ->leftJoin('o.coach', 'creator')
             ->where('o.coach = :coach')
             ->setParameter('coach', $coach);
 
@@ -50,14 +51,25 @@ class ObjectiveRepository extends ServiceEntityRepository
                ->setParameter('search', '%' . $search . '%');
         }
 
-        if ($studentId) {
-            $qb->andWhere('s.id = :studentId')
-               ->setParameter('studentId', $studentId);
+        // Filtrer par profil du créateur (coach de l'objectif)
+        if ($creatorProfile) {
+            $roleMap = [
+                'coach' => 'ROLE_COACH',
+                'parent' => 'ROLE_PARENT',
+                'student' => 'ROLE_STUDENT',
+                'specialist' => 'ROLE_SPECIALIST',
+            ];
+            
+            if (isset($roleMap[$creatorProfile])) {
+                $qb->andWhere('creator.roles LIKE :creatorRole')
+                   ->setParameter('creatorRole', '%' . $roleMap[$creatorProfile] . '%');
+            }
         }
 
-        if ($familyId) {
-            $qb->andWhere('f.id = :familyId')
-               ->setParameter('familyId', $familyId);
+        // Filtrer par utilisateur créateur spécifique
+        if ($creatorUserId) {
+            $qb->andWhere('creator.id = :creatorUserId')
+               ->setParameter('creatorUserId', $creatorUserId);
         }
 
         if ($status) {

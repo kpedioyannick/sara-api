@@ -59,16 +59,16 @@ class ObjectiveController extends AbstractController
 
         // Récupération des paramètres de filtrage
         $search = $request->query->get('search', '');
-        $studentId = $request->query->get('student');
-        $familyId = $request->query->get('family');
+        $creatorProfile = $request->query->get('creatorProfile');
+        $creatorUserId = $request->query->get('creatorUser');
         $status = $request->query->get('status');
 
         // Récupération des objectifs avec filtrage
         $objectives = $this->objectiveRepository->findByCoachWithSearch(
             $coach,
             $search ?: null,
-            $studentId ? (int) $studentId : null,
-            $familyId ? (int) $familyId : null,
+            $creatorProfile ?: null,
+            $creatorUserId ? (int) $creatorUserId : null,
             $status ?: null
         );
 
@@ -98,6 +98,7 @@ class ObjectiveController extends AbstractController
         
         // Récupérer les parents et spécialistes pour les tâches
         $families = $this->familyRepository->findByCoachWithSearch($coach);
+        
         $parentsData = [];
         foreach ($families as $family) {
             $parent = $family->getParent();
@@ -116,6 +117,13 @@ class ObjectiveController extends AbstractController
             'firstName' => $s->getFirstName(),
             'lastName' => $s->getLastName(),
         ], $specialists);
+        
+        // Récupérer le coach pour le filtre
+        $coachesData = [[
+            'id' => $coach->getId(),
+            'firstName' => $coach->getFirstName(),
+            'lastName' => $coach->getLastName(),
+        ]];
 
         return $this->render('tailadmin/pages/objectives/list.html.twig', [
             'pageTitle' => 'Liste des Objectifs | TailAdmin',
@@ -124,6 +132,9 @@ class ObjectiveController extends AbstractController
             'students' => $studentsData,
             'parents' => $parentsData,
             'specialists' => $specialistsData,
+            'coaches' => $coachesData,
+            'creatorProfileFilter' => $creatorProfile,
+            'creatorUserFilter' => $creatorUserId,
             'breadcrumbs' => [
                 ['label' => 'Dashboard', 'url' => $this->generateUrl('admin_dashboard')],
             ],
@@ -172,7 +183,7 @@ class ObjectiveController extends AbstractController
                 $proofs = $task->getProofs()->toArray();
                 $taskArray['proofs'] = array_map(fn($proof) => $proof->toArray(), $proofs);
                 $taskArray['requiresProof'] = $task->isRequiresProof() ?? true; // Par défaut true selon les règles
-                $taskArray['frequency'] = $task->getFrequency() ?? 'daily';
+                $taskArray['frequency'] = $task->getFrequency() ?? 'none';
                 return $taskArray;
             }, $statusTasks);
         }
@@ -227,18 +238,32 @@ class ObjectiveController extends AbstractController
             ],
         ];
 
-        return $this->render('tailadmin/pages/objectives/detail.html.twig', [
-            'pageTitle' => 'Détail de l\'Objectif | TailAdmin',
-            'pageName' => 'objectives-detail',
-            'objective' => $objectiveData,
-            'tasks' => $tasksData,
-            'comments' => $commentsData,
-            'breadcrumbs' => [
-                ['label' => 'Dashboard', 'url' => $this->generateUrl('admin_dashboard')],
-                ['label' => 'Objectifs', 'url' => $this->generateUrl('admin_objectives_list')],
-                ['label' => 'Détail', 'url' => ''],
-            ],
-        ]);
+                    // Déterminer le type d'utilisateur
+                    $currentUser = $this->getUser();
+                    $userType = 'coach'; // Par défaut
+                    if ($currentUser instanceof \App\Entity\ParentUser) {
+                        $userType = 'parent';
+                    } elseif ($currentUser instanceof \App\Entity\Student) {
+                        $userType = 'student';
+                    } elseif ($currentUser instanceof \App\Entity\Specialist) {
+                        $userType = 'specialist';
+                    } elseif ($currentUser instanceof \App\Entity\Coach) {
+                        $userType = 'coach';
+                    }
+
+                    return $this->render('tailadmin/pages/objectives/detail.html.twig', [
+                        'pageTitle' => 'Détail de l\'Objectif | TailAdmin',
+                        'pageName' => 'objectives-detail',
+                        'objective' => $objectiveData,
+                        'tasks' => $tasksData,
+                        'comments' => $commentsData,
+                        'userType' => $userType,
+                        'breadcrumbs' => [
+                            ['label' => 'Dashboard', 'url' => $this->generateUrl('admin_dashboard')],
+                            ['label' => 'Objectifs', 'url' => $this->generateUrl('admin_objectives_list')],
+                            ['label' => 'Détail', 'url' => ''],
+                        ],
+                    ]);
     }
 
     #[Route('/admin/objectives/create', name: 'admin_objectives_create', methods: ['POST'])]

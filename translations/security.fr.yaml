@@ -1,0 +1,12 @@
+# Messages de sécurité Symfony
+Invalid credentials.: Identifiants invalides.
+Invalid credentials: Identifiants invalides.
+Bad credentials.: Identifiants invalides.
+Bad credentials: Identifiants invalides.
+The presented password cannot be empty.: Le mot de passe ne peut pas être vide.
+The presented password is invalid.: Le mot de passe est invalide.
+This account is disabled.: Ce compte est désactivé.
+This account is locked.: Ce compte est verrouillé.
+This account has expired.: Ce compte a expiré.
+This password has expired.: Ce mot de passe a expiré.
+

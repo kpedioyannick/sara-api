@@ -1,9 +1,16 @@
 # see https://symfony.com/doc/current/reference/configuration/framework.html
 framework:
     secret: '%env(APP_SECRET)%'
-
+    
+    default_locale: fr
+    
     # Note that the session will be started ONLY if you read or write from it.
-    session: true
+    session:
+        handler_id: null
+        cookie_lifetime: 31536000  # 1 an en secondes (pour une session vraiment persistante)
+        cookie_httponly: true
+        cookie_samesite: lax
+        gc_maxlifetime: 31536000  # 1 an en secondes pour le garbage collection
 
     #esi: true
     #fragments: true

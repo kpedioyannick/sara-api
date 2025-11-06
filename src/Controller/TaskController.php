@@ -166,6 +166,85 @@ class TaskController extends AbstractController
 
         return new JsonResponse(['success' => true, 'message' => 'Tâche supprimée avec succès']);
     }
+
+    #[Route('/admin/tasks/{id}/configure', name: 'admin_tasks_configure', methods: ['POST'])]
+    public function configure(int $id, Request $request): JsonResponse
+    {
+        $coach = $this->getCurrentCoach($this->coachRepository, $this->security);
+        if (!$coach) {
+            return new JsonResponse(['success' => false, 'message' => 'Coach non trouvé'], 404);
+        }
+
+        $task = $this->taskRepository->find($id);
+        if (!$task || $task->getCoach() !== $coach) {
+            return new JsonResponse(['success' => false, 'message' => 'Tâche non trouvée'], 404);
+        }
+
+        $data = json_decode($request->getContent(), true);
+        
+        // Mettre à jour le statut
+        if (isset($data['status']) && in_array($data['status'], [Task::STATUS_PENDING, Task::STATUS_IN_PROGRESS, Task::STATUS_COMPLETED])) {
+            $task->setStatus($data['status']);
+        }
+        
+        // Mettre à jour la demande de preuves
+        if (isset($data['requiresProof'])) {
+            $task->setRequiresProof((bool)$data['requiresProof']);
+        }
+        
+        // Mettre à jour la temporalité
+        if (isset($data['frequency'])) {
+            $validFrequencies = array_keys(Task::FREQUENCIES);
+            if (in_array($data['frequency'], $validFrequencies)) {
+                $task->setFrequency($data['frequency']);
+            }
+        }
+        
+        $task->setUpdatedAt(new \DateTimeImmutable());
+
+        // Validation
+        $errors = $this->validator->validate($task);
+        if (count($errors) > 0) {
+            $errorMessages = [];
+            foreach ($errors as $error) {
+                $errorMessages[] = $error->getMessage();
+            }
+            return new JsonResponse(['success' => false, 'message' => implode(', ', $errorMessages)], 400);
+        }
+
+        $this->em->flush();
+
+        return new JsonResponse([
+            'success' => true, 
+            'message' => 'Configuration de la tâche mise à jour avec succès',
+            'task' => $task->toTemplateArray()
+        ]);
+    }
+
+    #[Route('/admin/tasks/{id}', name: 'admin_tasks_get', methods: ['GET'])]
+    public function get(int $id): JsonResponse
+    {
+        $coach = $this->getCurrentCoach($this->coachRepository, $this->security);
+        if (!$coach) {
+            return new JsonResponse(['success' => false, 'message' => 'Coach non trouvé'], 404);
+        }
+
+        $task = $this->taskRepository->find($id);
+        if (!$task || $task->getCoach() !== $coach) {
+            return new JsonResponse(['success' => false, 'message' => 'Tâche non trouvée'], 404);
+        }
+
+        return new JsonResponse([
+            'success' => true,
+            'task' => [
+                'id' => $task->getId(),
+                'title' => $task->getTitle(),
+                'status' => $task->getStatus(),
+                'frequency' => $task->getFrequency(),
+                'requiresProof' => $task->isRequiresProof(),
+            ]
+        ]);
+    }
 }
 
 

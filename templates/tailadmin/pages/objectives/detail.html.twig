@@ -163,7 +163,7 @@
             <h3
               class="flex items-center gap-3 text-base font-medium text-gray-800 dark:text-white/90"
             >
-              To Do
+              À faire
               <span
                 class="inline-flex rounded-full bg-gray-100 px-2 py-0.5 text-theme-xs font-medium text-gray-700 dark:bg-white/[0.03] dark:text-white/80"
               >
@@ -203,6 +203,7 @@
                 <label
                   for="taskCheckbox{{ task.id }}"
                   class="w-full cursor-pointer"
+                  @click.stop
                 >
                   <div class="relative flex items-start">
                     <input
@@ -211,7 +212,10 @@
                       class="sr-only taskCheckbox"
                       data-task-id="{{ task.id }}"
                       {% if task.status == 'completed' %}checked{% endif %}
-                      @change="openProofModal($event, {{ task.id }}, '{{ task.title|escape('js') }}')"
+                      data-task-id="{{ task.id }}"
+                      data-task-title="{{ task.title|escape }}"
+                      @change.stop="openProofModalFromCheckbox($event)"
+                      @click.stop
                     />
                     <div
                       class="flex items-center justify-center w-full h-5 mr-3 border border-gray-300 rounded-md box max-w-5 dark:border-gray-700"
@@ -247,24 +251,46 @@
                 class="flex flex-col-reverse items-start justify-end w-full gap-3 xl:flex-row xl:items-center xl:gap-5"
               >
                 <div class="flex items-center gap-2">
+                  {% if task.requiresProof %}
                   <span
                     class="inline-flex rounded-full bg-brand-50 px-2 py-0.5 text-theme-xs font-medium text-brand-500 dark:bg-brand-500/15 dark:text-brand-400"
                   >
                     Preuve requise
                   </span>
-                  {% if task.proofs|length > 0 %}
+                  {% endif %}
                   <button
-                    @click="showProofHistory({{ task.id }}, {{ task.proofs|json_encode|raw }})"
-                    class="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2 py-0.5 text-theme-xs font-medium text-gray-700 hover:bg-gray-200 dark:bg-white/[0.03] dark:text-white/80 dark:hover:bg-white/[0.05]"
+                    data-task-id="{{ task.id }}"
+                    data-task-proofs="{{ task.proofs|json_encode|e('html_attr') }}"
+                    data-task-title="{{ task.title|e('html_attr') }}"
+                    @click="showProofHistoryFromButton($event)"
+                    class="inline-flex items-center gap-1 rounded-full {% if task.proofs|length > 0 %}bg-gray-100 px-2 py-0.5 text-theme-xs font-medium text-gray-700 hover:bg-gray-200 dark:bg-white/[0.03] dark:text-white/80 dark:hover:bg-white/[0.05]{% else %}bg-gray-50 px-2 py-0.5 text-theme-xs font-medium text-gray-500 hover:bg-gray-100 dark:bg-white/[0.02] dark:text-gray-400 dark:hover:bg-white/[0.03]{% endif %}"
                     title="Voir l'historique des preuves"
                   >
                     <svg class="fill-current" width="14" height="14" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
                       <path d="M8 1C4.134 1 1 4.134 1 8s3.134 7 7 7 7-3.134 7-7-3.134-7-7-7zm0 12.5c-3.032 0-5.5-2.468-5.5-5.5S4.968 2.5 8 2.5 13.5 4.968 13.5 8 11.032 13.5 8 13.5z" fill=""/>
                       <path d="M8 4.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7zm0 6a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5z" fill=""/>
                     </svg>
-                    {{ task.proofs|length }}
+                    {% if task.proofs|length > 0 %}
+                      {{ task.proofs|length }}
+                    {% else %}
+                      Historique
+                    {% endif %}
                   </button>
-                  {% endif %}
+                  <button
+                    data-task-id="{{ task.id }}"
+                    data-task-status="{{ task.status }}"
+                    data-task-frequency="{{ task.frequency|default('none') }}"
+                    data-task-requires-proof="{{ task.requiresProof ? 'true' : 'false' }}"
+                    data-task-title="{{ task.title|e('html_attr') }}"
+                    @click="openTaskConfig($event)"
+                    class="inline-flex items-center gap-1 rounded-full bg-gray-50 px-2 py-0.5 text-theme-xs font-medium text-gray-500 hover:bg-gray-100 dark:bg-white/[0.02] dark:text-gray-400 dark:hover:bg-white/[0.03]"
+                    title="Configurer la tâche"
+                  >
+                    <svg class="fill-current" width="14" height="14" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M11.334 2.666a2.667 2.667 0 0 1 3.771 3.772l-8 8a2.667 2.667 0 0 1-1.886.781l-2.89.111a.667.667 0 0 1-.687-.687l.111-2.89a2.667 2.667 0 0 1 .78-1.886l8-8Zm2.39 2.39a1.333 1.333 0 0 0-1.886-1.886L10.667 4.61l1.886 1.886 1.171-1.44Z" fill=""/>
+                    </svg>
+                    Configurer
+                  </button>
                 </div>
 
                 <div
@@ -311,7 +337,7 @@
             <h3
               class="flex items-center gap-3 text-base font-medium text-gray-800 dark:text-white/90"
             >
-              In Progress
+              En cours
               <span
                 class="inline-flex rounded-full bg-warning-50 px-2 py-0.5 text-theme-xs font-medium text-warning-700 dark:bg-warning-500/15 dark:text-orange-400"
               >
@@ -351,6 +377,7 @@
                 <label
                   for="taskCheckbox{{ task.id }}"
                   class="w-full cursor-pointer"
+                  @click.stop
                 >
                   <div class="relative flex items-start">
                     <input
@@ -359,7 +386,10 @@
                       class="sr-only taskCheckbox"
                       data-task-id="{{ task.id }}"
                       checked
-                      @change="openProofModal($event, {{ task.id }}, '{{ task.title|escape('js') }}')"
+                      data-task-id="{{ task.id }}"
+                      data-task-title="{{ task.title|escape }}"
+                      @change.stop="openProofModalFromCheckbox($event)"
+                      @click.stop
                     />
                     <div
                       class="flex items-center justify-center w-full h-5 mr-3 border border-gray-300 rounded-md box max-w-5 bg-brand-500 dark:bg-brand-400"
@@ -395,24 +425,46 @@
                 class="flex flex-col-reverse items-start justify-end w-full gap-3 xl:flex-row xl:items-center xl:gap-5"
               >
                 <div class="flex items-center gap-2">
+                  {% if task.requiresProof %}
                   <span
                     class="inline-flex rounded-full bg-brand-50 px-2 py-0.5 text-theme-xs font-medium text-brand-500 dark:bg-brand-500/15 dark:text-brand-400"
                   >
                     Preuve requise
                   </span>
-                  {% if task.proofs|length > 0 %}
+                  {% endif %}
                   <button
-                    @click="showProofHistory({{ task.id }}, {{ task.proofs|json_encode|raw }})"
-                    class="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2 py-0.5 text-theme-xs font-medium text-gray-700 hover:bg-gray-200 dark:bg-white/[0.03] dark:text-white/80 dark:hover:bg-white/[0.05]"
+                    data-task-id="{{ task.id }}"
+                    data-task-proofs="{{ task.proofs|json_encode|e('html_attr') }}"
+                    data-task-title="{{ task.title|e('html_attr') }}"
+                    @click="showProofHistoryFromButton($event)"
+                    class="inline-flex items-center gap-1 rounded-full {% if task.proofs|length > 0 %}bg-gray-100 px-2 py-0.5 text-theme-xs font-medium text-gray-700 hover:bg-gray-200 dark:bg-white/[0.03] dark:text-white/80 dark:hover:bg-white/[0.05]{% else %}bg-gray-50 px-2 py-0.5 text-theme-xs font-medium text-gray-500 hover:bg-gray-100 dark:bg-white/[0.02] dark:text-gray-400 dark:hover:bg-white/[0.03]{% endif %}"
                     title="Voir l'historique des preuves"
                   >
                     <svg class="fill-current" width="14" height="14" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
                       <path d="M8 1C4.134 1 1 4.134 1 8s3.134 7 7 7 7-3.134 7-7-3.134-7-7-7zm0 12.5c-3.032 0-5.5-2.468-5.5-5.5S4.968 2.5 8 2.5 13.5 4.968 13.5 8 11.032 13.5 8 13.5z" fill=""/>
                       <path d="M8 4.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7zm0 6a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5z" fill=""/>
                     </svg>
-                    {{ task.proofs|length }}
+                    {% if task.proofs|length > 0 %}
+                      {{ task.proofs|length }}
+                    {% else %}
+                      Historique
+                    {% endif %}
                   </button>
-                  {% endif %}
+                  <button
+                    data-task-id="{{ task.id }}"
+                    data-task-status="{{ task.status }}"
+                    data-task-frequency="{{ task.frequency|default('none') }}"
+                    data-task-requires-proof="{{ task.requiresProof ? 'true' : 'false' }}"
+                    data-task-title="{{ task.title|e('html_attr') }}"
+                    @click="openTaskConfig($event)"
+                    class="inline-flex items-center gap-1 rounded-full bg-gray-50 px-2 py-0.5 text-theme-xs font-medium text-gray-500 hover:bg-gray-100 dark:bg-white/[0.02] dark:text-gray-400 dark:hover:bg-white/[0.03]"
+                    title="Configurer la tâche"
+                  >
+                    <svg class="fill-current" width="14" height="14" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M11.334 2.666a2.667 2.667 0 0 1 3.771 3.772l-8 8a2.667 2.667 0 0 1-1.886.781l-2.89.111a.667.667 0 0 1-.687-.687l.111-2.89a2.667 2.667 0 0 1 .78-1.886l8-8Zm2.39 2.39a1.333 1.333 0 0 0-1.886-1.886L10.667 4.61l1.886 1.886 1.171-1.44Z" fill=""/>
+                    </svg>
+                    Configurer
+                  </button>
                 </div>
 
                 <div
@@ -459,7 +511,7 @@
             <h3
               class="flex items-center gap-3 text-base font-medium text-gray-800 dark:text-white/90"
             >
-              Completed
+              Terminé
               <span
                 class="inline-flex rounded-full bg-success-50 px-2 py-0.5 text-theme-xs font-medium text-success-500 dark:bg-success-500/15 dark:text-success-400"
               >
@@ -499,6 +551,7 @@
                 <label
                   for="taskCheckbox{{ task.id }}"
                   class="w-full cursor-pointer"
+                  @click.stop
                 >
                   <div class="relative flex items-start">
                     <input
@@ -507,7 +560,10 @@
                       class="sr-only taskCheckbox"
                       data-task-id="{{ task.id }}"
                       checked
-                      @change="openProofModal($event, {{ task.id }}, '{{ task.title|escape('js') }}')"
+                      data-task-id="{{ task.id }}"
+                      data-task-title="{{ task.title|escape }}"
+                      @change.stop="openProofModalFromCheckbox($event)"
+                      @click.stop
                     />
                     <div
                       class="flex items-center justify-center w-full h-5 mr-3 border border-gray-300 rounded-md box max-w-5 bg-success-500 dark:bg-success-400"
@@ -548,19 +604,24 @@
                   >
                     Preuve requise
                   </span>
-                  {% if task.proofs|length > 0 %}
                   <button
-                    @click="showProofHistory({{ task.id }}, {{ task.proofs|json_encode|raw }})"
-                    class="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2 py-0.5 text-theme-xs font-medium text-gray-700 hover:bg-gray-200 dark:bg-white/[0.03] dark:text-white/80 dark:hover:bg-white/[0.05]"
+                    data-task-id="{{ task.id }}"
+                    data-task-proofs="{{ task.proofs|json_encode|e('html_attr') }}"
+                    data-task-title="{{ task.title|e('html_attr') }}"
+                    @click="showProofHistoryFromButton($event)"
+                    class="inline-flex items-center gap-1 rounded-full {% if task.proofs|length > 0 %}bg-gray-100 px-2 py-0.5 text-theme-xs font-medium text-gray-700 hover:bg-gray-200 dark:bg-white/[0.03] dark:text-white/80 dark:hover:bg-white/[0.05]{% else %}bg-gray-50 px-2 py-0.5 text-theme-xs font-medium text-gray-500 hover:bg-gray-100 dark:bg-white/[0.02] dark:text-gray-400 dark:hover:bg-white/[0.03]{% endif %}"
                     title="Voir l'historique des preuves"
                   >
                     <svg class="fill-current" width="14" height="14" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
                       <path d="M8 1C4.134 1 1 4.134 1 8s3.134 7 7 7 7-3.134 7-7-3.134-7-7-7zm0 12.5c-3.032 0-5.5-2.468-5.5-5.5S4.968 2.5 8 2.5 13.5 4.968 13.5 8 11.032 13.5 8 13.5z" fill=""/>
                       <path d="M8 4.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7zm0 6a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5z" fill=""/>
                     </svg>
-                    {{ task.proofs|length }}
+                    {% if task.proofs|length > 0 %}
+                      {{ task.proofs|length }} Historique(s)
+                    {% else %}
+                      Aucun Historique
+                    {% endif %}
                   </button>
-                  {% endif %}
                 </div>
 
                 <div
@@ -605,15 +666,63 @@
     </div>
 
     <!-- Comments Section -->
-    {% if comments|length > 0 %}
     <div class="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03] mt-6">
       <div class="p-4 xl:p-6">
-        <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90 mb-4">Commentaires ({{ comments|length }})</h3>
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">Commentaires ({{ comments|length }})</h3>
+          <button
+            @click="openCommentCreate()"
+            class="inline-flex items-center gap-2 rounded-lg bg-brand-500 px-3 py-1.5 text-xs font-medium text-white shadow-theme-xs hover:bg-brand-600"
+          >
+            <svg class="fill-current" width="14" height="14" viewBox="0 0 16 16" fill="none">
+              <path d="M8 1a7 7 0 100 14A7 7 0 008 1zM7.5 4v4l3.5 2 .5-.866L8.5 7.5V4h-1z" fill=""/>
+            </svg>
+            Ajouter un commentaire
+          </button>
+        </div>
+        
+        <!-- Formulaire de création/édition de commentaire -->
+        <div x-show="commentFormOpen" x-cloak class="mb-4 p-4 bg-gray-50 rounded-lg dark:bg-white/[0.02] border border-gray-200 dark:border-gray-800">
+          <form @submit.prevent="saveComment()" class="space-y-3">
+            <div>
+              <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Commentaire <span class="text-error-500">*</span>
+              </label>
+              <textarea
+                x-model="commentFormData.content"
+                rows="3"
+                required
+                placeholder="Écrivez votre commentaire..."
+                class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+              ></textarea>
+            </div>
+            <div class="flex gap-2">
+              <button
+                type="submit"
+                :disabled="commentSubmitting"
+                class="flex-1 rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white shadow-theme-xs hover:bg-brand-600 disabled:opacity-50"
+              >
+                <span x-show="!commentSubmitting" x-text="commentEditMode ? 'Modifier' : 'Ajouter'"></span>
+                <span x-show="commentSubmitting">En cours...</span>
+              </button>
+              <button
+                type="button"
+                @click="closeCommentForm()"
+                class="rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+              >
+                Annuler
+              </button>
+            </div>
+          </form>
+        </div>
+        
+        <!-- Liste des commentaires -->
+        {% if comments|length > 0 %}
         <div class="space-y-4">
           {% for comment in comments %}
-          <div class="p-4 bg-gray-50 rounded-lg dark:bg-white/[0.02] border border-gray-200 dark:border-gray-800">
+          <div class="p-4 bg-gray-50 rounded-lg dark:bg-white/[0.02] border border-gray-200 dark:border-gray-800" data-comment-id="{{ comment.id }}">
             <div class="flex items-start justify-between mb-2">
-              <div>
+              <div class="flex-1">
                 <p class="text-sm font-medium text-gray-800 dark:text-white/90">
                   {% if comment.author %}
                     {{ comment.author.firstName }} {{ comment.author.lastName }}
@@ -627,183 +736,209 @@
                   {% endif %}
                 </p>
               </div>
-              <span class="inline-flex rounded-full bg-brand-50 px-2 py-0.5 text-xs font-medium text-brand-500 dark:bg-brand-500/15 dark:text-brand-400">
-                {{ comment.authorType|capitalize }}
-              </span>
+              <div class="flex items-center gap-2">
+                <span class="inline-flex rounded-full bg-brand-50 px-2 py-0.5 text-xs font-medium text-brand-500 dark:bg-brand-500/15 dark:text-brand-400">
+                  {{ comment.authorType|capitalize }}
+                </span>
+                {% if comment.authorType == 'coach' %}
+                <button
+                  @click="openCommentEdit({{ comment.id }}, '{{ comment.content|e('js') }}')"
+                  class="inline-flex items-center gap-1 rounded-lg bg-gray-100 px-2 py-1 text-xs font-medium text-gray-700 hover:bg-gray-200 dark:bg-white/[0.03] dark:text-white/80 dark:hover:bg-white/[0.05]"
+                  title="Modifier"
+                >
+                  <svg class="fill-current" width="12" height="12" viewBox="0 0 16 16" fill="none">
+                    <path d="M11.333 2.00004C11.5084 1.82467 11.7163 1.68607 11.9447 1.59233C12.1731 1.49859 12.4173 1.45178 12.6637 1.4549C12.91 1.45802 13.153 1.51102 13.3785 1.61042C13.6041 1.70982 13.8073 1.85368 13.9767 2.03307C14.1461 2.21246 14.278 2.42372 14.3649 2.65428C14.4518 2.88484 14.4917 3.12993 14.4822 3.37571C14.4727 3.62149 14.4139 3.86285 14.3092 4.08589C14.2045 4.30893 14.0562 4.50922 13.8733 4.67537L13.3333 5.21537L10.7847 2.66671L11.333 2.00004ZM9.78467 3.54837L2.33333 11H0.666667V9.33337L8.118 1.88204L9.78467 3.54837Z" fill="currentColor"/>
+                  </svg>
+                </button>
+                <button
+                  @click="deleteComment({{ comment.id }})"
+                  class="inline-flex items-center gap-1 rounded-lg bg-error-50 px-2 py-1 text-xs font-medium text-error-600 hover:bg-error-100 dark:bg-error-900/30 dark:text-error-400 dark:hover:bg-error-900/50"
+                  title="Supprimer"
+                >
+                  <svg class="fill-current" width="12" height="12" viewBox="0 0 16 16" fill="none">
+                    <path d="M5.33333 2.66667V1.33333C5.33333 0.979711 5.47381 0.640573 5.72386 0.390524C5.97391 0.140476 6.31305 0 6.66667 0H9.33333C9.68696 0 10.0261 0.140476 10.2761 0.390524C10.5262 0.640573 10.6667 0.979711 10.6667 1.33333V2.66667H14.6667C15.0333 2.66667 15.3333 2.96667 15.3333 3.33333C15.3333 3.7 15.0333 4 14.6667 4H13.3333V14C13.3333 14.7072 12.7472 15.3333 12 15.3333H4C3.25281 15.3333 2.66667 14.7072 2.66667 14V4H1.33333C0.966667 4 0.666667 3.7 0.666667 3.33333C0.666667 2.96667 0.966667 2.66667 1.33333 2.66667H5.33333ZM6.66667 1.33333V2.66667H9.33333V1.33333H6.66667Z" fill="currentColor"/>
+                  </svg>
+                </button>
+                {% endif %}
+              </div>
             </div>
-            <p class="text-base text-gray-600 dark:text-gray-400 whitespace-pre-wrap">{{ comment.content }}</p>
+            <div x-show="!commentEditMode || currentCommentId !== {{ comment.id }}">
+              <p class="text-base text-gray-600 dark:text-gray-400 whitespace-pre-wrap">{{ comment.content }}</p>
+            </div>
           </div>
           {% endfor %}
         </div>
+        {% else %}
+        <div class="p-5 bg-gray-50 border border-gray-200 rounded-xl dark:bg-white/[0.02] dark:border-gray-800 text-center">
+          <p class="text-sm text-gray-400 dark:text-gray-500">Aucun commentaire</p>
+        </div>
+        {% endif %}
       </div>
     </div>
-    {% endif %}
   </div>
 
-  <!-- Proof Modal -->
-  <div
-    x-show="proofModalOpen"
-  @click.away="proofModalOpen = false"
-  x-cloak
-  class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
->
-  <div
-    @click.stop
-    class="w-full max-w-2xl rounded-2xl border border-gray-200 bg-white shadow-theme-lg dark:border-gray-800 dark:bg-gray-900 mx-4"
-  >
-    <!-- Modal Header -->
-    <div class="flex items-center justify-between border-b border-gray-200 px-6 py-4 dark:border-gray-800">
-      <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">
-        Ajouter une preuve
-      </h3>
-      <button
-        @click="proofModalOpen = false"
-        class="rounded-lg p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-300"
-      >
-        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-        </svg>
-      </button>
-    </div>
-
-    <!-- Modal Content -->
-    <div class="p-6">
-      <p class="mb-4 text-sm text-gray-600 dark:text-gray-400">
-        Tâche : <span class="font-medium text-gray-800 dark:text-white/90" x-text="currentTaskTitle"></span>
-      </p>
-
-      <form @submit.prevent="submitProof()" class="space-y-4">
-        <!-- Proof Type -->
-        <div>
-          <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-            Type de preuve <span class="text-error-500">*</span>
-          </label>
-          <select
-            x-model="proofFormData.type"
-            @change="proofFormData.fileBase64 = null; proofFormData.content = null"
-            required
-            class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
-          >
-            <option value="text">Texte</option>
-            <option value="photo">Photo</option>
-            <option value="image">Image</option>
-          </select>
-        </div>
-
-        <!-- Title -->
-        <div>
-          <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-            Titre <span class="text-error-500">*</span>
-          </label>
-          <input
-            type="text"
-            x-model="proofFormData.title"
-            required
-            placeholder="Titre de la preuve"
-            class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
-          />
-        </div>
-
-        <!-- Description -->
-        <div>
-          <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-            Description
-          </label>
-          <textarea
-            x-model="proofFormData.description"
-            rows="3"
-            placeholder="Description de la preuve"
-            class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
-          ></textarea>
-        </div>
-
-        <!-- Content (Text) -->
-        <div x-show="proofFormData.type === 'text'">
-          <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-            Contenu <span class="text-error-500">*</span>
-          </label>
-          <textarea
-            x-model="proofFormData.content"
-            rows="5"
-            required
-            placeholder="Contenu de la preuve"
-            class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
-          ></textarea>
-        </div>
-
-        <!-- File Upload (Photo/Image) -->
-        <div x-show="proofFormData.type === 'photo' || proofFormData.type === 'image'">
-          <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-            Fichier <span class="text-error-500">*</span>
-          </label>
-          <input
-            type="file"
-            accept="image/*"
-            @change="handleFileSelect($event)"
-            required
-            class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
-          />
-          <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-            Formats acceptés : JPG, PNG, GIF
-          </p>
-          <div x-show="proofFormData.filePreview" class="mt-3">
-            <img
-              :src="proofFormData.filePreview"
-              alt="Preview"
-              class="max-h-48 rounded-lg border border-gray-200 dark:border-gray-700"
-            />
-          </div>
-        </div>
-
-        <!-- Modal Footer -->
-        <div class="flex gap-3 pt-4">
-          <button
-            type="button"
-            @click="proofModalOpen = false"
-            class="flex-1 rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
-          >
-            Annuler
-          </button>
-          <button
-            type="submit"
-            :disabled="proofSubmitting"
-            class="flex-1 rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white shadow-theme-xs hover:bg-brand-600 disabled:opacity-50"
-          >
-            <span x-show="!proofSubmitting">Envoyer la preuve</span>
-            <span x-show="proofSubmitting">Envoi en cours...</span>
-          </button>
-        </div>
-      </form>
-    </div>
-  </div>
-
-  <!-- Proof History Modal -->
-  <div
-    x-show="proofHistoryModalOpen"
-    @click.away="proofHistoryModalOpen = false"
-    x-cloak
-    class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
-  >
+  <!-- Right Sheet Overlay - Ajouter une preuve -->
+  <template x-if="true">
     <div
-      @click.stop
-      class="w-full max-w-3xl rounded-2xl border border-gray-200 bg-white shadow-theme-lg dark:border-gray-800 dark:bg-gray-900 mx-4 max-h-[90vh] overflow-hidden flex flex-col"
+      x-show="proofSheetOpen"
+      @click="closeProofSheet()"
+      x-transition:enter="transition-opacity ease-out duration-300"
+      x-transition:enter-start="opacity-0"
+      x-transition:enter-end="opacity-100"
+      x-transition:leave="transition-opacity ease-in duration-200"
+      x-transition:leave-start="opacity-100"
+      x-transition:leave-end="opacity-0"
+      class="fixed inset-0 z-[100000] bg-black/50 backdrop-blur-sm"
+      style="z-index: 100000;"
+    ></div>
+  </template>
+
+  <!-- Right Sheet Panel - Ajouter une preuve -->
+  <template x-if="true">
+    <div
+      x-show="proofSheetOpen"
+      @click.away="closeProofSheet()"
+      x-transition:enter="transition-transform ease-out duration-300"
+      x-transition:enter-start="translate-x-full"
+      x-transition:enter-end="translate-x-0"
+      x-transition:leave="transition-transform ease-in duration-200"
+      x-transition:leave-start="translate-x-0"
+      x-transition:leave-end="translate-x-full"
+      class="fixed right-0 top-0 h-full w-full max-w-md overflow-y-auto bg-white shadow-2xl dark:bg-gray-900"
+      style="z-index: 100001;"
     >
-      <!-- Modal Header -->
-      <div class="flex items-center justify-between border-b border-gray-200 px-6 py-4 dark:border-gray-800">
-        <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">
-          Historique des preuves
-        </h3>
-        <button
-          @click="proofHistoryModalOpen = false"
-          class="rounded-lg p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-300"
-        >
-          <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
+      <div class="flex h-full flex-col">
+        <!-- Header -->
+        <div class="sticky top-0 z-10 border-b border-gray-200 bg-white px-6 py-4 dark:border-gray-800 dark:bg-gray-900">
+          <div class="flex items-center justify-between">
+            <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">
+              Ajouter une preuve
+            </h3>
+            <button
+              @click="closeProofSheet()"
+              class="rounded-lg p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-300"
+            >
+              <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+          <p class="text-sm text-gray-500 dark:text-gray-400 mt-1" x-text="currentTaskTitle"></p>
+        </div>
+
+        <!-- Content -->
+        <div class="flex-1 overflow-y-auto p-6">
+          <form @submit.prevent="submitProof()" class="space-y-4">
+            <!-- Description -->
+            <div>
+              <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Description
+              </label>
+              <textarea
+                x-model="proofFormData.description"
+                rows="3"
+                placeholder="Description de la preuve"
+                class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+              ></textarea>
+            </div>
+
+            <!-- File Upload (Photo) -->
+            <div>
+              <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Prendre une photo <span class="text-error-500">*</span>
+              </label>
+              <input
+                type="file"
+                accept="image/*"
+                @change="handleFileSelect($event)"
+                required
+                class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+              />
+              <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                Formats acceptés : JPG, PNG, GIF
+              </p>
+              <div x-show="proofFormData.filePreview" class="mt-3">
+                <img
+                  :src="proofFormData.filePreview"
+                  alt="Preview"
+                  class="max-h-48 rounded-lg border border-gray-200 dark:border-gray-700"
+                />
+              </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="flex gap-3 pt-4 border-t border-gray-200 dark:border-gray-800">
+              <button
+                type="button"
+                @click="closeProofSheet()"
+                class="flex-1 rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+              >
+                Annuler
+              </button>
+              <button
+                type="submit"
+                :disabled="proofSubmitting"
+                class="flex-1 rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white shadow-theme-xs hover:bg-brand-600 disabled:opacity-50"
+              >
+                <span x-show="!proofSubmitting">Envoyer une preuve</span>
+                <span x-show="proofSubmitting">Envoi en cours...</span>
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </template>
+
+  <!-- Right Sheet Overlay -->
+  <template x-if="true">
+    <div
+      x-show="rightSheetOpen"
+      @click="closeSheet()"
+      x-transition:enter="transition-opacity ease-out duration-300"
+      x-transition:enter-start="opacity-0"
+      x-transition:enter-end="opacity-100"
+      x-transition:leave="transition-opacity ease-in duration-200"
+      x-transition:leave-start="opacity-100"
+      x-transition:leave-end="opacity-0"
+      class="fixed inset-0 bg-black/50 backdrop-blur-sm"
+      style="z-index: 100000;"
+    ></div>
+  </template>
+
+  <!-- Right Sheet Panel - Historique des preuves -->
+  <template x-if="true">
+    <div
+      x-show="rightSheetOpen"
+      @click.away="closeSheet()"
+      x-transition:enter="transition-transform ease-out duration-300"
+      x-transition:enter-start="translate-x-full"
+      x-transition:enter-end="translate-x-0"
+      x-transition:leave="transition-transform ease-in duration-200"
+      x-transition:leave-start="translate-x-0"
+      x-transition:leave-end="translate-x-full"
+      class="fixed right-0 top-0 h-full w-full max-w-md overflow-y-auto bg-white shadow-2xl dark:bg-gray-900"
+      style="z-index: 100001;"
+    >
+    <div class="flex h-full flex-col">
+      <!-- Header -->
+      <div class="sticky top-0 z-10 border-b border-gray-200 bg-white px-6 py-4 dark:border-gray-800 dark:bg-gray-900">
+        <div class="flex items-center justify-between">
+          <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">
+            Historique des preuves
+          </h3>
+          <button
+            @click="closeSheet()"
+            class="rounded-lg p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-300"
+          >
+            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        <p class="text-sm text-gray-500 dark:text-gray-400 mt-1" x-text="currentTaskTitle"></p>
       </div>
 
-      <!-- Modal Content -->
+      <!-- Content -->
       <div class="flex-1 overflow-y-auto p-6">
         <template x-if="currentTaskProofs.length === 0">
           <div class="text-center py-8">
@@ -837,10 +972,12 @@
                   <img
                     :src="proof.fileUrl"
                     :alt="proof.fileName || 'Preuve'"
-                    class="max-w-full h-auto rounded-lg border border-gray-200 dark:border-gray-700"
+                    @click="openImageModal(proof.fileUrl, proof.fileName || 'Preuve')"
+                    class="max-w-full h-auto rounded-lg border border-gray-200 dark:border-gray-700 cursor-pointer hover:opacity-90 transition-opacity"
                     @error="$el.src = '/tailadmin/src/images/default-image.png'"
                   />
                   <p class="text-xs text-gray-500 dark:text-gray-400 mt-1" x-text="proof.fileName"></p>
+                  <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">Cliquez sur l'image pour l'agrandir</p>
                 </div>
               </template>
               
@@ -853,59 +990,262 @@
           </template>
         </div>
       </div>
+    </div>
+  </template>
 
-      <!-- Modal Footer -->
-      <div class="border-t border-gray-200 px-6 py-4 dark:border-gray-800">
-        <button
-          @click="proofHistoryModalOpen = false"
-          class="w-full rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white shadow-theme-xs hover:bg-brand-600"
-        >
-          Fermer
-        </button>
+  <!-- Right Sheet Overlay - Configuration -->
+  <template x-if="true">
+    <div
+      x-show="configSheetOpen"
+      @click="closeConfigSheet()"
+      x-transition:enter="transition-opacity ease-out duration-300"
+      x-transition:enter-start="opacity-0"
+      x-transition:enter-end="opacity-100"
+      x-transition:leave="transition-opacity ease-in duration-200"
+      x-transition:leave-start="opacity-100"
+      x-transition:leave-end="opacity-0"
+      class="fixed inset-0 bg-black/50 backdrop-blur-sm"
+      style="z-index: 100000;"
+    ></div>
+  </template>
+
+  <!-- Right Sheet Panel - Configuration de la tâche -->
+  <template x-if="true">
+    <div
+      x-show="configSheetOpen"
+      @click.away="closeConfigSheet()"
+      x-transition:enter="transition-transform ease-out duration-300"
+      x-transition:enter-start="translate-x-full"
+      x-transition:enter-end="translate-x-0"
+      x-transition:leave="transition-transform ease-in duration-200"
+      x-transition:leave-start="translate-x-0"
+      x-transition:leave-end="translate-x-full"
+      class="fixed right-0 top-0 h-full w-full max-w-md overflow-y-auto bg-white shadow-2xl dark:bg-gray-900"
+      style="z-index: 100001;"
+    >
+    <div class="flex h-full flex-col">
+      <!-- Header -->
+      <div class="sticky top-0 z-10 border-b border-gray-200 bg-white px-6 py-4 dark:border-gray-800 dark:bg-gray-900">
+        <div class="flex items-center justify-between">
+          <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">
+            Configuration de la tâche
+          </h3>
+          <button
+            @click="closeConfigSheet()"
+            class="rounded-lg p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-300"
+          >
+            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        <p class="text-sm text-gray-500 dark:text-gray-400 mt-1" x-text="configTaskTitle"></p>
+      </div>
+
+      <!-- Content -->
+      <div class="flex-1 overflow-y-auto p-6" x-show="taskConfig">
+        <form @submit.prevent="saveTaskConfig()" class="space-y-6">
+          <!-- Statut -->
+          <div>
+            <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+              Statut
+            </label>
+            <select
+              x-model="taskConfig.status"
+              class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+            >
+              <option value="pending">En attente</option>
+              <option value="in_progress">En cours</option>
+              <option value="completed">Terminé</option>
+            </select>
+          </div>
+
+          <!-- Preuves -->
+          <div>
+            <label class="mb-3 flex items-center gap-3">
+              <input
+                type="checkbox"
+                x-model="taskConfig.requiresProof"
+                class="h-4 w-4 rounded border-gray-300 text-brand-500 focus:ring-brand-500 dark:border-gray-700"
+              />
+              <span class="text-sm font-medium text-gray-700 dark:text-gray-300">
+                Demander une preuve
+              </span>
+            </label>
+            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+              Si activé, l'utilisateur devra fournir une preuve (texte, photo, etc.) pour valider la tâche.
+            </p>
+          </div>
+
+          <!-- Temporalité -->
+          <div>
+            <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+              Temporalité
+            </label>
+            <select
+              x-model="taskConfig.frequency"
+              class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+            >
+              <option value="none">Aucune</option>
+              <option value="hourly">Toutes les heures</option>
+              <option value="daily">Quotidienne</option>
+              <option value="half_day">Une demi-journée</option>
+              <option value="every_2_days">Tous les 2 jours</option>
+              <option value="weekly">Hebdomadaire</option>
+              <option value="monthly">Mensuelle</option>
+              <option value="yearly">Annuelle</option>
+            </select>
+            <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
+              <span x-show="taskConfig.frequency === 'none'">
+                La tâche peut être validée autant de fois que souhaité.
+              </span>
+              <span x-show="taskConfig.frequency !== 'none'">
+                Une seule validation est autorisée selon la période sélectionnée. La tâche sera réinitialisée automatiquement à la fin de la période.
+              </span>
+            </p>
+          </div>
+
+          <!-- Footer -->
+          <div class="flex gap-3 pt-4 border-t border-gray-200 dark:border-gray-800">
+            <button
+              type="button"
+              @click="closeConfigSheet()"
+              class="flex-1 rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+            >
+              Annuler
+            </button>
+            <button
+              type="submit"
+              :disabled="configSubmitting"
+              class="flex-1 rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white shadow-theme-xs hover:bg-brand-600 disabled:opacity-50"
+            >
+              <span x-show="!configSubmitting">Enregistrer</span>
+              <span x-show="configSubmitting">Enregistrement...</span>
+            </button>
+          </div>
+        </form>
       </div>
     </div>
-  </div>
+  </template>
+
+  <!-- Modal pour agrandir l'image -->
+  <template x-if="true">
+    <div
+      x-show="imageModalOpen"
+      @click="closeImageModal()"
+      x-transition:enter="transition-opacity ease-out duration-300"
+      x-transition:enter-start="opacity-0"
+      x-transition:enter-end="opacity-100"
+      x-transition:leave="transition-opacity ease-in duration-200"
+      x-transition:leave-start="opacity-100"
+      x-transition:leave-end="opacity-0"
+      class="fixed inset-0 flex items-center justify-center bg-black/90 backdrop-blur-sm p-4"
+      style="z-index: 100002;"
+      @keydown.escape.window="closeImageModal()"
+    >
+      <div
+        class="relative max-w-7xl max-h-full w-full h-full flex items-center justify-center"
+      >
+        <!-- Bouton fermer -->
+        <button
+          @click.stop="closeImageModal()"
+          class="absolute top-4 right-4 z-10 rounded-full bg-black/50 p-3 text-white hover:bg-black/70 transition-colors"
+          title="Fermer (Échap)"
+        >
+          <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+        
+        <!-- Image agrandie - cliquable pour réduire -->
+        <img
+          x-show="enlargedImageUrl"
+          :src="enlargedImageUrl"
+          :alt="enlargedImageAlt"
+          class="max-w-full max-h-full object-contain rounded-lg shadow-2xl cursor-pointer hover:opacity-90 transition-opacity"
+          @click.stop="closeImageModal()"
+          title="Cliquez pour réduire"
+        />
+        
+        <!-- Titre de l'image -->
+        <div
+          x-show="enlargedImageAlt"
+          class="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-black/50 text-white px-4 py-2 rounded-lg text-sm pointer-events-none"
+        >
+          <p x-text="enlargedImageAlt"></p>
+        </div>
+      </div>
+    </template>
 </main>
 <!-- ===== Main Content End ===== -->
+
+<style>
+  [x-cloak] { display: none !important; }
+</style>
 
 <script>
 function taskManager() {
   return {
-    proofModalOpen: false,
-    proofHistoryModalOpen: false,
+    proofSheetOpen: false,
+    rightSheetOpen: false,
+    configSheetOpen: false,
+    imageModalOpen: false,
+    enlargedImageUrl: null,
+    enlargedImageAlt: '',
     currentTaskId: null,
     currentTaskTitle: '',
     currentTaskProofs: [],
     proofSubmitting: false,
     proofFormData: {
-      type: 'text',
-      title: '',
+      type: 'photo',
       description: '',
-      content: '',
       fileBase64: null,
       fileName: null,
       fileSize: null,
       mimeType: null,
       filePreview: null,
     },
+    configSubmitting: false,
+    configTaskTitle: '',
+    taskConfig: {
+      status: 'pending',
+      requiresProof: true,
+      frequency: 'none',
+    },
+    commentFormOpen: false,
+    commentEditMode: false,
+    currentCommentId: null,
+    commentSubmitting: false,
+    commentFormData: {
+      content: '',
+    },
+    objectiveId: {{ objective.id }},
     
     openProofModal(event, taskId, taskTitle) {
       console.log('openProofModal appelé', { taskId, taskTitle, checked: event.target.checked });
+      // Empêcher la propagation de l'événement
+      if (event) {
+        event.stopPropagation();
+        event.preventDefault();
+      }
+      
       const checkbox = event.target;
       const isChecked = checkbox.checked;
       
+      // Fermer les autres rightSheets s'ils sont ouverts
+      this.rightSheetOpen = false;
+      this.configSheetOpen = false;
+      
       if (isChecked) {
-        // Ouvrir le modal pour ajouter une preuve
-        console.log('Ouverture du modal de preuve');
+        // Ouvrir le rightSheet pour ajouter une preuve
+        console.log('Ouverture du rightSheet de preuve');
         this.currentTaskId = taskId;
         this.currentTaskTitle = taskTitle;
-        this.proofModalOpen = true;
+        this.proofSheetOpen = true;
         // Réinitialiser le formulaire
         this.proofFormData = {
-          type: 'text',
-          title: '',
+          type: 'photo',
           description: '',
-          content: '',
           fileBase64: null,
           fileName: null,
           fileSize: null,
@@ -918,31 +1258,38 @@ function taskManager() {
       }
     },
     
+    openProofModalFromCheckbox(event) {
+      // Empêcher la propagation de l'événement
+      event.stopPropagation();
+      event.preventDefault();
+      
+      const checkbox = event.target;
+      const taskId = parseInt(checkbox.getAttribute('data-task-id'));
+      const taskTitle = checkbox.getAttribute('data-task-title') || 'Tâche #' + taskId;
+      this.openProofModal(event, taskId, taskTitle);
+    },
+    
     handleFileSelect(event) {
       const file = event.target.files[0];
       if (!file) return;
       
       // Vérifier le type
-      if (!file.type.startsWith('image/')) {
-        if (window.showToast) {
-          window.showToast('Veuillez sélectionner un fichier image', 'error');
-        } else {
-          alert('Veuillez sélectionner un fichier image');
+        if (!file.type.startsWith('image/')) {
+          if (window.showToast) {
+            window.showToast('Veuillez sélectionner un fichier image', 'error');
+          }
+          event.target.value = '';
+          return;
         }
-        event.target.value = '';
-        return;
-      }
-      
-      // Vérifier la taille (max 5MB)
-      if (file.size > 5 * 1024 * 1024) {
-        if (window.showToast) {
-          window.showToast('Le fichier est trop volumineux (max 5MB)', 'error');
-        } else {
-          alert('Le fichier est trop volumineux (max 5MB)');
+        
+        // Vérifier la taille (max 5MB)
+        if (file.size > 5 * 1024 * 1024) {
+          if (window.showToast) {
+            window.showToast('Le fichier est trop volumineux (max 5MB)', 'error');
+          }
+          event.target.value = '';
+          return;
         }
-        event.target.value = '';
-        return;
-      }
       
       // Lire le fichier en base64
       const reader = new FileReader();
@@ -963,21 +1310,25 @@ function taskManager() {
       this.proofSubmitting = true;
       
       try {
+        // Vérifier qu'un fichier a été sélectionné
+        if (!this.proofFormData.fileBase64) {
+          if (window.showToast) {
+            window.showToast('Veuillez sélectionner une photo', 'error');
+          }
+          this.proofSubmitting = false;
+          return;
+        }
+        
         // Préparer les données
         const data = {
-          type: this.proofFormData.type,
-          title: this.proofFormData.title,
+          type: 'photo',
+          title: `Preuve - ${this.currentTaskTitle}`,
           description: this.proofFormData.description || null,
+          fileBase64: this.proofFormData.fileBase64,
+          fileName: this.proofFormData.fileName,
+          fileSize: this.proofFormData.fileSize,
+          mimeType: this.proofFormData.mimeType,
         };
-        
-        if (this.proofFormData.type === 'text') {
-          data.content = this.proofFormData.content;
-        } else if (this.proofFormData.fileBase64) {
-          data.fileBase64 = this.proofFormData.fileBase64;
-          data.fileName = this.proofFormData.fileName;
-          data.fileSize = this.proofFormData.fileSize;
-          data.mimeType = this.proofFormData.mimeType;
-        }
         
         // Envoyer la preuve
         const response = await fetch(`/admin/tasks/${this.currentTaskId}/proofs/create`, {
@@ -994,12 +1345,10 @@ function taskManager() {
           // Afficher un message de succès
           if (window.showToast) {
             window.showToast(result.message || 'Preuve envoyée avec succès', 'success');
-          } else {
-            alert(result.message || 'Preuve envoyée avec succès');
           }
           
-          // Fermer le modal
-          this.proofModalOpen = false;
+          // Fermer le rightSheet
+          this.proofSheetOpen = false;
           
           // Recharger la page pour mettre à jour l'affichage
           setTimeout(() => {
@@ -1010,26 +1359,228 @@ function taskManager() {
           const errorMessage = result.message || 'Erreur lors de l\'envoi de la preuve';
           if (window.showToast) {
             window.showToast(errorMessage, 'error');
-          } else {
-            alert(errorMessage);
           }
         }
       } catch (error) {
         console.error('Erreur lors de l\'envoi de la preuve:', error);
         if (window.showToast) {
           window.showToast('Une erreur est survenue', 'error');
-        } else {
-          alert('Une erreur est survenue');
         }
       } finally {
         this.proofSubmitting = false;
       }
     },
     
-    showProofHistory(taskId, proofs) {
+    showProofHistory(taskId, proofs, taskTitle) {
+      console.log('showProofHistory appelé', { taskId, proofs, taskTitle });
+      
+      // Fermer les autres rightSheets s'ils sont ouverts
+      this.proofSheetOpen = false;
+      this.configSheetOpen = false;
+      
       this.currentTaskId = taskId;
-      this.currentTaskProofs = proofs || [];
-      this.proofHistoryModalOpen = true;
+      this.currentTaskProofs = Array.isArray(proofs) ? proofs : [];
+      // Récupérer le titre de la tâche
+      if (taskTitle) {
+        this.currentTaskTitle = taskTitle;
+      } else {
+        // Essayer de récupérer depuis le DOM
+        const taskCheckbox = document.querySelector(`input[data-task-id="${taskId}"]`);
+        if (taskCheckbox) {
+          const taskCard = taskCheckbox.closest('.task') || taskCheckbox.closest('[class*="task"]');
+          if (taskCard) {
+            // Chercher le titre dans la structure de la carte
+            const titleElement = taskCard.querySelector('h4, h3, .task-title, [class*="title"]');
+            if (titleElement) {
+              this.currentTaskTitle = titleElement.textContent.trim();
+            }
+          }
+        }
+      }
+      if (!this.currentTaskTitle) {
+        this.currentTaskTitle = 'Tâche #' + taskId;
+      }
+      console.log('Ouverture du rightSheet - avant:', { rightSheetOpen: this.rightSheetOpen, currentTaskProofs: this.currentTaskProofs });
+      this.rightSheetOpen = true;
+      console.log('Ouverture du rightSheet - après:', { rightSheetOpen: this.rightSheetOpen });
+      
+      // Forcer le re-render
+      setTimeout(() => {
+        console.log('After timeout:', { rightSheetOpen: this.rightSheetOpen });
+        const sheet = document.querySelector('[x-show="rightSheetOpen"]');
+        if (sheet) {
+          console.log('RightSheet trouvé dans le DOM:', sheet);
+        } else {
+          console.error('RightSheet non trouvé dans le DOM');
+        }
+      }, 100);
+    },
+    
+    showProofHistoryFromButton(event) {
+      event.preventDefault();
+      event.stopPropagation();
+      
+      // S'assurer que les autres rightSheets sont fermés
+      this.proofSheetOpen = false;
+      
+      const button = event.currentTarget || event.target.closest('button');
+      const taskId = parseInt(button.getAttribute('data-task-id'));
+      const proofsJson = button.getAttribute('data-task-proofs');
+      const taskTitle = button.getAttribute('data-task-title');
+      
+      let proofs = [];
+      try {
+        if (proofsJson) {
+          proofs = JSON.parse(proofsJson);
+        }
+      } catch (e) {
+        console.error('Erreur lors du parsing des preuves:', e);
+        proofs = [];
+      }
+      
+      console.log('showProofHistoryFromButton - Données:', { taskId, proofs, taskTitle });
+      this.showProofHistory(taskId, proofs, taskTitle);
+    },
+    
+    closeSheet() {
+      console.log('Fermer');
+      this.rightSheetOpen = false;
+    },
+    
+    closeProofSheet() {
+      this.proofSheetOpen = false;
+      // Réinitialiser le formulaire
+      this.proofFormData = {
+        type: 'photo',
+        description: '',
+        fileBase64: null,
+        fileName: null,
+        fileSize: null,
+        mimeType: null,
+        filePreview: null,
+      };
+    },
+    
+    openImageModal(imageUrl, imageAlt) {
+      this.enlargedImageUrl = imageUrl;
+      this.enlargedImageAlt = imageAlt;
+      this.imageModalOpen = true;
+      // Empêcher le scroll du body quand la modal est ouverte
+      document.body.style.overflow = 'hidden';
+    },
+    
+    closeImageModal() {
+      this.imageModalOpen = false;
+      this.enlargedImageUrl = null;
+      this.enlargedImageAlt = '';
+      // Réactiver le scroll du body
+      document.body.style.overflow = '';
+    },
+    
+    openTaskConfig(event) {
+      console.log('openTaskConfig appelé', event);
+      event.preventDefault();
+      event.stopPropagation();
+      
+      // Fermer les autres rightSheets
+      this.proofSheetOpen = false;
+      this.rightSheetOpen = false;
+      
+      const button = event.currentTarget || event.target.closest('button');
+      if (!button) {
+        console.error('Bouton non trouvé');
+        return;
+      }
+      
+      const taskId = parseInt(button.getAttribute('data-task-id'));
+      const taskStatus = button.getAttribute('data-task-status');
+      const taskFrequency = button.getAttribute('data-task-frequency') || 'none';
+      const taskRequiresProof = button.getAttribute('data-task-requires-proof') === 'true';
+      const taskTitle = button.getAttribute('data-task-title');
+      
+      console.log('Données de la tâche:', { taskId, taskStatus, taskFrequency, taskRequiresProof, taskTitle });
+      
+      this.currentTaskId = taskId;
+      this.configTaskTitle = taskTitle || 'Tâche #' + taskId;
+      this.taskConfig = {
+        status: taskStatus || 'pending',
+        requiresProof: taskRequiresProof,
+        frequency: taskFrequency || 'none',
+      };
+      
+      console.log('Ouverture du configSheet - avant:', { configSheetOpen: this.configSheetOpen, taskConfig: this.taskConfig });
+      this.configSheetOpen = true;
+      console.log('Ouverture du configSheet - après:', { configSheetOpen: this.configSheetOpen });
+      
+      // Forcer le re-render
+      setTimeout(() => {
+        console.log('After timeout configSheet:', { configSheetOpen: this.configSheetOpen });
+        const sheet = document.querySelector('[x-show="configSheetOpen"]');
+        if (sheet) {
+          console.log('ConfigSheet trouvé dans le DOM:', sheet);
+        } else {
+          console.error('ConfigSheet non trouvé dans le DOM');
+        }
+      }, 100);
+    },
+    
+    closeConfigSheet() {
+      this.configSheetOpen = false;
+      this.currentTaskId = null;
+      this.configTaskTitle = '';
+      this.taskConfig = {
+        status: 'pending',
+        requiresProof: true,
+        frequency: 'none',
+      };
+    },
+    
+    async saveTaskConfig() {
+      if (!this.currentTaskId) return;
+      
+      this.configSubmitting = true;
+      
+      try {
+        const response = await fetch(`/admin/tasks/${this.currentTaskId}/configure`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            status: this.taskConfig.status,
+            requiresProof: this.taskConfig.requiresProof,
+            frequency: this.taskConfig.frequency,
+          }),
+        });
+        
+        const result = await response.json().catch(() => ({ success: false, message: 'Erreur lors de l\'enregistrement' }));
+        
+        if (response.ok && result.success) {
+          if (window.showToast) {
+            window.showToast(result.message || 'Configuration enregistrée avec succès', 'success');
+          }
+          
+          // Fermer le rightSheet
+          this.closeConfigSheet();
+          
+          // Recharger la page pour mettre à jour l'affichage
+          setTimeout(() => {
+            window.location.reload();
+          }, 1000);
+        } else {
+          const errorMessage = result.message || 'Erreur lors de l\'enregistrement de la configuration';
+          if (window.showToast) {
+            window.showToast(errorMessage, 'error');
+          }
+        }
+      } catch (error) {
+        console.error('Erreur lors de l\'enregistrement de la configuration:', error);
+        if (window.showToast) {
+          window.showToast('Une erreur est survenue', 'error');
+        }
+      } finally {
+        this.configSubmitting = false;
+      }
     },
     
     formatDate(dateString) {
@@ -1042,6 +1593,126 @@ function taskManager() {
         hour: '2-digit',
         minute: '2-digit'
       });
+    },
+    
+    // Fonctions pour les commentaires
+    openCommentCreate() {
+      this.commentFormOpen = true;
+      this.commentEditMode = false;
+      this.currentCommentId = null;
+      this.commentFormData = {
+        content: '',
+      };
+    },
+    
+    openCommentEdit(commentId, content) {
+      this.commentFormOpen = true;
+      this.commentEditMode = true;
+      this.currentCommentId = commentId;
+      this.commentFormData = {
+        content: content,
+      };
+    },
+    
+    closeCommentForm() {
+      this.commentFormOpen = false;
+      this.commentEditMode = false;
+      this.currentCommentId = null;
+      this.commentFormData = {
+        content: '',
+      };
+    },
+    
+    async saveComment() {
+      if (!this.commentFormData.content || this.commentFormData.content.trim() === '') {
+        if (window.showToast) {
+          window.showToast('Le commentaire ne peut pas être vide', 'error');
+        }
+        return;
+      }
+      
+      this.commentSubmitting = true;
+      
+      try {
+        const url = this.commentEditMode
+          ? `/admin/objectives/${this.objectiveId}/comments/${this.currentCommentId}/update`
+          : `/admin/objectives/${this.objectiveId}/comments/create`;
+        
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest',
+          },
+          body: JSON.stringify(this.commentFormData),
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+          if (window.showToast) {
+            window.showToast(result.message || 'Commentaire enregistré avec succès', 'success');
+          }
+          
+          // Fermer le formulaire
+          this.closeCommentForm();
+          
+          // Recharger la page pour mettre à jour l'affichage
+          setTimeout(() => {
+            window.location.reload();
+          }, 500);
+        } else {
+          const errorMessage = result.message || 'Erreur lors de l\'enregistrement du commentaire';
+          if (window.showToast) {
+            window.showToast(errorMessage, 'error');
+          }
+        }
+      } catch (error) {
+        console.error('Erreur lors de l\'enregistrement du commentaire:', error);
+        if (window.showToast) {
+          window.showToast('Une erreur est survenue', 'error');
+        }
+      } finally {
+        this.commentSubmitting = false;
+      }
+    },
+    
+    async deleteComment(commentId) {
+      if (!confirm('Êtes-vous sûr de vouloir supprimer ce commentaire ?')) {
+        return;
+      }
+      
+      try {
+        const response = await fetch(`/admin/objectives/${this.objectiveId}/comments/${commentId}/delete`, {
+          method: 'DELETE',
+          headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+          },
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+          if (window.showToast) {
+            window.showToast(result.message || 'Commentaire supprimé avec succès', 'success');
+          }
+          
+          // Recharger la page pour mettre à jour l'affichage
+          setTimeout(() => {
+            window.location.reload();
+          }, 500);
+        } else {
+          const errorMessage = result.message || 'Erreur lors de la suppression du commentaire';
+          if (window.showToast) {
+            window.showToast(errorMessage, 'error');
+          }
+        }
+      } catch (error) {
+        console.error('Erreur lors de la suppression du commentaire:', error);
+        if (window.showToast) {
+          window.showToast('Une erreur est survenue', 'error');
+        }
+      }
     },
   };
 }

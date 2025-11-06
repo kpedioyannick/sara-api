@@ -58,6 +58,9 @@ class PlanningController extends AbstractController
         $weekStart = \DateTimeImmutable::createFromMutable($currentDate);
         $weekStart = $weekStart->setTime(0, 0, 0);
         
+        // Récupérer le paramètre de filtrage par élève
+        $studentId = $request->query->get('student');
+        
         // Récupérer toutes les familles du coach
         $families = $this->familyRepository->findByCoachWithSearch($coach);
         
@@ -66,6 +69,13 @@ class PlanningController extends AbstractController
         foreach ($families as $family) {
             $events = $this->planningRepository->findByFamilyAndWeek($family, $weekStart);
             $allEvents = array_merge($allEvents, $events);
+        }
+        
+        // Filtrer par élève si spécifié
+        if ($studentId) {
+            $allEvents = array_filter($allEvents, function($event) use ($studentId) {
+                return $event->getStudent() && $event->getStudent()->getId() == (int)$studentId;
+            });
         }
         
         // Générer les 7 jours de la semaine

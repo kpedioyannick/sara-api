@@ -365,11 +365,13 @@ function proofManager() {
             });
         },
         showMessage(message, type = 'info') {
-            const toastManager = document.querySelector('[x-data="toastManager()"]')?.__x?.$data;
-            if (toastManager) {
-                toastManager.show(message, type);
+            if (window.showToast) {
+                window.showToast(message, type);
             } else {
-                alert(message);
+                const toastManager = document.querySelector('[x-data="toastManager()"]')?.__x?.$data;
+                if (toastManager) {
+                    toastManager.show(message, type);
+                }
             }
         },
     };

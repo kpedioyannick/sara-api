@@ -239,13 +239,9 @@ class SecurityController extends AbstractController
             $coach->setPassword($hashedPassword);
             $coach->setIsActive(true);
             
-            // Pour le coach, utiliser email comme firstName et lastName si non fournis
-            if (!$coach->getFirstName()) {
-                $coach->setFirstName('Coach');
-            }
-            if (!$coach->getLastName()) {
-                $coach->setLastName('SARA');
-            }
+            // Récupérer la spécialisation depuis la requête
+            $requestData = $request->request->all();
+         
 
             // Validation
             $errors = $this->validator->validate($coach);
@@ -255,6 +251,7 @@ class SecurityController extends AbstractController
                 }
                 return $this->render('tailadmin/pages/auth/register_coach.html.twig', [
                     'form' => $form,
+
                 ]);
             }
 
@@ -266,7 +263,7 @@ class SecurityController extends AbstractController
         }
 
         return $this->render('tailadmin/pages/auth/register_coach.html.twig', [
-            'form' => $form,
+            'form' => $form
         ]);
     }
 }

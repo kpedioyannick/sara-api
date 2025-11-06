@@ -3,9 +3,11 @@
 namespace App\Controller;
 
 use App\Controller\Trait\CoachTrait;
+use App\Entity\Message;
 use App\Entity\Request;
 use App\Repository\CoachRepository;
 use App\Repository\FamilyRepository;
+use App\Repository\MessageRepository;
 use App\Repository\RequestRepository;
 use App\Repository\SpecialistRepository;
 use App\Repository\StudentRepository;
@@ -15,6 +17,8 @@ use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request as HttpRequest;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Mercure\HubInterface;
+use Symfony\Component\Mercure\Update;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
@@ -31,7 +35,9 @@ class RequestController extends AbstractController
         private readonly FamilyRepository $familyRepository,
         private readonly StudentRepository $studentRepository,
         private readonly SpecialistRepository $specialistRepository,
-        private readonly ValidatorInterface $validator
+        private readonly ValidatorInterface $validator,
+        private readonly MessageRepository $messageRepository,
+        private readonly HubInterface $hub
     ) {
     }
 
@@ -51,6 +57,8 @@ class RequestController extends AbstractController
         $studentId = $request->query->get('student');
         $status = $request->query->get('status');
         $specialistId = $request->query->get('specialist');
+        $creatorProfile = $request->query->get('creatorProfile'); // 'parent', 'student', 'specialist', 'coach'
+        $creatorUserId = $request->query->get('creatorUser'); // ID de l'utilisateur créateur
 
         // Récupération des demandes avec filtrage
         $requests = $this->requestRepository->findByCoachWithSearch(
@@ -59,7 +67,9 @@ class RequestController extends AbstractController
             $familyId ? (int) $familyId : null,
             $studentId ? (int) $studentId : null,
             $status ?: null,
-            $specialistId ? (int) $specialistId : null
+            $specialistId ? (int) $specialistId : null,
+            $creatorProfile ?: null,
+            $creatorUserId ? (int) $creatorUserId : null
         );
 
         // Conversion en tableau pour le template
@@ -85,6 +95,26 @@ class RequestController extends AbstractController
             'firstName' => $specialist->getFirstName(),
             'lastName' => $specialist->getLastName(),
         ], $specialists);
+        
+        // Récupérer tous les parents pour le filtre
+        $parentsData = [];
+        foreach ($families as $family) {
+            $parent = $family->getParent();
+            if ($parent) {
+                $parentsData[] = [
+                    'id' => $parent->getId(),
+                    'firstName' => $parent->getFirstName(),
+                    'lastName' => $parent->getLastName(),
+                ];
+            }
+        }
+        
+        // Récupérer le coach pour le filtre
+        $coachesData = [[
+            'id' => $coach->getId(),
+            'firstName' => $coach->getFirstName(),
+            'lastName' => $coach->getLastName(),
+        ]];
 
         return $this->render('tailadmin/pages/requests/list.html.twig', [
             'pageTitle' => 'Liste des Demandes | TailAdmin',
@@ -92,7 +122,13 @@ class RequestController extends AbstractController
             'requests' => $requestsData,
             'families' => $familiesData,
             'students' => $studentsData,
+            'parents' => $parentsData,
             'specialists' => $specialistsData,
+            'coaches' => $coachesData,
+            'creatorProfileFilter' => $creatorProfile,
+            'creatorUserFilter' => $creatorUserId,
+            'familyFilter' => $familyId,
+            'studentFilter' => $studentId,
             'breadcrumbs' => [
                 ['label' => 'Dashboard', 'url' => $this->generateUrl('admin_dashboard')],
             ],
@@ -226,18 +262,19 @@ class RequestController extends AbstractController
         // Récupérer les messages de la requête
         $messages = $requestEntity->getMessages()->toArray();
         
-        // Trier les messages par date de création
+        // Trier les messages par date de création (du plus récent au plus ancien)
         usort($messages, function($a, $b) {
-            return $a->getCreatedAt() <=> $b->getCreatedAt();
+            return $b->getCreatedAt() <=> $a->getCreatedAt();
         });
 
         // Préparer les données des messages pour le template
         $messagesData = [];
         foreach ($messages as $message) {
             $sender = $message->getSender();
+            $content = $message->getContent();
             $messagesData[] = [
                 'id' => $message->getId(),
-                'content' => $message->getContent(),
+                'content' => $content ?: '', // S'assurer que content n'est jamais null
                 'isFromMe' => $sender === $coach,
                 'sender' => [
                     'id' => $sender->getId(),
@@ -278,6 +315,105 @@ class RequestController extends AbstractController
                 ['label' => 'Dashboard', 'url' => $this->generateUrl('admin_dashboard')],
                 ['label' => 'Demandes', 'url' => $this->generateUrl('admin_requests_list')],
                 ['label' => 'Détail', 'url' => ''],
+            ],
+        ]);
+    }
+
+    #[Route('/admin/requests/{id}/messages/create', name: 'admin_requests_messages_create', methods: ['POST'])]
+    #[IsGranted('ROLE_COACH')]
+    public function createMessage(int $id, HttpRequest $request): JsonResponse
+    {
+        $coach = $this->getCurrentCoach($this->coachRepository, $this->security);
+        if (!$coach) {
+            return new JsonResponse(['success' => false, 'message' => 'Coach non trouvé'], 404);
+        }
+
+        $requestEntity = $this->requestRepository->find($id);
+        if (!$requestEntity || $requestEntity->getCoach() !== $coach) {
+            return new JsonResponse(['success' => false, 'message' => 'Demande non trouvée'], 404);
+        }
+
+        $data = json_decode($request->getContent(), true);
+
+        if (!isset($data['content']) || empty(trim($data['content']))) {
+            return new JsonResponse(['success' => false, 'message' => 'Le contenu du message est requis'], 400);
+        }
+
+        // Déterminer le destinataire
+        $receiver = $requestEntity->getCreator();
+        if ($receiver === $coach) {
+            $receiver = $requestEntity->getRecipient();
+        }
+
+        if (!$receiver) {
+            return new JsonResponse(['success' => false, 'message' => 'Destinataire non trouvé'], 404);
+        }
+
+        // Générer ou récupérer le conversationId
+        $conversationId = $this->messageRepository->findConversationBetweenUsers($coach, $receiver);
+        if (!$conversationId) {
+            $conversationId = $this->messageRepository->generateConversationId($coach, $receiver);
+        }
+
+        // Créer le message
+        $message = Message::create([
+            'content' => trim($data['content']),
+            'conversationId' => $conversationId,
+            'isRead' => false,
+        ], $coach, $receiver);
+
+        // Définir coach, recipient et request
+        $message->setCoach($coach);
+        $message->setRecipient($receiver);
+        $message->setRequest($requestEntity);
+
+        // Validation
+        $errors = $this->validator->validate($message);
+        if (count($errors) > 0) {
+            $errorMessages = [];
+            foreach ($errors as $error) {
+                $errorMessages[] = $error->getMessage();
+            }
+            return new JsonResponse(['success' => false, 'message' => implode(', ', $errorMessages)], 400);
+        }
+
+        $this->em->persist($message);
+        $this->em->flush();
+
+        // Publier le message via Mercure pour le temps réel (avec gestion d'erreur)
+        try {
+            $update = new Update(
+                topics: ["/conversations/{$conversationId}", "/requests/{$id}/messages"],
+                data: json_encode([
+                    'id' => $message->getId(),
+                    'conversationId' => $conversationId,
+                    'requestId' => $id,
+                    'content' => $message->getContent(),
+                    'sender' => [
+                        'id' => $coach->getId(),
+                        'firstName' => $coach->getFirstName(),
+                        'lastName' => $coach->getLastName(),
+                    ],
+                    'receiverId' => $receiver->getId(),
+                    'createdAt' => $message->getCreatedAt()?->format('Y-m-d H:i:s'),
+                    'isRead' => false,
+                ]),
+                private: true
+            );
+            $this->hub->publish($update);
+        } catch (\Exception $e) {
+            // Log l'erreur mais ne bloque pas l'envoi du message
+            error_log('Erreur Mercure: ' . $e->getMessage());
+        }
+
+        return new JsonResponse([
+            'success' => true,
+            'message' => 'Message envoyé avec succès',
+            'data' => [
+                'id' => $message->getId(),
+                'conversationId' => $conversationId,
+                'content' => $message->getContent(),
+                'createdAt' => $message->getCreatedAt()?->format('Y-m-d H:i:s'),
             ],
         ]);
     }
