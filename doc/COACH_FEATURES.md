@@ -100,7 +100,7 @@ Les Profils sont :
 
 * Modification du nom et du mot de passe du coach.
 
-D'après la commande de seeding, voici les comptes de test. Mot de passe par défaut pour tous : password123.
+D'après la commande de seeding, voici les comptes de test. Mot de passe par défaut pour tous : ir.
 COACHS (Coach) :
 sara@coach.com - Sara Educateur
 marie@coach.com - Marie Dupont
@@ -117,4 +117,4 @@ lucas@sara.education - Lucas Dupont
 sophie@sara.education - Sophie Dupont
 tom@sara.education - Tom Martin
 emma@sara.education - Emma Martin
-Mot de passe pour tous : password123
+Mot de passe pour tous : me 
