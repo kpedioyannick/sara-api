@@ -135,7 +135,7 @@
                 class="flex-1 space-y-4 overflow-y-auto p-6"
             >
                 {% for message in messages %}
-                    <div class="flex {% if message.isFromMe %}justify-end{% else %}justify-start{% endif %}">
+                    <div class="flex {% if message.isFromMe %}justify-end{% else %}justify-start{% endif %}" data-message-id="{{ message.id }}">
                         <div class="flex max-w-[70%] flex-col {% if message.isFromMe %}items-end{% else %}items-start{% endif %}">
                             <span class="mb-1 text-xs text-gray-500 dark:text-gray-400">
                                 {{ message.sender.firstName }} {{ message.sender.lastName }}
@@ -146,13 +146,36 @@
                             <div
                                 class="rounded-lg px-4 py-2 {% if message.isFromMe %}bg-brand-600{% else %}bg-gray-100 dark:bg-gray-700{% endif %}"
                             >
-                                <p class="text-sm whitespace-pre-wrap {% if message.isFromMe %}text-black{% else %}!text-gray-950 dark:!text-gray-100{% endif %}">
-                                    {% if message.content is defined and message.content is not null and message.content is not empty %}
-                                        {{ message.content }}
-                                    {% else %}
-                                        <span class="italic opacity-75 {% if message.isFromMe %}text-black{% else %}text-gray-600 dark:text-gray-400{% endif %}">(Message vide)</span>
+                                {% if message.type == 'image' and message.filePath %}
+                                    <img 
+                                        src="{{ message.filePath }}" 
+                                        alt="Image" 
+                                        class="max-w-full h-auto rounded cursor-pointer hover:opacity-90 transition-opacity"
+                                        @click="openImageModal('{{ message.filePath }}')"
+                                        style="max-height: 300px;"
+                                    />
+                                    {% if message.content %}
+                                        <p class="text-sm mt-2 {% if message.isFromMe %}text-black{% else %}!text-gray-950 dark:!text-gray-100{% endif %}">{{ message.content }}</p>
                                     {% endif %}
-                                </p>
+                                {% elseif message.type == 'audio' and message.filePath %}
+                                    <audio controls class="w-full max-w-xs">
+                                        <source src="{{ message.filePath }}" type="audio/mpeg">
+                                        <source src="{{ message.filePath }}" type="audio/wav">
+                                        <source src="{{ message.filePath }}" type="audio/ogg">
+                                        Votre navigateur ne supporte pas l'élément audio.
+                                    </audio>
+                                    {% if message.content %}
+                                        <p class="text-sm mt-2 {% if message.isFromMe %}text-black{% else %}!text-gray-950 dark:!text-gray-100{% endif %}">{{ message.content }}</p>
+                                    {% endif %}
+                                {% else %}
+                                    <p class="text-sm whitespace-pre-wrap {% if message.isFromMe %}text-black{% else %}!text-gray-950 dark:!text-gray-100{% endif %}">
+                                        {% if message.content is defined and message.content is not null and message.content is not empty %}
+                                            {{ message.content }}
+                                        {% else %}
+                                            <span class="italic opacity-75 {% if message.isFromMe %}text-black{% else %}text-gray-600 dark:text-gray-400{% endif %}">(Message vide)</span>
+                                        {% endif %}
+                                    </p>
+                                {% endif %}
                             </div>
                             <span class="mt-1 text-xs text-gray-500 dark:text-gray-400">
                                 {% if message.createdAt %}
@@ -170,27 +193,94 @@
 
             <!-- Message Input -->
             <div class="border-t border-gray-200 p-4 dark:border-gray-800">
-                <form @submit.prevent="sendMessage()" class="flex gap-2">
+                <form @submit.prevent="sendMessage()" class="flex gap-2 items-end">
+                    <!-- Boutons d'upload -->
+                    <div class="flex gap-2">
+                        <!-- Upload Image -->
+                        <label class="cursor-pointer rounded-lg border border-gray-300 bg-white p-2 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:hover:bg-gray-700">
+                            <input
+                                type="file"
+                                accept="image/*"
+                                @change="handleImageUpload($event)"
+                                class="hidden"
+                            />
+                            <svg class="h-5 w-5 text-gray-600 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                        </label>
+                        <!-- Prendre une photo -->
+                        <label class="cursor-pointer rounded-lg border border-gray-300 bg-white p-2 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:hover:bg-gray-700">
+                            <input
+                                type="file"
+                                accept="image/*"
+                                capture="environment"
+                                @change="handleCameraCapture($event)"
+                                class="hidden"
+                            />
+                            <svg class="h-5 w-5 text-gray-600 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
+                        </label>
+                        <!-- Upload Audio -->
+                        <label class="cursor-pointer rounded-lg border border-gray-300 bg-white p-2 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:hover:bg-gray-700">
+                            <input
+                                type="file"
+                                accept="audio/*"
+                                @change="handleAudioUpload($event)"
+                                class="hidden"
+                            />
+                            <svg class="h-5 w-5 text-gray-600 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                            </svg>
+                        </label>
+                    </div>
                     <input
                         type="text"
                         x-model="messageContent"
                         placeholder="Tapez votre message..."
                         class="flex-1 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-                        required
                     />
                     <button
                         type="submit"
-                        :disabled="sending"
+                        :disabled="sending || uploading"
                         class="rounded-lg bg-brand-500 px-6 py-2 text-sm font-medium text-white hover:bg-brand-600 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 disabled:opacity-50"
                     >
-                        <span x-show="!sending">Envoyer</span>
-                        <span x-show="sending">Envoi...</span>
+                        <span x-show="!sending && !uploading">Envoyer</span>
+                        <span x-show="sending || uploading">Envoi...</span>
                     </button>
                 </form>
             </div>
         </div>
     </div>
     <!-- ====== Chat Section End ====== -->
+    
+    <!-- Modal pour agrandir les images -->
+    <div
+        x-show="imageModalOpen"
+        @click.away="closeImageModal()"
+        @keydown.escape.window="closeImageModal()"
+        class="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm"
+        style="display: none;"
+        x-cloak
+    >
+        <div class="relative max-w-7xl max-h-[90vh] p-4">
+            <button
+                @click="closeImageModal()"
+                class="absolute top-4 right-4 rounded-full bg-white/90 p-2 text-gray-800 hover:bg-white transition-colors"
+            >
+                <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+            <img 
+                :src="imageModalSrc" 
+                alt="Image agrandie" 
+                class="max-w-full max-h-[90vh] rounded-lg shadow-2xl cursor-pointer"
+                @click="closeImageModal()"
+            />
+        </div>
+    </div>
 </div>
 
 <script>
@@ -200,6 +290,9 @@ function requestChatManager(requestId) {
         messageContent: '',
         messagesContainer: null,
         sending: false,
+        uploading: false,
+        imageModalOpen: false,
+        imageModalSrc: '',
         
         init() {
             this.messagesContainer = document.getElementById('messages-container');
@@ -213,7 +306,7 @@ function requestChatManager(requestId) {
         },
         
         async sendMessage() {
-            if (!this.messageContent.trim() || this.sending) return;
+            if ((!this.messageContent.trim() && !this.pendingFile) || this.sending || this.uploading) return;
             
             const content = this.messageContent.trim();
             this.messageContent = '';
@@ -227,42 +320,169 @@ function requestChatManager(requestId) {
                         'X-Requested-With': 'XMLHttpRequest',
                     },
                     body: JSON.stringify({
-                        content: content,
+                        content: content || null,
                     }),
                 });
                 
                 if (!response.ok) {
-                    // Si la réponse n'est pas OK, essayer de parser le JSON d'erreur
                     const errorData = await response.json().catch(() => ({ success: false, message: 'Erreur lors de l\'envoi' }));
                     const errorMessage = errorData.message || `Erreur ${response.status}: ${response.statusText}`;
                     if (window.showToast) {
                         window.showToast(errorMessage, 'error');
                     }
-                    this.messageContent = content; // Restaurer le contenu en cas d'erreur
+                    this.messageContent = content;
                     return;
                 }
                 
                 const result = await response.json().catch(() => ({ success: false, message: 'Erreur lors de l\'envoi' }));
                 
                 if (result.success) {
-                    // Recharger la page pour afficher le nouveau message
                     window.location.reload();
                 } else {
                     const errorMessage = result.message || 'Erreur lors de l\'envoi du message';
                     if (window.showToast) {
                         window.showToast(errorMessage, 'error');
                     }
-                    this.messageContent = content; // Restaurer le contenu en cas d'erreur
+                    this.messageContent = content;
                 }
             } catch (error) {
                 console.error('Erreur lors de l\'envoi du message:', error);
                 if (window.showToast) {
                     window.showToast('Une erreur est survenue', 'error');
                 }
-                this.messageContent = content; // Restaurer le contenu en cas d'erreur
+                this.messageContent = content;
             } finally {
                 this.sending = false;
             }
+        },
+        
+        async handleImageUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            this.uploading = true;
+            
+            try {
+                const formData = new FormData();
+                formData.append('file', file);
+                formData.append('content', this.messageContent || '');
+                
+                const response = await fetch('{{ path('admin_requests_messages_create', {id: requestId}) }}', {
+                    method: 'POST',
+                    body: formData,
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    window.location.reload();
+                } else {
+                    if (window.showToast) {
+                        window.showToast('Erreur: ' + data.message, 'error');
+                    }
+                }
+            } catch (error) {
+                console.error('Error uploading image:', error);
+                if (window.showToast) {
+                    window.showToast('Erreur lors de l\'upload de l\'image', 'error');
+                }
+            } finally {
+                this.uploading = false;
+                event.target.value = '';
+            }
+        },
+        
+        async handleCameraCapture(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                const base64Data = e.target.result.split(',')[1];
+                const fileExtension = file.name.split('.').pop() || 'jpg';
+                
+                this.uploading = true;
+                
+                try {
+                    const response = await fetch('{{ path('admin_requests_messages_create', {id: requestId}) }}', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            fileData: base64Data,
+                            fileType: 'image',
+                            fileExtension: fileExtension,
+                            content: this.messageContent || null,
+                        }),
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        window.location.reload();
+                    } else {
+                        if (window.showToast) {
+                            window.showToast('Erreur: ' + data.message, 'error');
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error uploading photo:', error);
+                    if (window.showToast) {
+                        window.showToast('Erreur lors de l\'upload de la photo', 'error');
+                    }
+                } finally {
+                    this.uploading = false;
+                }
+            };
+            reader.readAsDataURL(file);
+            event.target.value = '';
+        },
+        
+        async handleAudioUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            this.uploading = true;
+            
+            try {
+                const formData = new FormData();
+                formData.append('file', file);
+                formData.append('content', this.messageContent || '');
+                
+                const response = await fetch('{{ path('admin_requests_messages_create', {id: requestId}) }}', {
+                    method: 'POST',
+                    body: formData,
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    window.location.reload();
+                } else {
+                    if (window.showToast) {
+                        window.showToast('Erreur: ' + data.message, 'error');
+                    }
+                }
+            } catch (error) {
+                console.error('Error uploading audio:', error);
+                if (window.showToast) {
+                    window.showToast('Erreur lors de l\'upload de l\'audio', 'error');
+                }
+            } finally {
+                this.uploading = false;
+                event.target.value = '';
+            }
+        },
+        
+        openImageModal(imageSrc) {
+            this.imageModalSrc = imageSrc;
+            this.imageModalOpen = true;
+        },
+        
+        closeImageModal() {
+            this.imageModalOpen = false;
+            this.imageModalSrc = '';
         },
     };
 }

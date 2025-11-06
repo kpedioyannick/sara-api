@@ -460,6 +460,17 @@
                                 </optgroup>
                             </select>
                         </div>
+                        <div>
+                            <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                Nom de l'établissement
+                            </label>
+                            <input
+                                type="text"
+                                x-model="newStudentData.schoolName"
+                                placeholder="Nom de l'établissement"
+                                class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+                            />
+                        </div>
                     </form>
                 </div>
 
@@ -525,6 +536,10 @@
                                 <label class="text-sm font-medium text-gray-500 dark:text-gray-400">Classe</label>
                                 <p class="mt-1 text-base text-gray-800 dark:text-white/90" x-text="currentData.class || 'Non renseignée'"></p>
                             </div>
+                            <div>
+                                <label class="text-sm font-medium text-gray-500 dark:text-gray-400">Nom de l'établissement</label>
+                                <p class="mt-1 text-base text-gray-800 dark:text-white/90" x-text="currentData.schoolName || 'Non renseigné'"></p>
+                            </div>
                         </div>
                     </template>
 
@@ -581,6 +596,15 @@
                                         <option value="Terminale">Terminale</option>
                                     </optgroup>
                                 </select>
+                            </div>
+                            <div>
+                                <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Nom de l'établissement</label>
+                                <input
+                                    type="text"
+                                    x-model="currentData.schoolName"
+                                    placeholder="Nom de l'établissement"
+                                    class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+                                />
                             </div>
                         </form>
                     </template>
@@ -727,6 +751,7 @@ function familyManager() {
                 lastName: parentLastName, // Préremplir avec le nom du parent
                 pseudo: '',
                 class: '',
+                schoolName: '',
             };
             this.rightSheetOpen = true;
         },
@@ -791,6 +816,7 @@ function familyManager() {
                         pseudo: this.newStudentData.pseudo,
                         email: email,
                         class: this.newStudentData.class || '',
+                        schoolName: this.newStudentData.schoolName || '',
                     }),
                 })
                 .then(response => response.json())
@@ -893,6 +919,7 @@ function familyManager() {
                 lastName: '',
                 pseudo: '',
                 class: '',
+                schoolName: '',
             };
         }
     };

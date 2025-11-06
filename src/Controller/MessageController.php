@@ -9,6 +9,7 @@ use App\Repository\CoachRepository;
 use App\Repository\MessageRepository;
 use App\Repository\RequestRepository;
 use App\Repository\UserRepository;
+use App\Service\FileStorageService;
 use App\Service\MercureJwtProvider;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -35,7 +36,8 @@ class MessageController extends AbstractController
         private readonly EntityManagerInterface $em,
         private readonly ValidatorInterface $validator,
         private readonly HubInterface $hub,
-        private readonly MercureJwtProvider $mercureJwtProvider
+        private readonly MercureJwtProvider $mercureJwtProvider,
+        private readonly FileStorageService $fileStorageService
     ) {
     }
 
@@ -158,17 +160,71 @@ class MessageController extends AbstractController
             return new JsonResponse(['success' => false, 'message' => 'Non authentifié'], 401);
         }
 
-        $data = json_decode($request->getContent(), true);
+        // Gérer les fichiers uploadés (FormData) ou JSON
+        $messageType = 'text';
+        $filePath = null;
+        $content = null;
 
-        if (!isset($data['content']) || empty(trim($data['content']))) {
-            return new JsonResponse(['success' => false, 'message' => 'Le contenu du message est requis'], 400);
+        if ($request->files->has('file')) {
+            // Upload de fichier (image ou audio)
+            $file = $request->files->get('file');
+            $receiverId = $request->request->get('receiverId');
+            $content = $request->request->get('content', '');
+
+            if (!$receiverId) {
+                return new JsonResponse(['success' => false, 'message' => 'Le destinataire est requis'], 400);
+            }
+
+            // Déterminer le type de fichier
+            $mimeType = $file->getMimeType();
+            if (str_starts_with($mimeType, 'image/')) {
+                $messageType = 'image';
+                $filePath = $this->fileStorageService->uploadFile($file, 'messages/images');
+            } elseif (str_starts_with($mimeType, 'audio/')) {
+                $messageType = 'audio';
+                $filePath = $this->fileStorageService->uploadFile($file, 'messages/audio');
+            } else {
+                return new JsonResponse(['success' => false, 'message' => 'Type de fichier non supporté'], 400);
+            }
+        } else {
+            // Message texte classique (JSON)
+            $data = json_decode($request->getContent(), true);
+            if (!$data) {
+                $data = [];
+            }
+
+            $content = $data['content'] ?? null;
+            $messageType = $data['type'] ?? 'text';
+            $receiverId = $data['receiverId'] ?? null;
+
+            // Si c'est un message avec fichier base64 (photo prise depuis l'appareil)
+            if (isset($data['fileData']) && isset($data['fileType'])) {
+                $fileType = $data['fileType']; // 'image' ou 'audio'
+                $fileExtension = $data['fileExtension'] ?? ($fileType === 'image' ? 'jpg' : 'mp3');
+                
+                try {
+                    $filePath = $this->fileStorageService->saveBase64File(
+                        $data['fileData'],
+                        $fileExtension,
+                        'messages/' . ($fileType === 'image' ? 'images' : 'audio')
+                    );
+                    $messageType = $fileType;
+                } catch (\Exception $e) {
+                    return new JsonResponse(['success' => false, 'message' => 'Erreur lors de l\'enregistrement du fichier: ' . $e->getMessage()], 400);
+                }
+            }
+
+            if (!$receiverId) {
+                return new JsonResponse(['success' => false, 'message' => 'Le destinataire est requis'], 400);
+            }
         }
 
-        if (!isset($data['receiverId'])) {
-            return new JsonResponse(['success' => false, 'message' => 'Le destinataire est requis'], 400);
+        // Validation : au moins un contenu ou un fichier
+        if (empty(trim($content ?? '')) && !$filePath) {
+            return new JsonResponse(['success' => false, 'message' => 'Le contenu du message ou un fichier est requis'], 400);
         }
 
-        $receiver = $this->userRepository->find($data['receiverId']);
+        $receiver = $this->userRepository->find($receiverId);
         if (!$receiver) {
             return new JsonResponse(['success' => false, 'message' => 'Destinataire non trouvé'], 404);
         }
@@ -181,7 +237,9 @@ class MessageController extends AbstractController
 
         // Créer le message
         $message = Message::create([
-            'content' => trim($data['content']),
+            'content' => $content ? trim($content) : null,
+            'type' => $messageType,
+            'filePath' => $filePath,
             'conversationId' => $conversationId,
             'isRead' => false,
         ], $user, $receiver);
@@ -221,6 +279,8 @@ class MessageController extends AbstractController
                     'id' => $message->getId(),
                     'conversationId' => $conversationId,
                     'content' => $message->getContent(),
+                    'type' => $message->getType(),
+                    'filePath' => $message->getFilePath() ? $this->fileStorageService->generateSecureUrl($message->getFilePath()) : null,
                     'sender' => [
                         'id' => $user->getId(),
                         'firstName' => $user->getFirstName(),
@@ -257,6 +317,8 @@ class MessageController extends AbstractController
                 'id' => $message->getId(),
                 'conversationId' => $conversationId,
                 'content' => $message->getContent(),
+                'type' => $message->getType(),
+                'filePath' => $message->getFilePath() ? $this->fileStorageService->generateSecureUrl($message->getFilePath()) : null,
                 'createdAt' => $message->getCreatedAt()?->format('Y-m-d H:i:s'),
             ],
         ]);
@@ -288,6 +350,8 @@ class MessageController extends AbstractController
             return [
                 'id' => $message->getId(),
                 'content' => $message->getContent(),
+                'type' => $message->getType(),
+                'filePath' => $message->getFilePath() ? $this->fileStorageService->generateSecureUrl($message->getFilePath()) : null,
                 'isFromMe' => $message->getSender() === $user,
                 'sender' => [
                     'id' => $message->getSender()->getId(),

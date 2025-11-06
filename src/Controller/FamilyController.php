@@ -278,6 +278,7 @@ class FamilyController extends AbstractController
         if (isset($data['lastName'])) $student->setLastName($data['lastName']);
         if (isset($data['pseudo'])) $student->setPseudo($data['pseudo']);
         if (isset($data['class'])) $student->setClass($data['class']);
+        if (isset($data['schoolName'])) $student->setSchoolName($data['schoolName']);
         if (isset($data['points'])) $student->setPoints($data['points']);
         
         $defaultPassword = 'password123';
@@ -324,6 +325,7 @@ class FamilyController extends AbstractController
         if (isset($data['lastName'])) $student->setLastName($data['lastName']);
         if (isset($data['pseudo'])) $student->setPseudo($data['pseudo']);
         if (isset($data['class'])) $student->setClass($data['class']);
+        if (isset($data['schoolName'])) $student->setSchoolName($data['schoolName']);
         if (isset($data['points'])) $student->setPoints($data['points']);
         $student->setUpdatedAt(new \DateTimeImmutable());
 

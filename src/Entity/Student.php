@@ -16,6 +16,9 @@ class Student extends User
     #[ORM\Column(length: 50)]
     private ?string $class = null;
 
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $schoolName = null;
+
     #[ORM\Column]
     private ?int $points = 0;
 
@@ -68,6 +71,17 @@ class Student extends User
     public function setClass(string $class): static
     {
         $this->class = $class;
+        return $this;
+    }
+
+    public function getSchoolName(): ?string
+    {
+        return $this->schoolName;
+    }
+
+    public function setSchoolName(?string $schoolName): static
+    {
+        $this->schoolName = $schoolName;
         return $this;
     }
 
@@ -249,6 +263,7 @@ class Student extends User
             'roles' => $this->getRoles(),
             'pseudo' => $this->getPseudo(),
             'class' => $this->getClass(),
+            'schoolName' => $this->getSchoolName(),
             'family' => $this->family ? $this->family->toArray() : null,
             'objectivesCount' => $this->getObjectives()->count(),
             'requestsCount' => $this->getRequests()->count(),
@@ -266,6 +281,7 @@ class Student extends User
             'pseudo' => $this->getPseudo(),
             'email' => $this->getEmail(),
             'class' => $this->getClass(),
+            'schoolName' => $this->getSchoolName(),
             'isActive' => $this->isActive(),
         ];
     }
@@ -314,6 +330,7 @@ class Student extends User
         $student->setPassword($data['password'] ?? 'defaultPassword123'); // Mot de passe par défaut
         $student->setPseudo($data['pseudo']);
         $student->setClass($data['class'] ?? $data['grade']);
+        $student->setSchoolName($data['schoolName'] ?? null);
         $student->setFamily($family);
         $student->setPoints($data['points'] ?? 0);
         

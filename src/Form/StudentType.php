@@ -35,6 +35,10 @@ class StudentType extends AbstractType
                 'label' => 'Classe',
                 'required' => true,
             ])
+            ->add('schoolName', TextType::class, [
+                'label' => 'Nom de l\'établissement',
+                'required' => false,
+            ])
             ->add('points', IntegerType::class, [
                 'label' => 'Points',
                 'required' => false,

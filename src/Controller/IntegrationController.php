@@ -31,6 +31,8 @@ class IntegrationController extends AbstractController
         $this->initializeDefaultIntegrations();
 
         $integrations = $this->integrationRepository->findAll();
+        // Filtrer pour exclure Ecole Directe
+        $integrations = array_filter($integrations, fn($integration) => $integration->getType() !== Integration::TYPE_ECOLE_DIRECTE);
         $integrationsData = array_map(fn($integration) => $integration->toArray(), $integrations);
 
         return $this->render('tailadmin/pages/integrations/list.html.twig', [
@@ -54,16 +56,6 @@ class IntegrationController extends AbstractController
             $pronote->setType(Integration::TYPE_PRONOTE);
             $pronote->setIsActive(false);
             $this->em->persist($pronote);
-        }
-
-        // Vérifier si Ecole Directe existe
-        $ecoleDirecte = $this->integrationRepository->findOneBy(['type' => Integration::TYPE_ECOLE_DIRECTE]);
-        if (!$ecoleDirecte) {
-            $ecoleDirecte = new Integration();
-            $ecoleDirecte->setName('Ecole Directe');
-            $ecoleDirecte->setType(Integration::TYPE_ECOLE_DIRECTE);
-            $ecoleDirecte->setIsActive(false);
-            $this->em->persist($ecoleDirecte);
         }
 
         $this->em->flush();

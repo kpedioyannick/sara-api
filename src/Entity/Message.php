@@ -13,8 +13,14 @@ class Message
     #[ORM\Column]
     private ?int $id = null;
 
-    #[ORM\Column(type: 'text')]
+    #[ORM\Column(type: 'text', nullable: true)]
     private ?string $content = null;
+
+    #[ORM\Column(length: 50, nullable: true)]
+    private ?string $type = 'text'; // text, image, audio
+
+    #[ORM\Column(length: 500, nullable: true)]
+    private ?string $filePath = null;
 
     #[ORM\Column]
     private ?bool $isRead = false;
@@ -63,9 +69,31 @@ class Message
         return $this->content;
     }
 
-    public function setContent(string $content): static
+    public function setContent(?string $content): static
     {
         $this->content = $content;
+        return $this;
+    }
+
+    public function getType(): ?string
+    {
+        return $this->type;
+    }
+
+    public function setType(?string $type): static
+    {
+        $this->type = $type;
+        return $this;
+    }
+
+    public function getFilePath(): ?string
+    {
+        return $this->filePath;
+    }
+
+    public function setFilePath(?string $filePath): static
+    {
+        $this->filePath = $filePath;
         return $this;
     }
 
@@ -173,6 +201,8 @@ class Message
         return [
             'id' => $this->getId(),
             'content' => $this->getContent(),
+            'type' => $this->getType(),
+            'filePath' => $this->getFilePath(),
             'isRead' => $this->isRead(),
             'conversationId' => $this->getConversationId(),
             'sender' => $this->getSender()?->toArray(),
@@ -190,6 +220,8 @@ class Message
         return [
             'id' => $this->getId(),
             'content' => $this->getContent(),
+            'type' => $this->getType(),
+            'filePath' => $this->getFilePath(),
             'isRead' => $this->isRead(),
             'conversationId' => $this->getConversationId(),
             'sender' => $this->getSender()?->toPublicArray(),
@@ -201,7 +233,9 @@ class Message
     public static function create(array $data, User $sender, User $receiver): self
     {
         $message = new self();
-        $message->setContent($data['content']);
+        $message->setContent($data['content'] ?? null);
+        $message->setType($data['type'] ?? 'text');
+        $message->setFilePath($data['filePath'] ?? null);
         $message->setSender($sender);
         $message->setReceiver($receiver);
         $message->setIsRead($data['isRead'] ?? false);

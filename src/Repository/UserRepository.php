@@ -63,11 +63,18 @@ class UserRepository extends ServiceEntityRepository implements PasswordUpgrader
         }
 
         // Si pas trouvé, chercher par pseudo dans les étudiants
-        $qb = $this->createQueryBuilder('u');
-        $qb->where('u INSTANCE OF App\Entity\Student')
-           ->andWhere('u.pseudo = :identifier')
+        // Utiliser une requête DQL qui joint correctement la table student
+        $qb = $this->getEntityManager()->createQueryBuilder();
+        $qb->select('s')
+           ->from('App\Entity\Student', 's')
+           ->where('s.pseudo = :identifier')
            ->setParameter('identifier', $identifier);
         
-        return $qb->getQuery()->getOneOrNullResult();
+        try {
+            return $qb->getQuery()->getOneOrNullResult();
+        } catch (\Exception $e) {
+            // Si erreur, retourner null
+            return null;
+        }
     }
 }
