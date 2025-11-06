@@ -128,15 +128,61 @@
             </div>
 
             <!-- Right Side -->
-            <div class="bg-brand-950 relative hidden h-full w-full items-center lg:grid lg:w-1/2 dark:bg-white/5">
-                <div class="z-1 flex items-center justify-center">
-                    <div class="flex max-w-xs flex-col items-center">
-                        <a href="{{ path('app_login') }}" class="mb-4 block">
-                            <h1 class="text-2xl font-bold text-white">SARA</h1>
-                        </a>
-                        <p class="text-center text-gray-400 dark:text-white/60">
-                            Plateforme d'accompagnement éducatif
-                        </p>
+            <div class="bg-brand-950 relative hidden h-full w-full items-center justify-center px-8 lg:flex lg:w-1/2 dark:bg-white/5">
+                <div class="z-1 flex max-w-md flex-col items-start text-white">
+                    <a href="{{ path('app_home') }}" class="mb-8 block">
+                        <h1 class="text-3xl font-bold text-white">SARA</h1>
+                    </a>
+                    <div class="space-y-6">
+                        <div>
+                            <h2 class="mb-3 text-2xl font-semibold text-white">
+                                Votre mission en tant qu'Élève
+                            </h2>
+                            <p class="text-base leading-relaxed text-gray-200 dark:text-white/80">
+                                En tant qu'élève sur SARA, vous êtes au cœur de votre parcours éducatif et de votre développement personnel.
+                            </p>
+                        </div>
+                        <div class="space-y-4">
+                            <div class="flex items-start gap-3">
+                                <div class="mt-1 flex-shrink-0">
+                                    <svg class="h-6 w-6 text-brand-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h3 class="mb-1 font-semibold text-white">Réalisation des tâches</h3>
+                                    <p class="text-sm text-gray-300 dark:text-white/70">
+                                        Accomplissez les tâches assignées par votre coach ou vos parents, et fournissez des preuves de réalisation (texte, photos).
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="flex items-start gap-3">
+                                <div class="mt-1 flex-shrink-0">
+                                    <svg class="h-6 w-6 text-brand-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h3 class="mb-1 font-semibold text-white">Suivi de progression</h3>
+                                    <p class="text-sm text-gray-300 dark:text-white/70">
+                                        Consultez vos objectifs, suivez votre progression et visualisez vos accomplissements dans un tableau de bord dédié.
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="flex items-start gap-3">
+                                <div class="mt-1 flex-shrink-0">
+                                    <svg class="h-6 w-6 text-brand-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h3 class="mb-1 font-semibold text-white">Planning</h3>
+                                    <p class="text-sm text-gray-300 dark:text-white/70">
+                                        Accédez à votre planning personnalisé pour organiser votre travail et suivre vos rendez-vous avec les spécialistes.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>

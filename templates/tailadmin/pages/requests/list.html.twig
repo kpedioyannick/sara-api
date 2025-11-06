@@ -254,7 +254,7 @@
                             <option value="closed">Fermé</option>
                         </select>
                     </div>
-                    <div>
+                    <div x-show="isEdit">
                         <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Priorité *</label>
                         <select
                             x-model="formData.priority"

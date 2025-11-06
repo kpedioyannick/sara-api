@@ -153,7 +153,8 @@ class RequestController extends AbstractController
         if (isset($data['description'])) $requestEntity->setDescription($data['description']);
         if (isset($data['type'])) $requestEntity->setType($data['type']);
         if (isset($data['status'])) $requestEntity->setStatus($data['status']);
-        if (isset($data['priority'])) $requestEntity->setPriority($data['priority']);
+        // Priorité par défaut : 'medium' si non fournie
+        $requestEntity->setPriority($data['priority'] ?? 'medium');
         if (isset($data['familyId'])) {
             $family = $this->familyRepository->find($data['familyId']);
             if ($family) $requestEntity->setFamily($family);
