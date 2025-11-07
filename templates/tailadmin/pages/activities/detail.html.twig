@@ -1,0 +1,504 @@
+{% extends 'tailadmin/layouts/base.html.twig' %}
+
+{% block content %}
+<div 
+    x-data="activityDetailManager()"
+    data-activity='{{ activity|json_encode|e('html_attr') }}'
+    data-images='{{ images|json_encode|e('html_attr') }}'
+    data-comments='{{ comments|json_encode|e('html_attr') }}'
+    data-categories='{{ categories|json_encode|e('html_attr') }}'
+    class="p-4 mx-auto max-w-(--breakpoint-2xl) md:p-6"
+>
+    {% include 'tailadmin/components/breadcrumb.html.twig' %}
+
+    <!-- Activity Info Card -->
+    <div class="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03] mb-6">
+        <div class="p-4 xl:p-6">
+            <div class="flex items-start justify-between mb-4">
+                <div class="flex-1">
+                    <div class="flex flex-wrap items-center gap-3 mb-4">
+                        <span class="inline-flex rounded-full bg-brand-50 px-3 py-1 text-sm font-medium text-brand-500 dark:bg-brand-500/15 dark:text-brand-400" x-text="activity.category.name"></span>
+                        <span class="inline-flex rounded-full bg-success-50 px-3 py-1 text-sm font-medium text-success-500 dark:bg-success-500/15 dark:text-success-400" x-text="activity.typeLabel"></span>
+                    </div>
+                </div>
+                <div class="flex gap-2">
+                    <button
+                        @click="openEditModal()"
+                        class="inline-flex items-center gap-2 rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-white/[0.03]"
+                    >
+                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
+                        Modifier
+                    </button>
+                    <a href="{{ path('admin_activities_list') }}" class="inline-flex items-center gap-2 rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-white/[0.03]">
+                        <svg class="fill-current" width="20" height="20" viewBox="0 0 20 20" fill="none">
+                            <path fill-rule="evenodd" clip-rule="evenodd" d="M9.70711 16.7071C9.31658 17.0976 8.68342 17.0976 8.29289 16.7071L2.29289 10.7071C1.90237 10.3166 1.90237 9.68342 2.29289 9.29289L8.29289 3.29289C8.68342 2.90237 9.31658 2.90237 9.70711 3.29289C10.0976 3.68342 10.0976 4.31658 9.70711 4.70711L5.41421 9H17C17.5523 9 18 9.44772 18 10C18 10.5523 17.5523 11 17 11H5.41421L9.70711 15.2929C10.0976 15.6834 10.0976 16.3166 9.70711 16.7071Z" fill=""/>
+                        </svg>
+                        Retour
+                    </a>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                <div class="flex items-center gap-3">
+                    <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-brand-50 dark:bg-brand-500/15">
+                        <svg class="fill-current text-brand-500 dark:text-brand-400" width="20" height="20" viewBox="0 0 20 20" fill="none">
+                            <path d="M10 2C5.58172 2 2 5.58172 2 10C2 14.4183 5.58172 18 10 18C14.4183 18 18 14.4183 18 10C18 5.58172 14.4183 2 10 2ZM10 16C6.68629 16 4 13.3137 4 10C4 6.68629 6.68629 4 10 4C13.3137 4 16 6.68629 16 10C16 13.3137 13.3137 16 10 16ZM9 11V9H11V11H9ZM9 13V11H11V13H9Z" fill=""/>
+                        </svg>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">Durée</p>
+                        <p class="text-base font-medium text-gray-800 dark:text-white/90" x-text="activity.duration"></p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-3">
+                    <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-warning-50 dark:bg-warning-500/15">
+                        <svg class="fill-current text-warning-500 dark:text-warning-400" width="20" height="20" viewBox="0 0 20 20" fill="none">
+                            <path d="M10 2C5.58172 2 2 5.58172 2 10C2 14.4183 5.58172 18 10 18C14.4183 18 18 14.4183 18 10C18 5.58172 14.4183 2 10 2ZM10 16C6.68629 16 4 13.3137 4 10C4 6.68629 6.68629 4 10 4C13.3137 4 16 6.68629 16 10C16 13.3137 13.3137 16 10 16ZM9 11V9H11V11H9ZM9 13V11H11V13H9Z" fill=""/>
+                        </svg>
+                    </div>
+                    <div>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">Tranche d'âges</p>
+                        <p class="text-base font-medium text-gray-800 dark:text-white/90" x-text="activity.ageRange"></p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Description</h4>
+                <p class="text-base text-gray-600 dark:text-gray-400 whitespace-pre-wrap" x-text="activity.description"></p>
+            </div>
+
+            <!-- Objectifs -->
+            <div class="mb-4" x-show="activity.objectives && activity.objectives.length > 0">
+                <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Objectifs</h4>
+                <ul class="list-disc list-inside space-y-1">
+                    <template x-for="objective in activity.objectives" :key="objective">
+                        <li class="text-sm text-gray-600 dark:text-gray-400" x-text="objective"></li>
+                    </template>
+                </ul>
+            </div>
+
+            <!-- Points travaillés -->
+            <div class="mb-4" x-show="activity.workedPoints && activity.workedPoints.length > 0">
+                <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Points travaillés</h4>
+                <div class="flex flex-wrap gap-2">
+                    <template x-for="point in activity.workedPoints" :key="point">
+                        <span class="inline-flex rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-700 dark:bg-gray-800 dark:text-gray-300" x-text="point"></span>
+                    </template>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Images Section -->
+    <div class="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03] mb-6" x-show="images.length > 0">
+        <div class="p-4 xl:p-6">
+            <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90 mb-4">Images / Exemples</h3>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <template x-for="image in images" :key="image.id">
+                    <div class="relative group">
+                        <img :src="'/uploads/' + image.filePath" :alt="image.caption || 'Image'" class="w-full h-48 object-cover rounded-lg">
+                        <p class="mt-2 text-sm text-gray-600 dark:text-gray-400" x-text="image.caption" x-show="image.caption"></p>
+                    </div>
+                </template>
+            </div>
+        </div>
+    </div>
+
+    <!-- Comments Section -->
+    <div class="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
+        <div class="p-4 xl:p-6">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">Commentaires</h3>
+                <button
+                    @click="showCommentForm = !showCommentForm"
+                    class="inline-flex items-center gap-2 rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600"
+                >
+                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                    </svg>
+                    Ajouter un commentaire
+                </button>
+            </div>
+
+            <!-- Formulaire de commentaire -->
+            <div x-show="showCommentForm" class="mb-6 p-4 border border-gray-200 rounded-lg dark:border-gray-700">
+                <form @submit.prevent="addComment()" class="space-y-4">
+                    <textarea
+                        x-model="commentForm.content"
+                        required
+                        rows="4"
+                        class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+                        placeholder="Votre commentaire..."
+                    ></textarea>
+                    <div class="flex gap-3 justify-end">
+                        <button
+                            type="button"
+                            @click="showCommentForm = false"
+                            class="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"
+                        >
+                            Annuler
+                        </button>
+                        <button
+                            type="submit"
+                            :disabled="savingComment"
+                            class="rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            <span x-show="!savingComment">Publier</span>
+                            <span x-show="savingComment">Publication...</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Liste des commentaires -->
+            <div class="space-y-4" x-show="comments.length > 0">
+                <template x-for="comment in comments" :key="comment.id">
+                    <div class="border-b border-gray-200 pb-4 dark:border-gray-700 last:border-0">
+                        <div class="flex items-start gap-3">
+                            <div class="flex-1">
+                                <div class="flex items-center gap-2 mb-2">
+                                    <span class="text-sm font-medium text-gray-800 dark:text-white/90" x-text="comment.author?.firstName + ' ' + comment.author?.lastName"></span>
+                                    <span class="text-xs text-gray-500 dark:text-gray-400" x-text="new Date(comment.createdAt).toLocaleDateString('fr-FR')"></span>
+                                </div>
+                                <p class="text-sm text-gray-600 dark:text-gray-400 whitespace-pre-wrap" x-text="comment.content"></p>
+                            </div>
+                        </div>
+                    </div>
+                </template>
+            </div>
+
+            <div x-show="comments.length === 0" class="text-center py-8 text-gray-500 dark:text-gray-400">
+                Aucun commentaire pour le moment
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Sheet Overlay -->
+    <div
+        x-show="rightSheetOpen"
+        @click="closeSheet()"
+        x-transition:enter="transition-opacity ease-out duration-300"
+        x-transition:enter-start="opacity-0"
+        x-transition:enter-end="opacity-100"
+        x-transition:leave="transition-opacity ease-in duration-200"
+        x-transition:leave-start="opacity-100"
+        x-transition:leave-end="opacity-0"
+        class="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm"
+        style="display: none;"
+    ></div>
+
+    <!-- Right Sheet Panel -->
+    <div
+        x-show="rightSheetOpen"
+        @click.away="closeSheet()"
+        x-transition:enter="transition-transform ease-out duration-300"
+        x-transition:enter-start="translate-x-full"
+        x-transition:enter-end="translate-x-0"
+        x-transition:leave="transition-transform ease-in duration-200"
+        x-transition:leave-start="translate-x-0"
+        x-transition:leave-end="translate-x-full"
+        class="fixed right-0 top-0 z-50 h-full w-full max-w-md overflow-y-auto bg-white shadow-2xl dark:bg-gray-900"
+        style="display: none;"
+    >
+        <div class="flex h-full flex-col">
+            <!-- Header -->
+            <div class="sticky top-0 z-10 border-b border-gray-200 bg-white px-6 py-4 dark:border-gray-800 dark:bg-gray-900">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">Modifier l'activité</h3>
+                    <button
+                        @click="closeSheet()"
+                        class="rounded-lg p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-300"
+                    >
+                        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Content -->
+            <div class="flex-1 overflow-y-auto p-6">
+                <form @submit.prevent="updateActivity()" class="space-y-4">
+                    <!-- Description -->
+                    <div>
+                        <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                            Description <span class="text-error-500">*</span>
+                        </label>
+                        <textarea
+                            x-model="editForm.description"
+                            required
+                            rows="4"
+                            class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+                        ></textarea>
+                    </div>
+
+                    <!-- Durée -->
+                    <div>
+                        <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                            Durée <span class="text-error-500">*</span>
+                        </label>
+                        <input
+                            type="text"
+                            x-model="editForm.duration"
+                            required
+                            class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+                            placeholder="Ex: 30 minutes, 15-30 minutes"
+                        />
+                    </div>
+
+                    <!-- Tranche d'âges -->
+                    <div>
+                        <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                            Tranche d'âges <span class="text-error-500">*</span>
+                        </label>
+                        <input
+                            type="text"
+                            x-model="editForm.ageRange"
+                            required
+                            class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+                            placeholder="Ex: 3-5 ans, 6-8 ans"
+                        />
+                    </div>
+
+                    <!-- Type -->
+                    <div>
+                        <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                            Type <span class="text-error-500">*</span>
+                        </label>
+                        <select
+                            x-model="editForm.type"
+                            required
+                            class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+                        >
+                            <option value="">Sélectionner un type</option>
+                            <option value="individual">Individuel</option>
+                            <option value="with_adult">Avec un adulte</option>
+                        </select>
+                    </div>
+
+                    <!-- Catégorie -->
+                    <div>
+                        <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                            Catégorie <span class="text-error-500">*</span>
+                        </label>
+                        <select
+                            x-model="editForm.categoryId"
+                            required
+                            class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+                        >
+                            <option value="">Sélectionner une catégorie</option>
+                            <template x-for="category in categories" :key="category.id">
+                                <option :value="category.id" x-text="category.name"></option>
+                            </template>
+                        </select>
+                    </div>
+
+                    <!-- Objectifs -->
+                    <div>
+                        <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                            Objectifs
+                        </label>
+                        <div class="space-y-2">
+                            <template x-for="(objective, index) in (editForm.objectives || [])" :key="index">
+                                <div class="flex gap-2">
+                                    <input
+                                        type="text"
+                                        x-model="editForm.objectives[index]"
+                                        class="flex-1 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+                                        placeholder="Objectif"
+                                    />
+                                    <button
+                                        type="button"
+                                        @click="editForm.objectives.splice(index, 1)"
+                                        class="rounded-lg border border-error-500 bg-error-50 px-3 py-2 text-sm text-error-600 hover:bg-error-100 dark:border-error-400 dark:bg-error-900/30 dark:text-error-400"
+                                    >
+                                        Supprimer
+                                    </button>
+                                </div>
+                            </template>
+                            <button
+                                type="button"
+                                @click="editForm.objectives = editForm.objectives || []; editForm.objectives.push('')"
+                                class="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"
+                            >
+                                + Ajouter un objectif
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Points travaillés -->
+                    <div>
+                        <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                            Points travaillés
+                        </label>
+                        <div class="space-y-2">
+                            <template x-for="(point, index) in (editForm.workedPoints || [])" :key="index">
+                                <div class="flex gap-2">
+                                    <input
+                                        type="text"
+                                        x-model="editForm.workedPoints[index]"
+                                        class="flex-1 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+                                        placeholder="Point travaillé"
+                                    />
+                                    <button
+                                        type="button"
+                                        @click="editForm.workedPoints.splice(index, 1)"
+                                        class="rounded-lg border border-error-500 bg-error-50 px-3 py-2 text-sm text-error-600 hover:bg-error-100 dark:border-error-400 dark:bg-error-900/30 dark:text-error-400"
+                                    >
+                                        Supprimer
+                                    </button>
+                                </div>
+                            </template>
+                            <button
+                                type="button"
+                                @click="editForm.workedPoints = editForm.workedPoints || []; editForm.workedPoints.push('')"
+                                class="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"
+                            >
+                                + Ajouter un point travaillé
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Footer -->
+            <div class="sticky bottom-0 border-t border-gray-200 bg-white px-6 py-4 dark:border-gray-800 dark:bg-gray-900">
+                <div class="flex gap-3">
+                    <button
+                        type="button"
+                        @click="closeSheet()"
+                        class="flex-1 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+                    >
+                        Annuler
+                    </button>
+                    <button
+                        @click="updateActivity()"
+                        :disabled="saving"
+                        class="flex-1 rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white shadow-theme-xs hover:bg-brand-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        <span x-show="!saving">Modifier</span>
+                        <span x-show="saving">Enregistrement...</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function activityDetailManager() {
+    return {
+        activity: {},
+        images: [],
+        comments: [],
+        categories: [],
+        
+        showCommentForm: false,
+        rightSheetOpen: false,
+        saving: false,
+        savingComment: false,
+        
+        commentForm: {
+            content: ''
+        },
+        
+        editForm: {},
+        
+        init() {
+            // Initialiser les données depuis les attributs data
+            this.activity = JSON.parse(this.$el.dataset.activity || '{}');
+            this.images = JSON.parse(this.$el.dataset.images || '[]');
+            this.comments = JSON.parse(this.$el.dataset.comments || '[]');
+            this.categories = JSON.parse(this.$el.dataset.categories || '[]');
+            this.editForm = { ...this.activity };
+        },
+        
+        async addComment() {
+            this.savingComment = true;
+            try {
+                const response = await fetch(`/admin/activities/${this.activity.id}/comment`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(this.commentForm),
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    this.comments.push(result.comment);
+                    this.commentForm = { content: '' };
+                    this.showCommentForm = false;
+                    if (window.showToast) {
+                        window.showToast('Commentaire ajouté avec succès', 'success');
+                    }
+                } else {
+                    if (window.showToast) {
+                        window.showToast(result.message, 'error');
+                    }
+                }
+            } catch (error) {
+                console.error('Erreur:', error);
+                if (window.showToast) {
+                    window.showToast('Erreur lors de l\'ajout du commentaire', 'error');
+                }
+            } finally {
+                this.savingComment = false;
+            }
+        },
+        
+        openEditModal() {
+            this.editForm = { ...this.activity };
+            // Convertir category en categoryId si nécessaire
+            if (this.editForm.category && this.editForm.category.id) {
+                this.editForm.categoryId = this.editForm.category.id;
+            }
+            this.rightSheetOpen = true;
+        },
+        
+        closeSheet() {
+            this.rightSheetOpen = false;
+        },
+        
+        async updateActivity() {
+            this.saving = true;
+            try {
+                const response = await fetch(`/admin/activities/${this.activity.id}/update`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(this.editForm),
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    if (window.showToast) {
+                        window.showToast('Activité mise à jour avec succès', 'success');
+                    }
+                    this.closeSheet();
+                    window.location.reload();
+                } else {
+                    if (window.showToast) {
+                        window.showToast(result.message, 'error');
+                    }
+                }
+            } catch (error) {
+                console.error('Erreur:', error);
+                if (window.showToast) {
+                    window.showToast('Erreur lors de la mise à jour', 'error');
+                }
+            } finally {
+                this.saving = false;
+            }
+        }
+    };
+}
+</script>
+{% endblock %}
+

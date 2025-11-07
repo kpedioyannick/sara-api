@@ -761,10 +761,12 @@
                 </p>
               </div>
               <div class="flex items-center gap-2">
+                {% if comment.author and comment.author.userType %}
                 <span class="inline-flex rounded-full bg-brand-50 px-2 py-0.5 text-xs font-medium text-brand-500 dark:bg-brand-500/15 dark:text-brand-400">
-                  {{ comment.authorType|capitalize }}
+                  {{ comment.author.userType|capitalize }}
                 </span>
-                {% if comment.authorType == 'coach' %}
+                {% endif %}
+                {% if comment.author and (comment.author.userType == 'coach' or userType == 'coach') %}
                 <button
                   @click="openCommentEdit({{ comment.id }}, '{{ comment.content|e('js') }}')"
                   class="inline-flex items-center gap-1 rounded-lg bg-gray-100 px-2 py-1 text-xs font-medium text-gray-700 hover:bg-gray-200 dark:bg-white/[0.03] dark:text-white/80 dark:hover:bg-white/[0.05]"
@@ -1086,9 +1088,29 @@
 
           <!-- Description -->
           <div>
-            <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-              Description
-            </label>
+            <div class="mb-2 flex items-center justify-between">
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Description
+              </label>
+              <button
+                type="button"
+                x-show="taskConfig.isNew"
+                @click="generateSmartTasks()"
+                :disabled="generatingTasks"
+                class="inline-flex items-center gap-2 rounded-lg border border-brand-500 bg-brand-50 px-3 py-1.5 text-xs font-medium text-brand-600 shadow-theme-xs hover:bg-brand-100 disabled:opacity-50 disabled:cursor-not-allowed dark:border-brand-400 dark:bg-brand-500/15 dark:text-brand-400 dark:hover:bg-brand-500/25"
+                title="Générer des suggestions de tâches intelligentes avec l'IA"
+              >
+                <svg x-show="!generatingTasks" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                </svg>
+                <svg x-show="generatingTasks" class="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <span x-show="!generatingTasks">IA</span>
+                <span x-show="generatingTasks">Génération...</span>
+              </button>
+            </div>
             <textarea
               x-model="taskConfig.description"
               rows="4"
@@ -1314,6 +1336,7 @@ function taskManager() {
     },
     configSubmitting: false,
     configTaskTitle: '',
+    generatingTasks: false,
     students: [],
     parents: [],
     specialists: [],
@@ -1690,6 +1713,66 @@ function taskManager() {
       };
       
       this.configSheetOpen = true;
+    },
+    
+    async generateSmartTasks() {
+      if (!this.objectiveId) {
+        if (window.showToast) {
+          window.showToast('Erreur: ID de l\'objectif manquant', 'error');
+        }
+        return;
+      }
+
+      this.generatingTasks = true;
+
+      try {
+        const response = await fetch(`/admin/objectives/${this.objectiveId}/generate-tasks`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({}),
+        });
+
+        const result = await response.json().catch(() => ({ success: false, message: 'Erreur lors de la génération' }));
+
+        if (response.ok && result.success && result.tasks && result.tasks.length > 0) {
+          // Prendre la première tâche suggérée et remplir le formulaire
+          const firstTask = result.tasks[0];
+          
+          this.taskConfig.title = firstTask.title || '';
+          this.taskConfig.description = firstTask.description || '';
+          this.taskConfig.frequency = firstTask.frequency || 'none';
+          this.taskConfig.requiresProof = firstTask.requiresProof !== undefined ? firstTask.requiresProof : true;
+          
+          if (firstTask.proofType) {
+            // Note: proofType n'est pas directement dans taskConfig, mais peut être utilisé plus tard
+            // On peut l'ajouter si nécessaire
+          }
+
+          if (window.showToast) {
+            window.showToast(
+              `${result.tasks.length} tâche(s) suggérée(s). Première tâche chargée.`,
+              'success'
+            );
+          }
+
+          // Optionnel: afficher toutes les suggestions dans une modal ou permettre de naviguer entre elles
+          // Pour l'instant, on charge juste la première
+        } else {
+          const errorMessage = result.message || 'Aucune tâche suggérée';
+          if (window.showToast) {
+            window.showToast(errorMessage, 'error');
+          }
+        }
+      } catch (error) {
+        console.error('Erreur lors de la génération des tâches:', error);
+        if (window.showToast) {
+          window.showToast('Erreur lors de la génération des suggestions', 'error');
+        }
+      } finally {
+        this.generatingTasks = false;
+      }
     },
     
     closeConfigSheet() {

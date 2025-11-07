@@ -12,6 +12,7 @@ use App\Repository\RequestRepository;
 use App\Repository\SpecialistRepository;
 use App\Repository\StudentRepository;
 use App\Service\FileStorageService;
+use App\Service\RequestAIService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Bundle\SecurityBundle\Security;
@@ -39,7 +40,8 @@ class RequestController extends AbstractController
         private readonly ValidatorInterface $validator,
         private readonly MessageRepository $messageRepository,
         private readonly HubInterface $hub,
-        private readonly FileStorageService $fileStorageService
+        private readonly FileStorageService $fileStorageService,
+        private readonly RequestAIService $requestAIService
     ) {
     }
 
@@ -475,6 +477,61 @@ class RequestController extends AbstractController
                 'createdAt' => $message->getCreatedAt()?->format('Y-m-d H:i:s'),
             ],
         ]);
+    }
+
+    #[Route('/admin/requests/{id}/ai-assist', name: 'admin_requests_ai_assist', methods: ['POST'])]
+    #[IsGranted('ROLE_COACH')]
+    public function aiAssist(int $id, HttpRequest $request): JsonResponse
+    {
+        try {
+            $coach = $this->getCurrentCoach($this->coachRepository, $this->security);
+            if (!$coach) {
+                return new JsonResponse(['success' => false, 'message' => 'Coach non trouvé'], 404);
+            }
+
+            $requestEntity = $this->requestRepository->find($id);
+            if (!$requestEntity || $requestEntity->getCoach() !== $coach) {
+                return new JsonResponse(['success' => false, 'message' => 'Demande non trouvée'], 404);
+            }
+
+            $data = json_decode($request->getContent(), true);
+            $selectedMessageIds = $data['selectedMessageIds'] ?? [];
+            $userQuestion = $data['userQuestion'] ?? null;
+            $additionalContext = $data['additionalContext'] ?? null;
+
+            // Récupérer les messages sélectionnés
+            $selectedMessages = [];
+            if (!empty($selectedMessageIds)) {
+                foreach ($selectedMessageIds as $messageId) {
+                    $message = $this->messageRepository->find($messageId);
+                    if ($message && $message->getRequest() === $requestEntity) {
+                        $selectedMessages[] = $message;
+                    }
+                }
+            }
+
+            // Générer l'assistance IA
+            try {
+                $result = $this->requestAIService->generateAssistance(
+                    $requestEntity,
+                    $selectedMessages,
+                    $userQuestion,
+                    $additionalContext
+                );
+
+                return new JsonResponse($result);
+            } catch (\Exception $e) {
+                return new JsonResponse([
+                    'success' => false,
+                    'message' => 'Erreur lors de la génération de l\'assistance : ' . $e->getMessage()
+                ], 500);
+            }
+        } catch (\Exception $e) {
+            return new JsonResponse([
+                'success' => false,
+                'message' => 'Erreur serveur: ' . $e->getMessage()
+            ], 500);
+        }
     }
 }
 

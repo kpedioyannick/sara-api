@@ -2,7 +2,11 @@
 
 namespace App\Service;
 
+use App\Entity\Objective;
+use App\Entity\Task;
+use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
+use Symfony\Component\Validator\Validator\ValidatorInterface;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 
 class SmartObjectiveService
@@ -13,7 +17,9 @@ class SmartObjectiveService
     public function __construct(
         private readonly HttpClientInterface $httpClient,
         private readonly LoggerInterface $logger,
-        private readonly string $openaiApiKey
+        private readonly string $openaiApiKey,
+        private readonly EntityManagerInterface $entityManager,
+        private readonly ValidatorInterface $validator
     ) {}
 
     /**
@@ -240,5 +246,154 @@ class SmartObjectiveService
         }
     }
 
+    /**
+     * Gère les tâches à partir d'un objectif et d'une suggestion optionnelle
+     * 
+     * @param Objective $objective L'objectif auquel associer les tâches (obligatoire)
+     * @param array|null $suggestion Les suggestions de tâches au format retourné par generateSuggestions (optionnel)
+     * @param string $assignedType Le type d'assignation ('student', 'parent', 'specialist', 'coach')
+     * @param mixed $assignedTo L'entité à qui assigner les tâches (Student, ParentUser, Specialist, ou Coach)
+     * @return array Tableau contenant les tâches créées et les informations de traitement
+     * @throws \Exception En cas d'erreur lors de la création des tâches
+     */
+    public function manageTasksFromObjective(
+        Objective $objective,
+        ?array $suggestion = null,
+        string $assignedType = 'coach',
+        $assignedTo = null
+    ): array {
+        try {
+            $createdTasks = [];
+            $errors = [];
+
+            // Si aucune suggestion n'est fournie, on utilise les tâches existantes de l'objectif
+            if ($suggestion === null) {
+                $this->logger->debug('Aucune suggestion fournie, utilisation des tâches existantes de l\'objectif', [
+                    'objective_id' => $objective->getId(),
+                    'existing_tasks_count' => $objective->getTasks()->count()
+                ]);
+                
+                return [
+                    'success' => true,
+                    'tasks' => $objective->getTasks()->toArray(),
+                    'created_count' => 0,
+                    'message' => 'Aucune nouvelle tâche créée, utilisation des tâches existantes'
+                ];
+            }
+
+            // Valider la structure de la suggestion
+            if (!isset($suggestion['tasks']) || !is_array($suggestion['tasks'])) {
+                $suggestionKeys = $suggestion !== null ? array_keys($suggestion) : [];
+                $hasTasks = isset($suggestion['tasks']);
+                
+                $this->logger->warning('Structure de suggestion invalide', [
+                    'suggestion_keys' => $suggestionKeys,
+                    'has_tasks' => $hasTasks
+                ]);
+                
+                return [
+                    'success' => false,
+                    'tasks' => [],
+                    'created_count' => 0,
+                    'errors' => ['Structure de suggestion invalide: clé "tasks" manquante ou invalide']
+                ];
+            }
+
+            // Déterminer l'entité assignée par défaut
+            if ($assignedTo === null) {
+                $assignedTo = $objective->getCoach();
+                $assignedType = 'coach';
+            }
+
+            // Créer les tâches à partir de la suggestion
+            foreach ($suggestion['tasks'] as $taskData) {
+                try {
+                    // Valider les données de la tâche
+                    if (empty($taskData['title'])) {
+                        $errors[] = 'Tâche ignorée: titre manquant';
+                        continue;
+                    }
+
+                    // Créer la tâche en utilisant la méthode statique de l'entité Task
+                    $task = Task::createForCoach([
+                        'title' => $taskData['title'],
+                        'description' => $taskData['description'] ?? '',
+                        'status' => Task::STATUS_PENDING,
+                        'frequency' => $taskData['frequency'] ?? Task::FREQUENCY_NONE,
+                        'requires_proof' => $taskData['requiresProof'] ?? true,
+                        'proof_type' => $taskData['proofType'] ?? null,
+                        'due_date' => $taskData['dueDate'] ?? null,
+                    ], $objective, $assignedTo, $assignedType);
+
+                    // Valider la tâche
+                    $validationErrors = $this->validator->validate($task);
+                    if (count($validationErrors) > 0) {
+                        $errorMessages = [];
+                        foreach ($validationErrors as $error) {
+                            $errorMessages[] = $error->getPropertyPath() . ': ' . $error->getMessage();
+                        }
+                        $errors[] = sprintf('Tâche "%s" invalide: %s', $taskData['title'], implode(', ', $errorMessages));
+                        continue;
+                    }
+
+                    // Persister la tâche
+                    $this->entityManager->persist($task);
+                    $objective->addTask($task);
+                    $createdTasks[] = $task;
+
+                    $this->logger->debug('Tâche créée avec succès', [
+                        'task_title' => $task->getTitle(),
+                        'objective_id' => $objective->getId(),
+                        'assigned_type' => $assignedType
+                    ]);
+
+                } catch (\Exception $e) {
+                    $errorMessage = sprintf('Erreur lors de la création de la tâche "%s": %s', 
+                        $taskData['title'] ?? 'sans titre', 
+                        $e->getMessage()
+                    );
+                    $errors[] = $errorMessage;
+                    
+                    $this->logger->error('Erreur lors de la création d\'une tâche', [
+                        'task_data' => $taskData,
+                        'error' => $e->getMessage(),
+                        'trace' => $e->getTraceAsString()
+                    ]);
+                }
+            }
+
+            // Flush toutes les tâches créées
+            if (count($createdTasks) > 0) {
+                $this->entityManager->flush();
+                
+                $this->logger->info('Tâches créées avec succès', [
+                    'objective_id' => $objective->getId(),
+                    'tasks_count' => count($createdTasks),
+                    'errors_count' => count($errors)
+                ]);
+            }
+
+            return [
+                'success' => count($errors) === 0 || count($createdTasks) > 0,
+                'tasks' => $createdTasks,
+                'created_count' => count($createdTasks),
+                'errors' => $errors,
+                'message' => sprintf(
+                    '%d tâche(s) créée(s) avec succès%s',
+                    count($createdTasks),
+                    count($errors) > 0 ? sprintf(', %d erreur(s)', count($errors)) : ''
+                )
+            ];
+
+        } catch (\Exception $e) {
+            $this->logger->error('Erreur lors de la gestion des tâches', [
+                'objective_id' => $objective->getId(),
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            throw new \Exception('Erreur lors de la gestion des tâches: ' . $e->getMessage(), 0, $e);
+        }
+    }
 
 }

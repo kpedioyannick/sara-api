@@ -308,7 +308,7 @@
                           <span class="font-medium text-gray-800 dark:text-white/90" x-text="notification.requestTitle"></span>
                         </template>
                       </span>
-                      <p class="text-xs text-gray-600 dark:text-gray-300 mb-1" x-text="notification.content.length > 60 ? notification.content.substring(0, 60) + '...' : notification.content"></p>
+                      <p class="text-xs text-gray-600 dark:text-gray-300 mb-1" x-text="notification.content && notification.content.length > 60 ? notification.content.substring(0, 60) + '...' : (notification.content || '')"></p>
                       <span
                         class="text-theme-xs flex items-center gap-2 text-gray-500 dark:text-gray-400"
                       >

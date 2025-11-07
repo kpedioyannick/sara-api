@@ -316,34 +316,7 @@ class ObjectiveController extends AbstractController
 
         // Récupérer les commentaires avec les entités complètes pour l'affichage
         $comments = $objective->getComments()->toArray();
-        $commentsData = [];
-        foreach ($comments as $comment) {
-            $commentArray = $comment->toArray();
-            // Ajouter les données complètes de l'auteur pour l'affichage
-            if ($comment->getAuthorType() === 'coach' && $comment->getCoach()) {
-                $commentArray['author'] = [
-                    'firstName' => $comment->getCoach()->getFirstName(),
-                    'lastName' => $comment->getCoach()->getLastName(),
-                ];
-            } elseif ($comment->getAuthorType() === 'parent' && $comment->getParent()) {
-                $commentArray['author'] = [
-                    'firstName' => $comment->getParent()->getFirstName(),
-                    'lastName' => $comment->getParent()->getLastName(),
-                ];
-            } elseif ($comment->getAuthorType() === 'specialist' && $comment->getSpecialist()) {
-                $commentArray['author'] = [
-                    'firstName' => $comment->getSpecialist()->getFirstName(),
-                    'lastName' => $comment->getSpecialist()->getLastName(),
-                ];
-            } elseif ($comment->getAuthorType() === 'student' && $comment->getStudent()) {
-                $commentArray['author'] = [
-                    'firstName' => $comment->getStudent()->getFirstName(),
-                    'lastName' => $comment->getStudent()->getLastName(),
-                ];
-            }
-            $commentArray['createdAt'] = $comment->getCreatedAt()?->format('Y-m-d H:i:s');
-            $commentsData[] = $commentArray;
-        }
+        $commentsData = array_map(fn($comment) => $comment->toArray(), $comments);
 
         // Données de l'objectif
         $objectiveData = [
@@ -507,9 +480,9 @@ class ObjectiveController extends AbstractController
 
         $data = json_decode($request->getContent(), true);
         
-        $comment = Comment::createForCoach([
+        $comment = Comment::createForUser([
             'content' => $data['content'] ?? '',
-        ], $coach, $objective);
+        ], $coach, $objective, null);
 
         // Validation
         $errors = $this->validator->validate($comment);
@@ -546,7 +519,7 @@ class ObjectiveController extends AbstractController
         }
 
         // Vérifier que le commentaire appartient au coach
-        if ($comment->getAuthorType() !== 'coach' || $comment->getCoach() !== $coach) {
+        if ($comment->getAuthor() !== $coach) {
             return new JsonResponse(['success' => false, 'message' => 'Vous n\'avez pas le droit de modifier ce commentaire'], 403);
         }
 
@@ -590,7 +563,7 @@ class ObjectiveController extends AbstractController
         }
 
         // Vérifier que le commentaire appartient au coach
-        if ($comment->getAuthorType() !== 'coach' || $comment->getCoach() !== $coach) {
+        if ($comment->getAuthor() !== $coach) {
             return new JsonResponse(['success' => false, 'message' => 'Vous n\'avez pas le droit de supprimer ce commentaire'], 403);
         }
 
@@ -598,6 +571,59 @@ class ObjectiveController extends AbstractController
         $this->em->flush();
 
         return new JsonResponse(['success' => true, 'message' => 'Commentaire supprimé avec succès']);
+    }
+
+    #[Route('/admin/objectives/{id}/generate-tasks', name: 'admin_objectives_generate_tasks', methods: ['POST'])]
+    public function generateTasks(int $id, Request $request): JsonResponse
+    {
+        try {
+            $coach = $this->getCurrentCoach($this->coachRepository, $this->security);
+            if (!$coach) {
+                return new JsonResponse(['success' => false, 'message' => 'Coach non trouvé'], 404);
+            }
+
+            $objective = $this->objectiveRepository->find($id);
+            if (!$objective || $objective->getCoach() !== $coach) {
+                return new JsonResponse(['success' => false, 'message' => 'Objectif non trouvé'], 404);
+            }
+
+            $data = json_decode($request->getContent(), true);
+            $type = $data['type'] ?? $objective->getCategory() ?? 'general';
+
+            // Générer les suggestions avec SmartObjectiveService
+            try {
+                $suggestions = $this->smartObjectiveService->generateSuggestions(
+                    $objective->getTitle() ?? $objective->getDescription(),
+                    $type
+                );
+
+                // Retourner uniquement les tâches suggérées
+                return new JsonResponse([
+                    'success' => true,
+                    'tasks' => $suggestions['tasks'] ?? [],
+                    'message' => count($suggestions['tasks'] ?? []) . ' tâche(s) suggérée(s)'
+                ]);
+            } catch (\Exception $e) {
+                $this->logger->error('Erreur lors de la génération des suggestions de tâches', [
+                    'objective_id' => $id,
+                    'error' => $e->getMessage()
+                ]);
+                return new JsonResponse([
+                    'success' => false,
+                    'message' => 'Erreur lors de la génération des suggestions : ' . $e->getMessage()
+                ], 500);
+            }
+        } catch (\Exception $e) {
+            $this->logger->error('Erreur non capturée lors de la génération de tâches', [
+                'objective_id' => $id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return new JsonResponse([
+                'success' => false,
+                'message' => 'Erreur serveur: ' . $e->getMessage()
+            ], 500);
+        }
     }
 }
 

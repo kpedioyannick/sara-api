@@ -37,6 +37,11 @@ services:
         arguments:
             $openaiApiKey: '%env(default::OPENAI_API_KEY)%'
 
+    # Request AI Service
+    App\Service\RequestAIService:
+        arguments:
+            $openaiApiKey: '%env(default::OPENAI_API_KEY)%'
+
     # HttpClient pour Mercure (ignore SSL verification)
     mercure.http_client:
         class: Symfony\Component\HttpClient\HttpClient

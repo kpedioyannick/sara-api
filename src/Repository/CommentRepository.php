@@ -33,5 +33,18 @@ class CommentRepository extends ServiceEntityRepository
             $this->getEntityManager()->flush();
         }
     }
+
+    /**
+     * Retourne tous les commentaires d'une activité, triés par date de création
+     */
+    public function findByActivity(int $activityId): array
+    {
+        return $this->createQueryBuilder('c')
+            ->where('c.activity = :activityId')
+            ->setParameter('activityId', $activityId)
+            ->orderBy('c.createdAt', 'ASC')
+            ->getQuery()
+            ->getResult();
+    }
 }
 
