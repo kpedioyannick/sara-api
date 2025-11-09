@@ -4,6 +4,7 @@ namespace App\Service\Path;
 
 use App\Enum\ModuleType;
 use App\Entity\Module;
+use App\Entity\Path\Path;
 
 class ModuleConversionService
 {
@@ -13,7 +14,11 @@ class ModuleConversionService
         string $appUrl = 'http://localhost:8000'
     ) {
         $this->appUrl = $appUrl;
+        //$this->h5pDir = '/var/www/sara_h5p/';
+        $this->h5pDir = '/var/php/sara-api/sara_h5p';
     }
+
+
 
     public function convertIAOutputToModuleFormat(ModuleType $moduleType, array $iaOutput): array
     {
@@ -149,6 +154,40 @@ class ModuleConversionService
     {
         $media = $this->getMedia($iaData);
 
+        // Si on a plusieurs questions, utiliser le format QuestionSet
+        if (isset($iaData['questions']) && is_array($iaData['questions']) && count($iaData['questions']) > 1) {
+            return [
+                'questions' => array_map(function($question) use ($media) {
+                    return [
+                        'library' => ModuleType::MULTI_CHOICE->getLibrary(),
+                        'params' => [
+                            'media' => $media,
+                            'question' => $question['question'] ?? '',
+                            'answers' => array_map(function($answer) {
+                                return [
+                                    'text' => $answer['text'] ?? '',
+                                    'correct' => $answer['correct'] ?? false,
+                                    'tipsAndFeedback' => [
+                                        'tip' => $answer['tipsAndFeedback']['tip'] ?? '',
+                                        'chosenFeedback' => $answer['tipsAndFeedback']['chosenFeedback'] ?? $answer['tipsAndFeedback']['feedback'] ?? '',
+                                        'notChosenFeedback' => $answer['tipsAndFeedback']['notChosenFeedback'] ?? ''
+                                    ]
+                                ];
+                            }, $question['answers'] ?? [])
+                        ]
+                    ];
+                }, $iaData['questions'])
+            ];
+        }
+
+        // Format simple : une seule question
+        // Si on a un tableau questions avec une seule question, extraire la première
+        if (isset($iaData['questions']) && is_array($iaData['questions']) && count($iaData['questions']) === 1) {
+            $question = $iaData['questions'][0];
+            $iaData['question'] = $question['question'] ?? '';
+            $iaData['answers'] = $question['answers'] ?? [];
+        }
+
         return [
             'media' => $media,
             'question' => $iaData['question'] ?? '',
@@ -158,7 +197,8 @@ class ModuleConversionService
                     'correct' => $answer['correct'] ?? false,
                     'tipsAndFeedback' => [
                         'tip' => $answer['tipsAndFeedback']['tip'] ?? '',
-                        'feedback' => $answer['tipsAndFeedback']['feedback'] ?? ''
+                        'chosenFeedback' => $answer['tipsAndFeedback']['chosenFeedback'] ?? $answer['tipsAndFeedback']['feedback'] ?? '',
+                        'notChosenFeedback' => $answer['tipsAndFeedback']['notChosenFeedback'] ?? ''
                     ]
                 ];
             }, $iaData['answers'] ?? [])
@@ -198,10 +238,62 @@ class ModuleConversionService
     {
         $media = $this->getMedia($iaData);
 
+        // Si on a plusieurs questions, utiliser le format QuestionSet
+        if (isset($iaData['questions']) && is_array($iaData['questions']) && count($iaData['questions']) > 1) {
+            return [
+                'questions' => array_map(function($question) use ($media) {
+                    // Gérer différents formats de réponse correcte
+                    $correct = false;
+                    if (isset($question['correct'])) {
+                        $correctValue = $question['correct'];
+                        if (is_bool($correctValue)) {
+                            $correct = $correctValue;
+                        } elseif (is_string($correctValue)) {
+                            $correct = strtolower($correctValue) === 'true' || $correctValue === '1';
+                        } elseif (is_numeric($correctValue)) {
+                            $correct = (bool)$correctValue;
+                        }
+                    }
+
+                    return [
+                        'library' => ModuleType::TRUE_FALSE->getLibrary(),
+                        'params' => [
+                            'media' => $media,
+                            'question' => $question['question'] ?? '',
+                            'correct' => $correct ? 'true' : 'false'
+                        ]
+                    ];
+                }, $iaData['questions'])
+            ];
+        }
+
+        // Format simple : une seule question
+        // Si on a un tableau questions avec une seule question, extraire la première
+        if (isset($iaData['questions']) && is_array($iaData['questions']) && count($iaData['questions']) === 1) {
+            $question = $iaData['questions'][0];
+            $iaData['question'] = $question['question'] ?? '';
+            $iaData['correct'] = $question['correct'] ?? false;
+        }
+
+        // Gérer différents formats de réponse correcte
+        $correct = false;
+        if (isset($iaData['correct'])) {
+            $correctValue = $iaData['correct'];
+            if (is_bool($correctValue)) {
+                $correct = $correctValue;
+            } elseif (is_string($correctValue)) {
+                $correct = strtolower($correctValue) === 'true' || $correctValue === '1';
+            } elseif (is_numeric($correctValue)) {
+                $correct = (bool)$correctValue;
+            }
+        } elseif (isset($iaData['answer']) && is_bool($iaData['answer'])) {
+            $correct = $iaData['answer'];
+        }
+
         return [
             'media' => $media,
             'question' => $iaData['question'] ?? '',
-            'correct' => $iaData['correct']  && $iaData['correct'] !== 'false' ? 'true':  'false'
+            'correct' => $correct ? 'true' : 'false'
         ];
     }
 
@@ -1072,18 +1164,24 @@ class ModuleConversionService
         ];
     }
 
-    public function convertInteractiveBookParent($module): array
+    public function convertInteractiveBookParent($modules): array
     {
         $chapters = [];
-        foreach ($module->getChildren() as $child) {
-            foreach ($child->getContent() as $key => $contentItem) {
-                $content = [];
-                $convertedContent = $this->convertIAOutputToModuleFormat($child->getType(), $contentItem);
-                $content[] = [
+        foreach ($modules as $child) {
+            $h5pContent = $child->getH5pContent();
+            if (!$h5pContent) {
+                continue;
+            }
+            
+            // h5pContent est déjà au format H5P converti (un array)
+            // On ne doit pas le reconvertir
+            $content = [];
+            $convertedContent = $h5pContent; // Utiliser directement le contenu H5P déjà converti
+            $content[] = [
                     'content' => [
                         'library' => $child->getType()->getLibrary(),
                         'params' => $convertedContent,
-                        'subContentId' => 'submodule-' . $child->getId() . '-' . $key ,
+                        'subContentId' => 'submodule-' . $child->getId() . '-0',
                         'metadata' => [
                             'contentType' => 'Text',
                             'license' => 'U',
@@ -1102,20 +1200,19 @@ class ModuleConversionService
                     'params' => [
                         'content' => $content
                     ],
-                    'subContentId' => 'module-' . $child->getId() . '-' . $key ,
+                    'subContentId' => 'module-' . $child->getId() . '-0',
                     'metadata' => [
                         'contentType' => 'Column',
                         'license' => 'U',
                         'title' => $child->getTitle()
                     ]
                 ];
-            }
         }
 
         return [
             'showCoverPage' => false,
             'bookCover' => [
-                'coverDescription' => $module->getTitle(),
+                'coverDescription' => !empty($modules) ? $modules[0]->getTitle() : 'Livre interactif',
                 'coverMedium' => ''
             ],
             'chapters' => $chapters,
@@ -1451,5 +1548,96 @@ class ModuleConversionService
             'paragraphs' => $items
         ]);
     }
+
+    private function handleColumnContent(Module $module, $content)
+    {
+        $contentH5P = [];
+        foreach ($content as $item) {
+            $contentH5P[] = ['content' => [
+                'params' => $item,
+                'library' => $module->getType()->getLibrary(),
+                'useSeparator' => 'auto'
+            ]];
+        }
+      
+
+        $pathH5P = $this->createPathH5P($module);
+        $this->saveH5PFiles($pathH5P, [
+            'content' => $contentH5P
+        ], true);
+
+        return $pathH5P;
+    }
+
+    private function handleSingleContent(Path $path, $content)
+    {
+        $this->saveH5PFiles($path, $content, false);
+    }
+
+
+
+    public function saveH5PFiles(Path $path, array $data, $isColumn = false): void
+    {
+        $directory =  $this->getContentDirectory($path->getId());
+        if (!is_dir($directory)) {
+            mkdir($directory, 0755, true);
+        }
+        $this->saveContentJson($directory, $data);
+        $this->saveH5pJson($directory, $path,  $isColumn);
+    }
+
+    private function saveContentJson(string $directory, array $data): void
+    {
+        file_put_contents(
+            $directory . '/content.json',
+            json_encode($data, JSON_PRETTY_PRINT)
+        );
+    }
+
+    private function saveH5pJson(string $directory, Path $path): void
+    {
+        $mainLibraryObject =  ModuleType::INTERACTIVE_BOOK->getLibrary();
+
+        $mainLibrary = explode(' ', $mainLibraryObject)[0];
+        $version = explode(' ', $mainLibraryObject)[1];
+        list($majorVersion, $minorVersion) = explode('.', $version);
+    
+        file_put_contents(
+            $directory . '/h5p.json',
+            json_encode([
+                'title' => $this->cleanTitle($path->getTitle()),
+                'language' => 'fr',
+                'mainLibrary' => $mainLibrary,
+                'embedTypes' => [
+                    'iframe'
+                ],
+                'license' => 'U',
+                'preloadedDependencies' => [
+                    [
+                        'machineName' => $mainLibrary === 'H5P.Timeline' ? 'TimelineJS' : $mainLibrary,
+                        'majorVersion' => $majorVersion,
+                        'minorVersion' => $minorVersion
+                    ]
+                ],
+                'defaultLanguage' => 'fr',
+                'extraTitle' => $path->getTitle()
+            ], JSON_PRETTY_PRINT)
+        );
+    }
+
+    private function cleanTitle($title) {
+        // Traitement du titre, par exemple nettoyage
+        $title = iconv('UTF-8', 'ASCII//TRANSLIT', $title);  // Suppression des accents
+        $title = preg_replace('/[^\w\s-]/', '', $title);     // Suppression des caractères spéciaux
+        $title = preg_replace('/\s+/', ' ', $title);          // Remplacement des espaces multiples
+        return $title;
+    }
+
+    public function getContentDirectory($id): string
+    {
+        return $this->h5pDir . sprintf('/content/%d', $id);
+    }
+
+
 } 
 

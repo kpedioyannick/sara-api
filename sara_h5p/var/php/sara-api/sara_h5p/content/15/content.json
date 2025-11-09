@@ -1,0 +1,254 @@
+{
+    "showCoverPage": false,
+    "bookCover": {
+        "coverDescription": "MultiChoice - Module 1",
+        "coverMedium": ""
+    },
+    "chapters": [
+        {
+            "library": "H5P.Column 1.18",
+            "params": {
+                "content": [
+                    {
+                        "content": {
+                            "library": "H5P.MultiChoice 1.16",
+                            "params": {
+                                "questions": [
+                                    {
+                                        "library": "H5P.MultiChoice 1.16",
+                                        "params": {
+                                            "media": [],
+                                            "question": "Quelle est la probabilit\u00e9 de tirer une carte rouge d'un jeu de 52 cartes ?",
+                                            "answers": [
+                                                {
+                                                    "text": "1\/2",
+                                                    "correct": false,
+                                                    "tipsAndFeedback": {
+                                                        "tip": "",
+                                                        "chosenFeedback": "Cette r\u00e9ponse est incorrecte. Il y a 26 cartes rouges sur 52.",
+                                                        "notChosenFeedback": ""
+                                                    }
+                                                },
+                                                {
+                                                    "text": "1\/4",
+                                                    "correct": false,
+                                                    "tipsAndFeedback": {
+                                                        "tip": "",
+                                                        "chosenFeedback": "Cette r\u00e9ponse est incorrecte. Il y a 26 cartes rouges sur 52.",
+                                                        "notChosenFeedback": ""
+                                                    }
+                                                },
+                                                {
+                                                    "text": "1\/2",
+                                                    "correct": true,
+                                                    "tipsAndFeedback": {
+                                                        "tip": "",
+                                                        "chosenFeedback": "Correct ! Il y a 26 cartes rouges sur 52.",
+                                                        "notChosenFeedback": ""
+                                                    }
+                                                },
+                                                {
+                                                    "text": "1\/3",
+                                                    "correct": false,
+                                                    "tipsAndFeedback": {
+                                                        "tip": "",
+                                                        "chosenFeedback": "Cette r\u00e9ponse est incorrecte. Il y a 26 cartes rouges sur 52.",
+                                                        "notChosenFeedback": ""
+                                                    }
+                                                }
+                                            ]
+                                        }
+                                    },
+                                    {
+                                        "library": "H5P.MultiChoice 1.16",
+                                        "params": {
+                                            "media": [],
+                                            "question": "Si on lance un d\u00e9 \u00e0 six faces, quelle est la probabilit\u00e9 d'obtenir un nombre pair ?",
+                                            "answers": [
+                                                {
+                                                    "text": "1\/6",
+                                                    "correct": false,
+                                                    "tipsAndFeedback": {
+                                                        "tip": "",
+                                                        "chosenFeedback": "Cette r\u00e9ponse est incorrecte. Il y a trois nombres pairs sur six.",
+                                                        "notChosenFeedback": ""
+                                                    }
+                                                },
+                                                {
+                                                    "text": "1\/3",
+                                                    "correct": false,
+                                                    "tipsAndFeedback": {
+                                                        "tip": "",
+                                                        "chosenFeedback": "Cette r\u00e9ponse est incorrecte. Il y a trois nombres pairs sur six.",
+                                                        "notChosenFeedback": ""
+                                                    }
+                                                },
+                                                {
+                                                    "text": "1\/2",
+                                                    "correct": true,
+                                                    "tipsAndFeedback": {
+                                                        "tip": "",
+                                                        "chosenFeedback": "Correct ! Les nombres pairs sont 2, 4 et 6.",
+                                                        "notChosenFeedback": ""
+                                                    }
+                                                },
+                                                {
+                                                    "text": "2\/3",
+                                                    "correct": false,
+                                                    "tipsAndFeedback": {
+                                                        "tip": "",
+                                                        "chosenFeedback": "Cette r\u00e9ponse est incorrecte. Il y a trois nombres pairs sur six.",
+                                                        "notChosenFeedback": ""
+                                                    }
+                                                }
+                                            ]
+                                        }
+                                    },
+                                    {
+                                        "library": "H5P.MultiChoice 1.16",
+                                        "params": {
+                                            "media": [],
+                                            "question": "Dans une urne contenant 5 boules rouges et 3 boules bleues, quelle est la probabilit\u00e9 de tirer une boule bleue ?",
+                                            "answers": [
+                                                {
+                                                    "text": "3\/8",
+                                                    "correct": true,
+                                                    "tipsAndFeedback": {
+                                                        "tip": "",
+                                                        "chosenFeedback": "Correct ! Il y a 3 boules bleues sur un total de 8.",
+                                                        "notChosenFeedback": ""
+                                                    }
+                                                },
+                                                {
+                                                    "text": "1\/4",
+                                                    "correct": false,
+                                                    "tipsAndFeedback": {
+                                                        "tip": "",
+                                                        "chosenFeedback": "Cette r\u00e9ponse est incorrecte. Il y a 3 boules bleues sur 8.",
+                                                        "notChosenFeedback": ""
+                                                    }
+                                                },
+                                                {
+                                                    "text": "5\/8",
+                                                    "correct": false,
+                                                    "tipsAndFeedback": {
+                                                        "tip": "",
+                                                        "chosenFeedback": "Cette r\u00e9ponse est incorrecte. Il y a 3 boules bleues sur 8.",
+                                                        "notChosenFeedback": ""
+                                                    }
+                                                },
+                                                {
+                                                    "text": "1\/3",
+                                                    "correct": false,
+                                                    "tipsAndFeedback": {
+                                                        "tip": "",
+                                                        "chosenFeedback": "Cette r\u00e9ponse est incorrecte. Il y a 3 boules bleues sur 8.",
+                                                        "notChosenFeedback": ""
+                                                    }
+                                                }
+                                            ]
+                                        }
+                                    }
+                                ]
+                            },
+                            "subContentId": "submodule-24-0",
+                            "metadata": {
+                                "contentType": "Text",
+                                "license": "U",
+                                "title": "MultiChoice - Module 1",
+                                "authors": [],
+                                "changes": []
+                            }
+                        },
+                        "useSeparator": "auto"
+                    }
+                ]
+            },
+            "subContentId": "module-24-0",
+            "metadata": {
+                "contentType": "Column",
+                "license": "U",
+                "title": "MultiChoice - Module 1"
+            }
+        },
+        {
+            "library": "H5P.Column 1.18",
+            "params": {
+                "content": [
+                    {
+                        "content": {
+                            "library": "H5P.TrueFalse 1.8",
+                            "params": {
+                                "questions": [
+                                    {
+                                        "library": "H5P.TrueFalse 1.8",
+                                        "params": {
+                                            "media": [],
+                                            "question": "La moyenne arithm\u00e9tique est toujours \u00e9gale \u00e0 la m\u00e9diane dans un ensemble de donn\u00e9es.",
+                                            "correct": "false"
+                                        }
+                                    },
+                                    {
+                                        "library": "H5P.TrueFalse 1.8",
+                                        "params": {
+                                            "media": [],
+                                            "question": "Un \u00e9chantillon al\u00e9atoire est une m\u00e9thode de collecte de donn\u00e9es qui donne \u00e0 chaque individu une chance \u00e9gale d'\u00eatre s\u00e9lectionn\u00e9.",
+                                            "correct": "true"
+                                        }
+                                    },
+                                    {
+                                        "library": "H5P.TrueFalse 1.8",
+                                        "params": {
+                                            "media": [],
+                                            "question": "Les donn\u00e9es qualitatives sont des donn\u00e9es qui peuvent \u00eatre mesur\u00e9es num\u00e9riquement.",
+                                            "correct": "false"
+                                        }
+                                    },
+                                    {
+                                        "library": "H5P.TrueFalse 1.8",
+                                        "params": {
+                                            "media": [],
+                                            "question": "La variance est une mesure de la dispersion des donn\u00e9es par rapport \u00e0 la moyenne.",
+                                            "correct": "true"
+                                        }
+                                    },
+                                    {
+                                        "library": "H5P.TrueFalse 1.8",
+                                        "params": {
+                                            "media": [],
+                                            "question": "Un diagramme en barres est une repr\u00e9sentation graphique des donn\u00e9es quantitatives uniquement.",
+                                            "correct": "false"
+                                        }
+                                    }
+                                ]
+                            },
+                            "subContentId": "submodule-25-0",
+                            "metadata": {
+                                "contentType": "Text",
+                                "license": "U",
+                                "title": "TrueFalse - Module 2",
+                                "authors": [],
+                                "changes": []
+                            }
+                        },
+                        "useSeparator": "auto"
+                    }
+                ]
+            },
+            "subContentId": "module-25-0",
+            "metadata": {
+                "contentType": "Column",
+                "license": "U",
+                "title": "TrueFalse - Module 2"
+            }
+        }
+    ],
+    "behaviour": {
+        "baseColor": "#1768c4",
+        "defaultTableOfContents": true,
+        "progressIndicators": true,
+        "progressAuto": true,
+        "displaySummary": true,
+        "enableRetry": true
+    }
+}

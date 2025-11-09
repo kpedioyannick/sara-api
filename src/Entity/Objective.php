@@ -10,6 +10,23 @@ use Doctrine\ORM\Mapping as ORM;
 #[ORM\Entity(repositoryClass: ObjectiveRepository::class)]
 class Objective
 {
+    // Statuts de l'objectif
+    public const STATUS_MODIFICATION = 'modification';
+    public const STATUS_PENDING_VALIDATION = 'pending_validation';
+    public const STATUS_VALIDATED = 'validated';
+    public const STATUS_IN_ACTION = 'in_action';
+    public const STATUS_COMPLETED = 'completed';
+    public const STATUS_PAUSED = 'paused';
+
+    public const STATUSES = [
+        self::STATUS_MODIFICATION => 'En cours de Modification',
+        self::STATUS_PENDING_VALIDATION => 'Attente de Validation par Coach',
+        self::STATUS_VALIDATED => 'Validé par le coach',
+        self::STATUS_IN_ACTION => 'En Action',
+        self::STATUS_COMPLETED => 'Terminé',
+        self::STATUS_PAUSED => 'En pause',
+    ];
+
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
@@ -28,7 +45,7 @@ class Objective
     private ?string $category = null;
 
     #[ORM\Column(length: 50)]
-    private ?string $status = 'pending';
+    private ?string $status = self::STATUS_MODIFICATION;
     #[ORM\Column(nullable: true)]
     private ?int $progress = 0;
 
@@ -353,7 +370,7 @@ class Objective
         $objective->setDescription($data['description']);
         $objective->setStudent($student);
         $objective->setCoach($coach);
-        $objective->setStatus($data['status'] ?? 'pending');
+        $objective->setStatus($data['status'] ?? self::STATUS_MODIFICATION);
         $objective->setCategory($data['category'] ?? 'general');
         $objective->setProgress($data['progress'] ?? 0);
         
@@ -367,5 +384,41 @@ class Objective
     public static function createForCoach(array $data, Student $student, Coach $coach): self
     {
         return self::create($data, $student, $coach);
+    }
+
+    /**
+     * Vérifie si on peut créer ou modifier des tâches pour cet objectif
+     * Seulement si le statut est "En cours de Modification" ou "Attente de Validation par Coach"
+     */
+    public function canModifyTasks(): bool
+    {
+        return in_array($this->status, [
+            self::STATUS_MODIFICATION,
+            self::STATUS_PENDING_VALIDATION,
+        ]);
+    }
+
+    /**
+     * Retourne le message descriptif du statut
+     */
+    public function getStatusMessage(): string
+    {
+        return match($this->status) {
+            self::STATUS_MODIFICATION => 'Cet objectif est en cours de modification. Vous pouvez créer et modifier les tâches.',
+            self::STATUS_PENDING_VALIDATION => 'Cet objectif est en attente de validation par le coach. Vous pouvez encore créer et modifier les tâches.',
+            self::STATUS_VALIDATED => 'Cet objectif a été validé par le coach. Les tâches sont en lecture seule.',
+            self::STATUS_IN_ACTION => 'Cet objectif est en action. Les tâches sont en cours d\'exécution et ne peuvent plus être modifiées.',
+            self::STATUS_COMPLETED => 'Cet objectif est terminé. Toutes les tâches sont finalisées.',
+            self::STATUS_PAUSED => 'Cet objectif est en pause. Les tâches sont en lecture seule.',
+            default => 'Statut inconnu',
+        };
+    }
+
+    /**
+     * Retourne le label du statut
+     */
+    public function getStatusLabel(): string
+    {
+        return self::STATUSES[$this->status] ?? $this->status;
     }
 }

@@ -70,4 +70,17 @@ class TaskRepository extends ServiceEntityRepository
                   ->getQuery()
                   ->getResult();
     }
+
+    /**
+     * Recherche des tâches assignées à un spécialiste
+     */
+    public function findBySpecialist($specialist): array
+    {
+        return $this->createQueryBuilder('t')
+            ->where('t.specialist = :specialist')
+            ->setParameter('specialist', $specialist)
+            ->orderBy('t.createdAt', 'DESC')
+            ->getQuery()
+            ->getResult();
+    }
 }

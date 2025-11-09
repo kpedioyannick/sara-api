@@ -19,6 +19,22 @@ class Activity
         self::TYPE_WITH_ADULT => 'Avec un adulte',
     ];
 
+    // Statuts de l'activité
+    public const STATUS_MODIFICATION = 'modification';
+    public const STATUS_PENDING_VALIDATION = 'pending_validation';
+    public const STATUS_VALIDATED = 'validated';
+    public const STATUS_PUBLISHED = 'published';
+
+    public const STATUSES = [
+        self::STATUS_MODIFICATION => 'En cours de Modification',
+        self::STATUS_PENDING_VALIDATION => 'Attente de Validation par Coach',
+        self::STATUS_VALIDATED => 'Validé par le coach',
+        self::STATUS_PUBLISHED => 'Publié',
+    ];
+
+    #[ORM\Column(length: 50, nullable: true)]
+    private ?string $status = self::STATUS_MODIFICATION;
+
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
@@ -251,6 +267,10 @@ class Activity
             'ageRange' => $this->getAgeRange(),
             'type' => $this->getType(),
             'typeLabel' => self::TYPES[$this->getType()] ?? $this->getType(),
+            'status' => $this->getStatus(),
+            'statusLabel' => $this->getStatusLabel(),
+            'statusMessage' => $this->getStatusMessage(),
+            'canModify' => $this->canModify(),
             'objectives' => $this->getObjectives(),
             'workedPoints' => $this->getWorkedPoints(),
             'category' => $this->getCategory()?->toArray(),
@@ -260,6 +280,51 @@ class Activity
             'createdAt' => $this->getCreatedAt()?->format('Y-m-d H:i:s'),
             'updatedAt' => $this->getUpdatedAt()?->format('Y-m-d H:i:s')
         ];
+    }
+
+    public function getStatus(): ?string
+    {
+        return $this->status ?? self::STATUS_MODIFICATION;
+    }
+
+    public function setStatus(?string $status): static
+    {
+        $this->status = $status ?? self::STATUS_MODIFICATION;
+        return $this;
+    }
+
+    /**
+     * Vérifie si on peut modifier cette activité
+     * Seulement si le statut est "En cours de Modification" ou "Attente de Validation par Coach"
+     */
+    public function canModify(): bool
+    {
+        return in_array($this->getStatus(), [
+            self::STATUS_MODIFICATION,
+            self::STATUS_PENDING_VALIDATION,
+        ]);
+    }
+
+    /**
+     * Retourne le message descriptif du statut
+     */
+    public function getStatusMessage(): string
+    {
+        return match($this->getStatus()) {
+            self::STATUS_MODIFICATION => 'Cette activité est en cours de modification. Vous pouvez la modifier librement.',
+            self::STATUS_PENDING_VALIDATION => 'Cette activité est en attente de validation par le coach. Vous pouvez encore la modifier.',
+            self::STATUS_VALIDATED => 'Cette activité a été validée par le coach. Elle ne peut plus être modifiée.',
+            self::STATUS_PUBLISHED => 'Cette activité est publiée. Elle ne peut plus être modifiée.',
+            default => 'Statut inconnu',
+        };
+    }
+
+    /**
+     * Retourne le label du statut
+     */
+    public function getStatusLabel(): string
+    {
+        return self::STATUSES[$this->getStatus()] ?? $this->getStatus();
     }
 
     public static function create(array $data, User $createdBy, ActivityCategory $category): self
@@ -273,6 +338,7 @@ class Activity
         $activity->setObjectives($data['objectives'] ?? []);
         $activity->setWorkedPoints($data['workedPoints'] ?? []);
         $activity->setCreatedBy($createdBy);
+        $activity->setStatus($data['status'] ?? self::STATUS_MODIFICATION);
 
         return $activity;
     }

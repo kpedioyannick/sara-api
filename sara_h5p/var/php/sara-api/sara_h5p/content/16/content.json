@@ -1,0 +1,254 @@
+{
+    "showCoverPage": false,
+    "bookCover": {
+        "coverDescription": "MultiChoice - Module 1",
+        "coverMedium": ""
+    },
+    "chapters": [
+        {
+            "library": "H5P.Column 1.18",
+            "params": {
+                "content": [
+                    {
+                        "content": {
+                            "library": "H5P.MultiChoice 1.16",
+                            "params": {
+                                "questions": [
+                                    {
+                                        "library": "H5P.MultiChoice 1.16",
+                                        "params": {
+                                            "media": [],
+                                            "question": "Dans un tirage au sort, si une urne contient 3 boules rouges, 2 boules bleues et 5 boules vertes, quelle est la probabilit\u00e9 de tirer une boule rouge ?",
+                                            "answers": [
+                                                {
+                                                    "text": "1\/5",
+                                                    "correct": false,
+                                                    "tipsAndFeedback": {
+                                                        "tip": "",
+                                                        "chosenFeedback": "Essayez de recalculer la probabilit\u00e9 en tenant compte du nombre total de boules.",
+                                                        "notChosenFeedback": ""
+                                                    }
+                                                },
+                                                {
+                                                    "text": "3\/10",
+                                                    "correct": true,
+                                                    "tipsAndFeedback": {
+                                                        "tip": "",
+                                                        "chosenFeedback": "Correct ! La probabilit\u00e9 est calcul\u00e9e en divisant le nombre de boules rouges par le total.",
+                                                        "notChosenFeedback": ""
+                                                    }
+                                                },
+                                                {
+                                                    "text": "1\/3",
+                                                    "correct": false,
+                                                    "tipsAndFeedback": {
+                                                        "tip": "",
+                                                        "chosenFeedback": "Revoyez le calcul total des boules pour trouver la bonne fraction.",
+                                                        "notChosenFeedback": ""
+                                                    }
+                                                },
+                                                {
+                                                    "text": "2\/5",
+                                                    "correct": false,
+                                                    "tipsAndFeedback": {
+                                                        "tip": "",
+                                                        "chosenFeedback": "Pensez \u00e0 la somme des boules pour d\u00e9terminer la bonne r\u00e9ponse.",
+                                                        "notChosenFeedback": ""
+                                                    }
+                                                }
+                                            ]
+                                        }
+                                    },
+                                    {
+                                        "library": "H5P.MultiChoice 1.16",
+                                        "params": {
+                                            "media": [],
+                                            "question": "Si on lance un d\u00e9 \u00e0 six faces, quelle est la probabilit\u00e9 d'obtenir un nombre sup\u00e9rieur \u00e0 4 ?",
+                                            "answers": [
+                                                {
+                                                    "text": "1\/6",
+                                                    "correct": false,
+                                                    "tipsAndFeedback": {
+                                                        "tip": "",
+                                                        "chosenFeedback": "R\u00e9fl\u00e9chissez au nombre de r\u00e9sultats favorables par rapport au nombre total.",
+                                                        "notChosenFeedback": ""
+                                                    }
+                                                },
+                                                {
+                                                    "text": "1\/3",
+                                                    "correct": true,
+                                                    "tipsAndFeedback": {
+                                                        "tip": "",
+                                                        "chosenFeedback": "Bien jou\u00e9 ! Il y a deux r\u00e9sultats favorables (5 et 6) sur six possibles.",
+                                                        "notChosenFeedback": ""
+                                                    }
+                                                },
+                                                {
+                                                    "text": "1\/2",
+                                                    "correct": false,
+                                                    "tipsAndFeedback": {
+                                                        "tip": "",
+                                                        "chosenFeedback": "V\u00e9rifiez le nombre de r\u00e9sultats sup\u00e9rieurs \u00e0 4 sur le d\u00e9.",
+                                                        "notChosenFeedback": ""
+                                                    }
+                                                },
+                                                {
+                                                    "text": "2\/6",
+                                                    "correct": false,
+                                                    "tipsAndFeedback": {
+                                                        "tip": "",
+                                                        "chosenFeedback": "Bien que 2 soit le bon nombre de r\u00e9sultats, simplifiez pour trouver la bonne fraction.",
+                                                        "notChosenFeedback": ""
+                                                    }
+                                                }
+                                            ]
+                                        }
+                                    },
+                                    {
+                                        "library": "H5P.MultiChoice 1.16",
+                                        "params": {
+                                            "media": [],
+                                            "question": "Dans un jeu de cartes standard de 52 cartes, quelle est la probabilit\u00e9 de tirer un As ?",
+                                            "answers": [
+                                                {
+                                                    "text": "1\/13",
+                                                    "correct": true,
+                                                    "tipsAndFeedback": {
+                                                        "tip": "",
+                                                        "chosenFeedback": "Exact ! Il y a 4 As dans un jeu de 52 cartes.",
+                                                        "notChosenFeedback": ""
+                                                    }
+                                                },
+                                                {
+                                                    "text": "1\/26",
+                                                    "correct": false,
+                                                    "tipsAndFeedback": {
+                                                        "tip": "",
+                                                        "chosenFeedback": "Rappelez-vous qu'il y a 4 As et non 2 dans un jeu de cartes.",
+                                                        "notChosenFeedback": ""
+                                                    }
+                                                },
+                                                {
+                                                    "text": "1\/4",
+                                                    "correct": false,
+                                                    "tipsAndFeedback": {
+                                                        "tip": "",
+                                                        "chosenFeedback": "Reconsid\u00e9rez le nombre total de cartes et le nombre d'As.",
+                                                        "notChosenFeedback": ""
+                                                    }
+                                                },
+                                                {
+                                                    "text": "1\/52",
+                                                    "correct": false,
+                                                    "tipsAndFeedback": {
+                                                        "tip": "",
+                                                        "chosenFeedback": "Il y a plusieurs As, v\u00e9rifiez votre r\u00e9ponse.",
+                                                        "notChosenFeedback": ""
+                                                    }
+                                                }
+                                            ]
+                                        }
+                                    }
+                                ]
+                            },
+                            "subContentId": "submodule-26-0",
+                            "metadata": {
+                                "contentType": "Text",
+                                "license": "U",
+                                "title": "MultiChoice - Module 1",
+                                "authors": [],
+                                "changes": []
+                            }
+                        },
+                        "useSeparator": "auto"
+                    }
+                ]
+            },
+            "subContentId": "module-26-0",
+            "metadata": {
+                "contentType": "Column",
+                "license": "U",
+                "title": "MultiChoice - Module 1"
+            }
+        },
+        {
+            "library": "H5P.Column 1.18",
+            "params": {
+                "content": [
+                    {
+                        "content": {
+                            "library": "H5P.TrueFalse 1.8",
+                            "params": {
+                                "questions": [
+                                    {
+                                        "library": "H5P.TrueFalse 1.8",
+                                        "params": {
+                                            "media": [],
+                                            "question": "La somme des probabilit\u00e9s de tous les \u00e9v\u00e9nements d'un espace probabiliste est \u00e9gale \u00e0 1.",
+                                            "correct": "true"
+                                        }
+                                    },
+                                    {
+                                        "library": "H5P.TrueFalse 1.8",
+                                        "params": {
+                                            "media": [],
+                                            "question": "Un \u00e9v\u00e9nement s\u00fbr a une probabilit\u00e9 de 0.",
+                                            "correct": "false"
+                                        }
+                                    },
+                                    {
+                                        "library": "H5P.TrueFalse 1.8",
+                                        "params": {
+                                            "media": [],
+                                            "question": "Les \u00e9v\u00e9nements compl\u00e9mentaires sont des \u00e9v\u00e9nements qui ne peuvent pas se produire en m\u00eame temps.",
+                                            "correct": "true"
+                                        }
+                                    },
+                                    {
+                                        "library": "H5P.TrueFalse 1.8",
+                                        "params": {
+                                            "media": [],
+                                            "question": "Si deux \u00e9v\u00e9nements sont ind\u00e9pendants, la probabilit\u00e9 de leur intersection est \u00e9gale au produit de leurs probabilit\u00e9s.",
+                                            "correct": "true"
+                                        }
+                                    },
+                                    {
+                                        "library": "H5P.TrueFalse 1.8",
+                                        "params": {
+                                            "media": [],
+                                            "question": "La probabilit\u00e9 d'un \u00e9v\u00e9nement impossible est de 1.",
+                                            "correct": "false"
+                                        }
+                                    }
+                                ]
+                            },
+                            "subContentId": "submodule-27-0",
+                            "metadata": {
+                                "contentType": "Text",
+                                "license": "U",
+                                "title": "TrueFalse - Module 2",
+                                "authors": [],
+                                "changes": []
+                            }
+                        },
+                        "useSeparator": "auto"
+                    }
+                ]
+            },
+            "subContentId": "module-27-0",
+            "metadata": {
+                "contentType": "Column",
+                "license": "U",
+                "title": "TrueFalse - Module 2"
+            }
+        }
+    ],
+    "behaviour": {
+        "baseColor": "#1768c4",
+        "defaultTableOfContents": true,
+        "progressIndicators": true,
+        "progressAuto": true,
+        "displaySummary": true,
+        "enableRetry": true
+    }
+}

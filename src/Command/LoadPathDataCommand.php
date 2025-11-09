@@ -26,6 +26,7 @@ use Symfony\Contracts\HttpClient\HttpClientInterface;
 class LoadPathDataCommand extends Command
 {
     private const API_URL = 'https://api.sara.education/api/documents/classrooms';
+    
 
     public function __construct(
         private readonly EntityManagerInterface $em,

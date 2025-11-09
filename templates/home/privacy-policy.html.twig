@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ pageTitle }}</title>
+    <link rel="stylesheet" href="{{ asset('tailadmin/style.css') }}">
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+</head>
+<body class="bg-white">
+    <!-- Navigation -->
+    <nav class="sticky top-0 z-50 border-b border-gray-200 bg-white/80 backdrop-blur-sm">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex h-16 items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <a href="{{ path('app_home') }}">
+                        <img src="{{ asset('sara.png') }}" alt="SARA" class="h-10 w-auto" />
+                    </a>
+                    <span class="text-xl font-bold" style="color: rgb(32, 129, 74);">SARA</span>
+                </div>
+                <div class="flex items-center gap-4">
+                    <a href="{{ path('app_home') }}" class="text-sm font-medium text-gray-700 hover:text-brand-600">
+                        Accueil
+                    </a>
+                    <a href="{{ path('app_how_it_works') }}" class="text-sm font-medium text-gray-700 hover:text-brand-600">
+                        Comment ça fonctionne ?
+                    </a>
+                    <a href="{{ path('app_contact') }}" class="text-sm font-medium text-gray-700 hover:text-brand-600">
+                        Contactez-nous
+                    </a>
+                    <a href="{{ path('app_login') }}" class="rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600 transition-colors">
+                        Accéder à l'application
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Contenu principal -->
+    <main class="py-16">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8 max-w-4xl">
+            <h1 class="text-4xl font-bold tracking-tight text-gray-900 mb-8">Politique de confidentialité</h1>
+            
+            <div class="prose prose-lg max-w-none text-gray-700 space-y-8">
+                <p class="text-sm text-gray-500 mb-8">
+                    <strong>Dernière mise à jour :</strong> {{ "now"|date("d/m/Y") }}
+                </p>
+
+                <section>
+                    <h2 class="text-2xl font-semibold text-gray-900 mb-4">1. Introduction</h2>
+                    <p>
+                        SARA ("nous", "notre", "nos") s'engage à protéger et respecter votre vie privée. Cette politique de confidentialité explique comment nous collectons, utilisons, stockons et protégeons vos données personnelles conformément au Règlement Général sur la Protection des Données (RGPD) et à la loi Informatique et Libertés.
+                    </p>
+                    <p>
+                        En utilisant notre plateforme d'accompagnement éducatif, vous acceptez les pratiques décrites dans cette politique.
+                    </p>
+                </section>
+
+                <section>
+                    <h2 class="text-2xl font-semibold text-gray-900 mb-4">2. Responsable du traitement</h2>
+                    <p>
+                        Le responsable du traitement des données personnelles est :
+                    </p>
+                    <div class="bg-gray-50 p-4 rounded-lg my-4">
+                        <p class="mb-2"><strong>SARA</strong></p>
+                        <p class="mb-2">Adresse : [À compléter avec l'adresse complète]</p>
+                        <p class="mb-2">Email : contact@sara.education</p>
+                        <p>Téléphone : [À compléter]</p>
+                    </div>
+                </section>
+
+                <section>
+                    <h2 class="text-2xl font-semibold text-gray-900 mb-4">3. Données collectées</h2>
+                    <p class="mb-4">Nous collectons les données suivantes :</p>
+                    
+                    <h3 class="text-xl font-semibold text-gray-900 mb-3">3.1. Données des utilisateurs</h3>
+                    <ul class="list-disc list-inside space-y-2 mb-4">
+                        <li><strong>Coaches :</strong> Nom, prénom, email, numéro de téléphone, informations professionnelles</li>
+                        <li><strong>Parents :</strong> Nom, prénom, email, numéro de téléphone, adresse</li>
+                        <li><strong>Élèves :</strong> Nom, prénom, date de naissance, informations scolaires, photos (avec consentement)</li>
+                        <li><strong>Spécialistes :</strong> Nom, prénom, email, numéro de téléphone, spécialité, informations professionnelles</li>
+                    </ul>
+
+                    <h3 class="text-xl font-semibold text-gray-900 mb-3">3.2. Données de navigation</h3>
+                    <ul class="list-disc list-inside space-y-2 mb-4">
+                        <li>Adresse IP</li>
+                        <li>Type de navigateur et version</li>
+                        <li>Pages visitées et durée de visite</li>
+                        <li>Date et heure de connexion</li>
+                    </ul>
+
+                    <h3 class="text-xl font-semibold text-gray-900 mb-3">3.3. Données pédagogiques</h3>
+                    <ul class="list-disc list-inside space-y-2 mb-4">
+                        <li>Objectifs éducatifs</li>
+                        <li>Tâches et activités</li>
+                        <li>Preuves de réalisation (photos, fichiers, textes)</li>
+                        <li>Commentaires et évaluations</li>
+                        <li>Planning et disponibilités</li>
+                    </ul>
+
+                    <h3 class="text-xl font-semibold text-gray-900 mb-3">3.4. Données de contact</h3>
+                    <p>
+                        Lorsque vous utilisez notre formulaire de contact, nous collectons : nom, prénom, email, téléphone (optionnel), sujet et message.
+                    </p>
+                </section>
+
+                <section>
+                    <h2 class="text-2xl font-semibold text-gray-900 mb-4">4. Finalités du traitement</h2>
+                    <p class="mb-4">Vos données sont utilisées pour :</p>
+                    <ul class="list-disc list-inside space-y-2">
+                        <li>Fournir et améliorer nos services d'accompagnement éducatif</li>
+                        <li>Gérer les comptes utilisateurs et l'authentification</li>
+                        <li>Faciliter la communication entre coaches, parents, élèves et spécialistes</li>
+                        <li>Suivre la progression éducative des élèves</li>
+                        <li>Générer des objectifs et tâches personnalisés via l'intelligence artificielle</li>
+                        <li>Gérer les demandes et le planning</li>
+                        <li>Traiter vos demandes de contact</li>
+                        <li>Assurer la sécurité de la plateforme</li>
+                        <li>Respecter nos obligations légales</li>
+                        <li>Envoyer des notifications importantes (avec votre consentement)</li>
+                    </ul>
+                </section>
+
+                <section>
+                    <h2 class="text-2xl font-semibold text-gray-900 mb-4">5. Base légale du traitement</h2>
+                    <p class="mb-4">Le traitement de vos données repose sur :</p>
+                    <ul class="list-disc list-inside space-y-2">
+                        <li><strong>Exécution d'un contrat :</strong> Pour fournir les services demandés</li>
+                        <li><strong>Consentement :</strong> Pour l'utilisation de photos, l'envoi de communications marketing</li>
+                        <li><strong>Obligation légale :</strong> Pour respecter nos obligations comptables et fiscales</li>
+                        <li><strong>Intérêt légitime :</strong> Pour la sécurité de la plateforme et la prévention de la fraude</li>
+                    </ul>
+                </section>
+
+                <section>
+                    <h2 class="text-2xl font-semibold text-gray-900 mb-4">6. Conservation des données</h2>
+                    <p class="mb-4">Nous conservons vos données :</p>
+                    <ul class="list-disc list-inside space-y-2">
+                        <li><strong>Données de compte :</strong> Pendant la durée d'utilisation du service, puis 3 ans après la fermeture du compte</li>
+                        <li><strong>Données pédagogiques :</strong> Pendant la durée de l'accompagnement, puis 5 ans pour archivage</li>
+                        <li><strong>Données de contact :</strong> 3 ans à compter du dernier contact</li>
+                        <li><strong>Données de navigation :</strong> 13 mois maximum</li>
+                        <li><strong>Données comptables :</strong> 10 ans conformément à la législation</li>
+                    </ul>
+                    <p class="mt-4">
+                        Après ces délais, vos données sont supprimées de manière sécurisée ou anonymisées.
+                    </p>
+                </section>
+
+                <section>
+                    <h2 class="text-2xl font-semibold text-gray-900 mb-4">7. Partage des données</h2>
+                    <p class="mb-4">Vos données peuvent être partagées avec :</p>
+                    <ul class="list-disc list-inside space-y-2">
+                        <li><strong>Les membres autorisés de votre famille :</strong> Parents et enfants d'une même famille peuvent voir les données partagées</li>
+                        <li><strong>Les coaches assignés :</strong> Pour gérer l'accompagnement éducatif</li>
+                        <li><strong>Les spécialistes assignés :</strong> Pour fournir leur expertise</li>
+                        <li><strong>Les prestataires techniques :</strong> Hébergement, maintenance (sous contrat de confidentialité)</li>
+                        <li><strong>Les autorités compétentes :</strong> En cas d'obligation légale ou de réquisition judiciaire</li>
+                    </ul>
+                    <p class="mt-4">
+                        <strong>Nous ne vendons jamais vos données personnelles à des tiers.</strong>
+                    </p>
+                </section>
+
+                <section>
+                    <h2 class="text-2xl font-semibold text-gray-900 mb-4">8. Sécurité des données</h2>
+                    <p class="mb-4">Nous mettons en œuvre des mesures techniques et organisationnelles appropriées :</p>
+                    <ul class="list-disc list-inside space-y-2">
+                        <li>Chiffrement des données en transit (HTTPS/TLS)</li>
+                        <li>Chiffrement des données sensibles au repos</li>
+                        <li>Authentification sécurisée (JWT)</li>
+                        <li>Protection contre les accès non autorisés</li>
+                        <li>Sauvegardes régulières</li>
+                        <li>Formation du personnel à la protection des données</li>
+                    </ul>
+                </section>
+
+                <section>
+                    <h2 class="text-2xl font-semibold text-gray-900 mb-4">9. Vos droits</h2>
+                    <p class="mb-4">Conformément au RGPD, vous disposez des droits suivants :</p>
+                    
+                    <div class="bg-gray-50 p-4 rounded-lg space-y-3">
+                        <div>
+                            <h3 class="font-semibold text-gray-900 mb-2">Droit d'accès</h3>
+                            <p>Vous pouvez obtenir une copie de vos données personnelles.</p>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold text-gray-900 mb-2">Droit de rectification</h3>
+                            <p>Vous pouvez corriger vos données inexactes ou incomplètes.</p>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold text-gray-900 mb-2">Droit à l'effacement</h3>
+                            <p>Vous pouvez demander la suppression de vos données dans certains cas.</p>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold text-gray-900 mb-2">Droit à la limitation</h3>
+                            <p>Vous pouvez demander la limitation du traitement de vos données.</p>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold text-gray-900 mb-2">Droit à la portabilité</h3>
+                            <p>Vous pouvez récupérer vos données dans un format structuré.</p>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold text-gray-900 mb-2">Droit d'opposition</h3>
+                            <p>Vous pouvez vous opposer au traitement de vos données pour des motifs légitimes.</p>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold text-gray-900 mb-2">Droit de retirer votre consentement</h3>
+                            <p>Vous pouvez retirer votre consentement à tout moment.</p>
+                        </div>
+                    </div>
+
+                    <p class="mt-4">
+                        Pour exercer vos droits, contactez-nous à : <a href="mailto:contact@sara.education" class="text-brand-600 hover:underline">contact@sara.education</a>
+                    </p>
+                    <p>
+                        Vous avez également le droit d'introduire une réclamation auprès de la CNIL : <a href="https://www.cnil.fr" target="_blank" rel="noopener noreferrer" class="text-brand-600 hover:underline">www.cnil.fr</a>
+                    </p>
+                </section>
+
+                <section>
+                    <h2 class="text-2xl font-semibold text-gray-900 mb-4">10. Cookies</h2>
+                    <p class="mb-4">
+                        Nous utilisons des cookies et technologies similaires pour améliorer votre expérience. Pour plus d'informations, consultez notre <a href="#" class="text-brand-600 hover:underline">politique des cookies</a>.
+                    </p>
+                </section>
+
+                <section>
+                    <h2 class="text-2xl font-semibold text-gray-900 mb-4">11. Transferts internationaux</h2>
+                    <p>
+                        Vos données sont stockées et traitées au sein de l'Union Européenne. En cas de transfert hors UE, nous nous assurons que des garanties appropriées sont en place conformément au RGPD.
+                    </p>
+                </section>
+
+                <section>
+                    <h2 class="text-2xl font-semibold text-gray-900 mb-4">12. Modifications</h2>
+                    <p>
+                        Nous nous réservons le droit de modifier cette politique de confidentialité. Toute modification sera publiée sur cette page avec une date de mise à jour. Nous vous encourageons à consulter régulièrement cette page.
+                    </p>
+                </section>
+
+                <section>
+                    <h2 class="text-2xl font-semibold text-gray-900 mb-4">13. Contact</h2>
+                    <p class="mb-4">
+                        Pour toute question concernant cette politique de confidentialité ou l'exercice de vos droits, contactez-nous :
+                    </p>
+                    <div class="bg-gray-50 p-4 rounded-lg">
+                        <p class="mb-2"><strong>Email :</strong> <a href="mailto:contact@sara.education" class="text-brand-600 hover:underline">contact@sara.education</a></p>
+                        <p class="mb-2"><strong>Formulaire de contact :</strong> <a href="{{ path('app_contact') }}" class="text-brand-600 hover:underline">Contactez-nous</a></p>
+                    </div>
+                </section>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-gray-900 mt-16">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8 py-16">
+            <div class="flex flex-col items-center justify-center gap-6">
+                <div class="flex items-center gap-3">
+                    <img src="{{ asset('sara.png') }}" alt="SARA" class="h-12 w-auto" />
+                    <span class="text-2xl font-bold" style="color: rgb(32, 129, 74);">SARA</span>
+                </div>
+                <p class="text-sm text-gray-400">
+                    © 2024 SARA. Plateforme d'accompagnement éducatif.
+                </p>
+                <div class="flex gap-6 text-sm text-gray-400">
+                    <a href="{{ path('app_home') }}" class="hover:text-white">Accueil</a>
+                    <a href="{{ path('app_how_it_works') }}" class="hover:text-white">Comment ça fonctionne ?</a>
+                    <a href="{{ path('app_contact') }}" class="hover:text-white">Contactez-nous</a>
+                    <a href="{{ path('app_privacy_policy') }}" class="hover:text-white">Politique de confidentialité</a>
+                    <a href="{{ path('app_legal_notice') }}" class="hover:text-white">Mentions légales</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+</body>
+</html>
+

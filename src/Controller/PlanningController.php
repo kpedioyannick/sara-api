@@ -8,6 +8,7 @@ use App\Repository\CoachRepository;
 use App\Repository\FamilyRepository;
 use App\Repository\PlanningRepository;
 use App\Repository\StudentRepository;
+use App\Service\PermissionService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Bundle\SecurityBundle\Security;
@@ -29,18 +30,18 @@ class PlanningController extends AbstractController
         private readonly Security $security,
         private readonly EntityManagerInterface $em,
         private readonly StudentRepository $studentRepository,
-        private readonly ValidatorInterface $validator
+        private readonly ValidatorInterface $validator,
+        private readonly PermissionService $permissionService
     ) {
     }
 
     #[Route('/admin/planning', name: 'admin_planning_list')]
-    #[IsGranted('ROLE_COACH')]
+    #[IsGranted('ROLE_USER')]
     public function list(Request $request): Response
     {
-        $coach = $this->getCurrentCoach($this->coachRepository, $this->security);
-        
-        if (!$coach) {
-            throw $this->createNotFoundException('Aucun coach trouvé');
+        $user = $this->getUser();
+        if (!$user) {
+            throw $this->createAccessDeniedException('Vous devez être connecté');
         }
 
         // Récupérer la semaine demandée (par défaut semaine courante)
@@ -61,20 +62,46 @@ class PlanningController extends AbstractController
         // Récupérer le paramètre de filtrage par élève
         $studentId = $request->query->get('student');
         
-        // Récupérer toutes les familles du coach
-        $families = $this->familyRepository->findByCoachWithSearch($coach);
-        
-        // Récupérer tous les événements de toutes les familles pour la semaine
+        // Récupérer les événements selon le rôle de l'utilisateur
         $allEvents = [];
-        foreach ($families as $family) {
-            $events = $this->planningRepository->findByFamilyAndWeek($family, $weekStart);
-            $allEvents = array_merge($allEvents, $events);
+        $students = [];
+
+        if ($user->isCoach()) {
+            $coach = $this->getCurrentCoach($this->coachRepository, $this->security);
+            if (!$coach) {
+                throw $this->createNotFoundException('Aucun coach trouvé');
+            }
+            // Récupérer toutes les familles du coach
+            $families = $this->familyRepository->findByCoachWithSearch($coach);
+            // Récupérer tous les événements de toutes les familles pour la semaine
+            foreach ($families as $family) {
+                $events = $this->planningRepository->findByFamilyAndWeek($family, $weekStart);
+                $allEvents = array_merge($allEvents, $events);
+            }
+            $students = $this->studentRepository->findByCoach($coach);
+        } else {
+            // Pour les autres rôles, utiliser PermissionService
+            $accessibleStudents = $this->permissionService->getAccessibleStudents($user);
+            foreach ($accessibleStudents as $student) {
+                // Vérifier les permissions pour voir le planning de cet étudiant
+                if ($this->permissionService->canViewStudentPlanning($user, $student)) {
+                    // Utiliser findByStudentAndWeek pour récupérer directement les événements de l'étudiant
+                    $studentEvents = $this->planningRepository->findByStudentAndWeek($student, $weekStart);
+                    $allEvents = array_merge($allEvents, $studentEvents);
+                }
+            }
+            $students = $accessibleStudents;
         }
         
         // Filtrer par élève si spécifié
         if ($studentId) {
-            $allEvents = array_filter($allEvents, function($event) use ($studentId) {
-                return $event->getStudent() && $event->getStudent()->getId() == (int)$studentId;
+            $allEvents = array_filter($allEvents, function($event) use ($studentId, $user) {
+                $student = $event->getStudent();
+                if (!$student || $student->getId() != (int)$studentId) {
+                    return false;
+                }
+                // Vérifier les permissions pour cet étudiant
+                return $this->permissionService->canViewStudentPlanning($user, $student);
             });
         }
         
@@ -120,8 +147,7 @@ class PlanningController extends AbstractController
         // Formater la plage de la semaine
         $weekRange = $weekStart->format('d/m/Y') . ' - ' . $weekEnd->format('d/m/Y');
         
-        // Récupérer tous les étudiants du coach pour les formulaires
-        $students = $this->studentRepository->findByCoach($coach);
+        // Préparer les données des étudiants pour les formulaires
         $studentsData = array_map(fn($student) => [
             'id' => $student->getId(),
             'firstName' => $student->getFirstName(),
@@ -146,8 +172,19 @@ class PlanningController extends AbstractController
     }
 
     #[Route('/admin/planning/create', name: 'admin_planning_create', methods: ['POST'])]
+    #[IsGranted('ROLE_USER')]
     public function create(Request $request): JsonResponse
     {
+        $user = $this->getUser();
+        if (!$user) {
+            return new JsonResponse(['success' => false, 'message' => 'Vous devez être connecté'], 403);
+        }
+
+        // Seuls les coaches peuvent créer des événements de planning manuellement
+        if (!$user->isCoach()) {
+            return new JsonResponse(['success' => false, 'message' => 'Seul le coach peut créer des événements de planning'], 403);
+        }
+
         $coach = $this->getCurrentCoach($this->coachRepository, $this->security);
         if (!$coach) {
             return new JsonResponse(['success' => false, 'message' => 'Coach non trouvé'], 404);
@@ -169,6 +206,10 @@ class PlanningController extends AbstractController
         if (isset($data['studentId'])) {
             $student = $this->studentRepository->find($data['studentId']);
             if ($student) {
+                // Vérifier les permissions pour voir le planning de cet étudiant
+                if (!$this->permissionService->canViewStudentPlanning($coach, $student)) {
+                    return new JsonResponse(['success' => false, 'message' => 'Vous n\'avez pas accès au planning de cet élève'], 403);
+                }
                 $planning->setStudent($student);
             } else {
                 return new JsonResponse(['success' => false, 'message' => 'Élève non trouvé'], 400);
@@ -192,8 +233,19 @@ class PlanningController extends AbstractController
     }
 
     #[Route('/admin/planning/{id}/update', name: 'admin_planning_update', methods: ['POST'])]
+    #[IsGranted('ROLE_USER')]
     public function update(int $id, Request $request): JsonResponse
     {
+        $user = $this->getUser();
+        if (!$user) {
+            return new JsonResponse(['success' => false, 'message' => 'Vous devez être connecté'], 403);
+        }
+
+        // Seuls les coaches peuvent modifier des événements de planning manuellement
+        if (!$user->isCoach()) {
+            return new JsonResponse(['success' => false, 'message' => 'Seul le coach peut modifier des événements de planning'], 403);
+        }
+
         $coach = $this->getCurrentCoach($this->coachRepository, $this->security);
         if (!$coach) {
             return new JsonResponse(['success' => false, 'message' => 'Coach non trouvé'], 404);
@@ -202,6 +254,12 @@ class PlanningController extends AbstractController
         $planning = $this->planningRepository->find($id);
         if (!$planning) {
             return new JsonResponse(['success' => false, 'message' => 'Événement non trouvé'], 404);
+        }
+
+        // Vérifier les permissions pour voir le planning de l'étudiant
+        $student = $planning->getStudent();
+        if ($student && !$this->permissionService->canViewStudentPlanning($coach, $student)) {
+            return new JsonResponse(['success' => false, 'message' => 'Vous n\'avez pas accès au planning de cet élève'], 403);
         }
 
         $data = json_decode($request->getContent(), true);
@@ -232,8 +290,19 @@ class PlanningController extends AbstractController
     }
 
     #[Route('/admin/planning/{id}/delete', name: 'admin_planning_delete', methods: ['DELETE'])]
+    #[IsGranted('ROLE_USER')]
     public function delete(int $id): JsonResponse
     {
+        $user = $this->getUser();
+        if (!$user) {
+            return new JsonResponse(['success' => false, 'message' => 'Vous devez être connecté'], 403);
+        }
+
+        // Seuls les coaches peuvent supprimer des événements de planning manuellement
+        if (!$user->isCoach()) {
+            return new JsonResponse(['success' => false, 'message' => 'Seul le coach peut supprimer des événements de planning'], 403);
+        }
+
         $coach = $this->getCurrentCoach($this->coachRepository, $this->security);
         if (!$coach) {
             return new JsonResponse(['success' => false, 'message' => 'Coach non trouvé'], 404);
@@ -242,6 +311,12 @@ class PlanningController extends AbstractController
         $planning = $this->planningRepository->find($id);
         if (!$planning) {
             return new JsonResponse(['success' => false, 'message' => 'Événement non trouvé'], 404);
+        }
+
+        // Vérifier les permissions pour voir le planning de l'étudiant
+        $student = $planning->getStudent();
+        if ($student && !$this->permissionService->canViewStudentPlanning($coach, $student)) {
+            return new JsonResponse(['success' => false, 'message' => 'Vous n\'avez pas accès au planning de cet élève'], 403);
         }
 
         $this->em->remove($planning);

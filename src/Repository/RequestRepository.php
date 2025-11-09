@@ -97,4 +97,28 @@ class RequestRepository extends ServiceEntityRepository
                   ->getQuery()
                   ->getResult();
     }
+
+    /**
+     * Recherche de toutes les demandes (pour les spécialistes)
+     */
+    public function findAllWithSearch($search = null, $status = null): array
+    {
+        $qb = $this->createQueryBuilder('r')
+            ->leftJoin('r.student', 's')
+            ->leftJoin('r.family', 'f');
+
+        if ($search) {
+            $qb->andWhere('r.title LIKE :search OR r.description LIKE :search OR s.firstName LIKE :search OR s.lastName LIKE :search OR f.familyIdentifier LIKE :search')
+               ->setParameter('search', '%' . $search . '%');
+        }
+
+        if ($status) {
+            $qb->andWhere('r.status = :status')
+               ->setParameter('status', $status);
+        }
+
+        return $qb->orderBy('r.createdAt', 'DESC')
+                  ->getQuery()
+                  ->getResult();
+    }
 }

@@ -17,6 +17,12 @@
                     <span class="text-xl font-bold" style="color: rgb(32, 129, 74);">SARA</span>
                 </div>
                 <div class="flex items-center gap-4">
+                    <a href="{{ path('app_how_it_works') }}" class="text-sm font-medium text-gray-700 hover:text-brand-600">
+                        Comment ça fonctionne ?
+                    </a>
+                    <a href="{{ path('app_contact') }}" class="text-sm font-medium text-gray-700 hover:text-brand-600">
+                        Contactez-nous
+                    </a>
                     <a href="{{ path('app_login') }}" class="text-sm font-medium text-gray-700 hover:text-brand-600">
                         Connexion
                     </a>
@@ -429,6 +435,14 @@
                 <p class="text-sm text-gray-400">
                     © 2024 SARA. Plateforme d'accompagnement éducatif.
                 </p>
+                <div class="flex gap-6 text-sm text-gray-400 flex-wrap justify-center">
+                    <a href="{{ path('app_home') }}" class="hover:text-white">Accueil</a>
+                    <a href="{{ path('app_how_it_works') }}" class="hover:text-white">Comment ça fonctionne ?</a>
+                    <a href="{{ path('app_how_it_works') }}#faq" class="hover:text-white">FAQ</a>
+                    <a href="{{ path('app_contact') }}" class="hover:text-white">Contactez-nous</a>
+                    <a href="{{ path('app_privacy_policy') }}" class="hover:text-white">Politique de confidentialité</a>
+                    <a href="{{ path('app_legal_notice') }}" class="hover:text-white">Mentions légales</a>
+                </div>
             </div>
         </div>
     </footer>

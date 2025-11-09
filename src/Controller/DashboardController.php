@@ -36,19 +36,8 @@ class DashboardController extends AbstractController
         // Rediriger selon le rôle
         if ($user instanceof Coach) {
             return $this->redirectToRoute('admin_dashboard');
-        } elseif ($user instanceof ParentUser) {
-            // Pour l'instant, rediriger vers le dashboard générique
-            // TODO: Créer parent_dashboard quand nécessaire
-            return $this->redirectToRoute('app_dashboard');
-        } elseif ($user instanceof Student) {
-            // Pour l'instant, rediriger vers le dashboard générique
-            // TODO: Créer student_dashboard quand nécessaire
-            return $this->redirectToRoute('app_dashboard');
-        } elseif ($user instanceof Specialist) {
-            // Pour l'instant, rediriger vers le dashboard générique
-            // TODO: Créer specialist_dashboard quand nécessaire
-            return $this->redirectToRoute('app_dashboard');
         }
+        // Pour les autres rôles, afficher le dashboard générique (pas de redirection pour éviter les boucles)
 
         // Par défaut, afficher le dashboard générique
         return $this->render('tailadmin/pages/dashboard.html.twig', [

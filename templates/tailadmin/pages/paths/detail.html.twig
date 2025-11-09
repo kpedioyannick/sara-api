@@ -1,0 +1,112 @@
+{% extends 'tailadmin/layouts/base.html.twig' %}
+
+{% block content %}
+<div class="p-4 mx-auto max-w-(--breakpoint-2xl) md:p-6">
+    {% include 'tailadmin/components/breadcrumb.html.twig' %}
+
+    <div class="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03] mb-6">
+        <div class="p-4 xl:p-6">
+            <div class="flex items-start justify-between mb-4">
+                <div class="flex-1">
+                    <h3 class="text-2xl font-semibold text-gray-800 dark:text-white/90 mb-2">
+                        {{ path.title }}
+                    </h3>
+                    <div class="flex flex-wrap items-center gap-3 mb-4">
+                        <span class="inline-flex rounded-full bg-brand-50 px-3 py-1 text-sm font-medium text-brand-500 dark:bg-brand-500/15 dark:text-brand-400">
+                            {{ path.type }}
+                        </span>
+                        <span class="inline-flex items-center gap-2 rounded-full px-3 py-1 text-sm font-medium
+                            {% if path.status == 'published' %}bg-success-50 text-success-500 dark:bg-success-500/15 dark:text-success-400
+                            {% elseif path.status == 'generated' %}bg-brand-50 text-brand-500 dark:bg-brand-500/15 dark:text-brand-400
+                            {% else %}bg-gray-100 text-gray-700 dark:bg-white/[0.03] dark:text-white/80{% endif %}">
+                            {% if path.status == 'draft' %}Brouillon
+                            {% elseif path.status == 'generated' %}Généré
+                            {% else %}Publié{% endif %}
+                        </span>
+                    </div>
+                    {% if path.description %}
+                    <p class="text-gray-600 dark:text-gray-400 mb-4">{{ path.description }}</p>
+                    {% endif %}
+                </div>
+                <a href="{{ path('admin_paths_list') }}" class="inline-flex items-center gap-2 rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-white/[0.03]">
+                    Retour
+                </a>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                {% if path.chapter %}
+                <div>
+                    <span class="text-sm font-medium text-gray-600 dark:text-gray-400">Chapitre:</span>
+                    <p class="text-gray-800 dark:text-white/90">{{ path.chapter.name }}</p>
+                </div>
+                {% endif %}
+                {% if path.subChapter %}
+                <div>
+                    <span class="text-sm font-medium text-gray-600 dark:text-gray-400">Sous-chapitre:</span>
+                    <p class="text-gray-800 dark:text-white/90">{{ path.subChapter.name }}</p>
+                </div>
+                {% endif %}
+                <div>
+                    <span class="text-sm font-medium text-gray-600 dark:text-gray-400">Modules:</span>
+                    <p class="text-gray-800 dark:text-white/90">{{ path.modulesCount }}</p>
+                </div>
+                <div>
+                    <span class="text-sm font-medium text-gray-600 dark:text-gray-400">Créé le:</span>
+                    <p class="text-gray-800 dark:text-white/90">{{ path.createdAt }}</p>
+                </div>
+            </div>
+
+            {% if path.type == 'h5p' and path.status in ['generated', 'published'] and path.content %}
+            <div class="mb-6">
+                <h4 class="text-lg font-semibold text-gray-800 dark:text-white/90 mb-4">Contenu H5P</h4>
+                <div class="rounded-lg border border-gray-200 dark:border-gray-800 overflow-hidden">
+                    <iframe 
+                        src="{{ path.content }}"
+                        width="100%" 
+                        height="600px"
+                        frameborder="0"
+                        allowfullscreen
+                        class="w-full">
+                    </iframe>
+                </div>
+            </div>
+            {% elseif path.type == 'h5p' and path.status == 'draft' %}
+            <div class="mb-6 rounded-lg border border-warning-200 bg-warning-50 p-4 dark:border-warning-800 dark:bg-warning-900/20">
+                <p class="text-warning-800 dark:text-warning-200">
+                    Ce parcours est en cours de génération. Veuillez patienter...
+                </p>
+            </div>
+            {% elseif path.type != 'h5p' and path.content %}
+            <div class="mb-6">
+                <h4 class="text-lg font-semibold text-gray-800 dark:text-white/90 mb-4">Lien</h4>
+                <a href="{{ path.content }}" target="_blank" class="text-brand-600 hover:text-brand-700 dark:text-brand-400">
+                    {{ path.content }}
+                </a>
+            </div>
+            {% endif %}
+
+            {% if modules|length > 0 %}
+            <div>
+                <h4 class="text-lg font-semibold text-gray-800 dark:text-white/90 mb-4">Modules</h4>
+                <div class="space-y-2">
+                    {% for module in modules %}
+                    <div class="rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-800 dark:bg-gray-800/50">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <h5 class="font-medium text-gray-800 dark:text-white/90">{{ module.title }}</h5>
+                                {% if module.description %}
+                                <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">{{ module.description }}</p>
+                                {% endif %}
+                            </div>
+                            <span class="text-xs font-medium text-gray-500 dark:text-gray-400">{{ module.type }}</span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+

@@ -15,6 +15,7 @@ use App\Repository\SpecialistRepository;
 use App\Repository\StudentRepository;
 use App\Repository\TaskRepository;
 use App\Service\SmartObjectiveService;
+use App\Service\PermissionService;
 use App\Entity\Task;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -43,18 +44,18 @@ class ObjectiveController extends AbstractController
         private readonly CommentRepository $commentRepository,
         private readonly SmartObjectiveService $smartObjectiveService,
         private readonly TaskRepository $taskRepository,
-        private readonly LoggerInterface $logger
+        private readonly LoggerInterface $logger,
+        private readonly PermissionService $permissionService
     ) {
     }
 
     #[Route('/admin/objectives', name: 'admin_objectives_list')]
-    #[IsGranted('ROLE_COACH')]
+    #[IsGranted('ROLE_USER')]
     public function list(Request $request): Response
     {
-        $coach = $this->getCurrentCoach($this->coachRepository, $this->security);
-        
-        if (!$coach) {
-            throw $this->createNotFoundException('Aucun coach trouvé');
+        $user = $this->getUser();
+        if (!$user) {
+            throw $this->createAccessDeniedException('Vous devez être connecté');
         }
 
         // Récupération des paramètres de filtrage
@@ -63,14 +64,37 @@ class ObjectiveController extends AbstractController
         $creatorUserId = $request->query->get('creatorUser');
         $status = $request->query->get('status');
 
-        // Récupération des objectifs avec filtrage
-        $objectives = $this->objectiveRepository->findByCoachWithSearch(
-            $coach,
-            $search ?: null,
-            $creatorProfile ?: null,
-            $creatorUserId ? (int) $creatorUserId : null,
-            $status ?: null
-        );
+        // Récupération des objectifs selon le rôle de l'utilisateur
+        if ($user->isCoach()) {
+            $coach = $this->getCurrentCoach($this->coachRepository, $this->security);
+            if (!$coach) {
+                throw $this->createNotFoundException('Aucun coach trouvé');
+            }
+            $objectives = $this->objectiveRepository->findByCoachWithSearch(
+                $coach,
+                $search ?: null,
+                $creatorProfile ?: null,
+                $creatorUserId ? (int) $creatorUserId : null,
+                $status ?: null
+            );
+        } else {
+            // Pour les autres rôles, utiliser PermissionService
+            $objectives = $this->permissionService->getAccessibleObjectives($user);
+            // Filtrer par recherche si nécessaire
+            if ($search) {
+                $objectives = array_filter($objectives, function($objective) use ($search) {
+                    return stripos($objective->getTitle(), $search) !== false 
+                        || stripos($objective->getDescription(), $search) !== false
+                        || stripos($objective->getStudent()->getPseudo(), $search) !== false;
+                });
+            }
+            // Filtrer par statut si nécessaire
+            if ($status) {
+                $objectives = array_filter($objectives, function($objective) use ($status) {
+                    return $objective->getStatus() === $status;
+                });
+            }
+        }
 
         // Conversion en tableau pour le template avec commentaires
         $objectivesData = array_map(function($objective) {
@@ -80,8 +104,42 @@ class ObjectiveController extends AbstractController
             return $data;
         }, $objectives);
         
-        // Récupérer tous les étudiants du coach pour les formulaires
-        $students = $this->studentRepository->findByCoach($coach);
+        // Récupérer les étudiants, parents et spécialistes selon le rôle
+        $students = [];
+        $parentsData = [];
+        $specialistsData = [];
+        $coachesData = [];
+
+        if ($user->isCoach()) {
+            $coach = $this->getCurrentCoach($this->coachRepository, $this->security);
+            $students = $this->studentRepository->findByCoach($coach);
+            $families = $this->familyRepository->findByCoachWithSearch($coach);
+            foreach ($families as $family) {
+                $parent = $family->getParent();
+                if ($parent) {
+                    $parentsData[] = [
+                        'id' => $parent->getId(),
+                        'firstName' => $parent->getFirstName(),
+                        'lastName' => $parent->getLastName(),
+                    ];
+                }
+            }
+            $specialists = $this->specialistRepository->findAll();
+            $specialistsData = array_map(fn($s) => [
+                'id' => $s->getId(),
+                'firstName' => $s->getFirstName(),
+                'lastName' => $s->getLastName(),
+            ], $specialists);
+            $coachesData = [[
+                'id' => $coach->getId(),
+                'firstName' => $coach->getFirstName(),
+                'lastName' => $coach->getLastName(),
+            ]];
+        } else {
+            // Pour les autres rôles, utiliser PermissionService
+            $students = $this->permissionService->getAccessibleStudents($user);
+        }
+
         $studentsData = array_map(function($student) {
             $family = $student->getFamily();
             $familyIdentifier = $family ? $family->getFamilyIdentifier() : '';
@@ -95,35 +153,6 @@ class ObjectiveController extends AbstractController
                 'parentLastName' => $parentLastName,
             ];
         }, $students);
-        
-        // Récupérer les parents et spécialistes pour les tâches
-        $families = $this->familyRepository->findByCoachWithSearch($coach);
-        
-        $parentsData = [];
-        foreach ($families as $family) {
-            $parent = $family->getParent();
-            if ($parent) {
-                $parentsData[] = [
-                    'id' => $parent->getId(),
-                    'firstName' => $parent->getFirstName(),
-                    'lastName' => $parent->getLastName(),
-                ];
-            }
-        }
-        
-        $specialists = $this->specialistRepository->findAll();
-        $specialistsData = array_map(fn($s) => [
-            'id' => $s->getId(),
-            'firstName' => $s->getFirstName(),
-            'lastName' => $s->getLastName(),
-        ], $specialists);
-        
-        // Récupérer le coach pour le filtre
-        $coachesData = [[
-            'id' => $coach->getId(),
-            'firstName' => $coach->getFirstName(),
-            'lastName' => $coach->getLastName(),
-        ]];
 
         return $this->render('tailadmin/pages/objectives/list.html.twig', [
             'pageTitle' => 'Liste des Objectifs | TailAdmin',
@@ -268,19 +297,32 @@ class ObjectiveController extends AbstractController
     }
 
     #[Route('/admin/objectives/{id}', name: 'admin_objectives_detail', requirements: ['id' => '\d+'])]
-    #[IsGranted('ROLE_COACH')]
+    #[IsGranted('ROLE_USER')]
     public function detail(int $id): Response
     {
-        $coach = $this->getCurrentCoach($this->coachRepository, $this->security);
-        
-        if (!$coach) {
-            throw $this->createNotFoundException('Aucun coach trouvé');
+        $user = $this->getUser();
+        if (!$user) {
+            throw $this->createAccessDeniedException('Vous devez être connecté');
         }
 
         $objective = $this->objectiveRepository->find($id);
         
-        if (!$objective || $objective->getCoach() !== $coach) {
+        if (!$objective) {
             throw $this->createNotFoundException('Objectif non trouvé');
+        }
+
+        // Vérifier les permissions d'accès
+        if (!$this->permissionService->canViewObjective($user, $objective)) {
+            throw $this->createAccessDeniedException('Vous n\'avez pas accès à cet objectif');
+        }
+
+        // Pour les coaches, vérifier qu'ils sont bien le coach de l'objectif
+        $coach = null;
+        if ($user->isCoach()) {
+            $coach = $this->getCurrentCoach($this->coachRepository, $this->security);
+            if (!$coach || $objective->getCoach() !== $coach) {
+                throw $this->createAccessDeniedException('Vous n\'avez pas accès à cet objectif');
+            }
         }
 
         // Organiser les tâches par statut
@@ -325,6 +367,9 @@ class ObjectiveController extends AbstractController
             'description' => $objective->getDescription(),
             'category' => $objective->getCategory(),
             'status' => $objective->getStatus(),
+            'statusLabel' => $objective->getStatusLabel(),
+            'statusMessage' => $objective->getStatusMessage(),
+            'canModifyTasks' => $objective->canModifyTasks(),
             'progress' => $objective->getProgress(),
             'deadline' => $objective->getDeadline()?->format('Y-m-d'),
             'createdAt' => $objective->getCreatedAt()?->format('d/m/Y H:i'),
@@ -338,7 +383,30 @@ class ObjectiveController extends AbstractController
         ];
 
                     // Récupérer les étudiants, parents et spécialistes pour les sélecteurs d'affectation
-                    $students = $this->studentRepository->findByCoach($coach);
+                    if ($coach) {
+                        $students = $this->studentRepository->findByCoach($coach);
+                        $families = $this->familyRepository->findByCoachWithSearch($coach);
+                        foreach ($families as $family) {
+                            $parent = $family->getParent();
+                            if ($parent) {
+                                $parentsData[] = [
+                                    'id' => $parent->getId(),
+                                    'firstName' => $parent->getFirstName(),
+                                    'lastName' => $parent->getLastName(),
+                                ];
+                            }
+                        }
+                        $specialists = $this->specialistRepository->findAll();
+                        $specialistsData = array_map(fn($s) => [
+                            'id' => $s->getId(),
+                            'firstName' => $s->getFirstName(),
+                            'lastName' => $s->getLastName(),
+                        ], $specialists);
+                    } else {
+                        // Pour les autres rôles, utiliser PermissionService
+                        $students = $this->permissionService->getAccessibleStudents($user);
+                    }
+                    
                     $studentsData = array_map(function($student) {
                         return [
                             'id' => $student->getId(),
@@ -347,26 +415,6 @@ class ObjectiveController extends AbstractController
                             'pseudo' => $student->getPseudo(),
                         ];
                     }, $students);
-                    
-                    $families = $this->familyRepository->findByCoachWithSearch($coach);
-                    $parentsData = [];
-                    foreach ($families as $family) {
-                        $parent = $family->getParent();
-                        if ($parent) {
-                            $parentsData[] = [
-                                'id' => $parent->getId(),
-                                'firstName' => $parent->getFirstName(),
-                                'lastName' => $parent->getLastName(),
-                            ];
-                        }
-                    }
-                    
-                    $specialists = $this->specialistRepository->findAll();
-                    $specialistsData = array_map(fn($s) => [
-                        'id' => $s->getId(),
-                        'firstName' => $s->getFirstName(),
-                        'lastName' => $s->getLastName(),
-                    ], $specialists);
 
                     // Déterminer le type d'utilisateur
                     $currentUser = $this->getUser();
@@ -400,23 +448,47 @@ class ObjectiveController extends AbstractController
     }
 
     #[Route('/admin/objectives/{id}/update', name: 'admin_objectives_update', methods: ['POST'])]
+    #[IsGranted('ROLE_USER')]
     public function update(int $id, Request $request): JsonResponse
     {
-        $coach = $this->getCurrentCoach($this->coachRepository, $this->security);
-        if (!$coach) {
-            return new JsonResponse(['success' => false, 'message' => 'Coach non trouvé'], 404);
+        $user = $this->getUser();
+        if (!$user) {
+            return new JsonResponse(['success' => false, 'message' => 'Vous devez être connecté'], 403);
         }
 
         $objective = $this->objectiveRepository->find($id);
-        if (!$objective || $objective->getCoach() !== $coach) {
+        if (!$objective) {
             return new JsonResponse(['success' => false, 'message' => 'Objectif non trouvé'], 404);
+        }
+
+        // Vérifier les permissions de modification
+        if (!$this->permissionService->canModifyObjective($user, $objective)) {
+            return new JsonResponse(['success' => false, 'message' => 'Vous n\'avez pas le droit de modifier cet objectif'], 403);
+        }
+
+        // Pour les coaches, vérifier qu'ils sont bien le coach de l'objectif
+        if ($user->isCoach()) {
+            $coach = $this->getCurrentCoach($this->coachRepository, $this->security);
+            if (!$coach || $objective->getCoach() !== $coach) {
+                return new JsonResponse(['success' => false, 'message' => 'Vous n\'avez pas le droit de modifier cet objectif'], 403);
+            }
         }
 
         $data = json_decode($request->getContent(), true);
         if (isset($data['title'])) $objective->setTitle($data['title']);
         if (isset($data['description'])) $objective->setDescription($data['description']);
         if (isset($data['category'])) $objective->setCategory($data['category']);
-        if (isset($data['status'])) $objective->setStatus($data['status']);
+        // Seul le coach peut changer le statut d'un objectif
+        if (isset($data['status'])) {
+            if (!$user->isCoach()) {
+                return new JsonResponse(['success' => false, 'message' => 'Seul le coach peut changer le statut d\'un objectif'], 403);
+            }
+            // Valider que le statut est valide
+            if (!in_array($data['status'], array_keys(Objective::STATUSES))) {
+                return new JsonResponse(['success' => false, 'message' => 'Statut invalide'], 400);
+            }
+            $objective->setStatus($data['status']);
+        }
         if (isset($data['progress'])) $objective->setProgress($data['progress']);
         if (isset($data['deadline'])) {
             $objective->setDeadline(new \DateTimeImmutable($data['deadline']));

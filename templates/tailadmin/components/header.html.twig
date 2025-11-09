@@ -428,7 +428,54 @@
                 Modifier le profil
               </a>
             </li>
+            <li>
+              <a
+                href="{{ path('app_home') }}"
+                target="_blank"
+                class="group text-theme-sm flex items-center gap-3 rounded-lg px-3 py-2 font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300"
+              >
+                <svg
+                  class="fill-gray-500 group-hover:fill-gray-700 dark:fill-gray-400 dark:group-hover:fill-gray-300"
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    fill-rule="evenodd"
+                    clip-rule="evenodd"
+                    d="M11.54 22.351C11.54 22.351 4.5 15.5 4.5 9.5C4.5 5.35786 7.85786 2 12 2C16.1421 2 19.5 5.35786 19.5 9.5C19.5 15.5 12.46 22.351 12.46 22.351C12.46 22.351 12 22.351 11.54 22.351ZM12 13.5C13.6569 13.5 15 12.1569 15 10.5C15 8.84315 13.6569 7.5 12 7.5C10.3431 7.5 9 8.84315 9 10.5C9 12.1569 10.3431 13.5 12 13.5Z"
+                    fill=""
+                  />
+                </svg>
+                Site public
+              </a>
+            </li>
           </ul>
+          <div class="border-b border-gray-200 pt-3 pb-3 dark:border-gray-800">
+            <p class="text-theme-xs px-3 text-gray-500 dark:text-gray-400 mb-2">Informations légales</p>
+            <ul class="flex flex-col gap-1">
+              <li>
+                <a
+                  href="{{ path('app_privacy_policy') }}"
+                  target="_blank"
+                  class="text-theme-xs flex items-center gap-3 rounded-lg px-3 py-2 text-gray-600 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300"
+                >
+                  Politique de confidentialité
+                </a>
+              </li>
+              <li>
+                <a
+                  href="{{ path('app_legal_notice') }}"
+                  target="_blank"
+                  class="text-theme-xs flex items-center gap-3 rounded-lg px-3 py-2 text-gray-600 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300"
+                >
+                  Mentions légales
+                </a>
+              </li>
+            </ul>
+          </div>
           <a
             href="{{ path('app_logout') }}"
             class="group text-theme-sm mt-3 flex items-center gap-3 rounded-lg px-3 py-2 font-medium text-gray-700 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300"

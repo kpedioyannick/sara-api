@@ -22,6 +22,9 @@ class SubChapter
     #[ORM\Column(type: 'text', nullable: true)]
     private ?string $content = null;
 
+    #[ORM\Column(type: 'json', nullable: true)]
+    private ?array $prompts = null;
+
     #[ORM\Column]
     private ?\DateTimeImmutable $createdAt = null;
 
@@ -66,6 +69,17 @@ class SubChapter
     public function setContent(?string $content): static
     {
         $this->content = $content;
+        return $this;
+    }
+
+    public function getPrompts(): ?array
+    {
+        return $this->prompts;
+    }
+
+    public function setPrompts(?array $prompts): static
+    {
+        $this->prompts = $prompts;
         return $this;
     }
 

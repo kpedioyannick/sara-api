@@ -1,0 +1,18 @@
+{
+    "title": "Parcours - Organisation et gestion de donnees - Les probabilites",
+    "language": "fr",
+    "mainLibrary": "H5P.InteractiveVideo",
+    "embedTypes": [
+        "iframe"
+    ],
+    "license": "U",
+    "preloadedDependencies": [
+        {
+            "machineName": "H5P.InteractiveVideo",
+            "majorVersion": "1",
+            "minorVersion": "27"
+        }
+    ],
+    "defaultLanguage": "fr",
+    "extraTitle": "Parcours - Organisation et gestion de donn\u00e9es - Les probabilit\u00e9s"
+}

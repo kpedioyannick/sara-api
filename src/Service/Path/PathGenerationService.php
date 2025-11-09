@@ -24,6 +24,78 @@ class PathGenerationService
     ) {}
 
     /**
+     * Génère le contenu H5P pour un parcours avec des modules et prompts personnalisés
+     */
+    public function generatePathContent(
+        Path $path,
+        array $modules,
+        ?array $chapterPrompts = null,
+        ?array $subChapterPrompts = null
+    ): void {
+        try {
+            $this->logger->info('Début de la génération du contenu H5P pour le parcours', [
+                'path_id' => $path->getId(),
+                'modules_count' => count($modules)
+            ]);
+
+            // Créer les modules dans le parcours
+            $order = 0;
+            foreach ($modules as $moduleData) {
+                $moduleType = ModuleType::tryFrom($moduleData['type'] ?? '');
+                if (!$moduleType) {
+                    $this->logger->warning('Type de module invalide ignoré', ['type' => $moduleData['type'] ?? '']);
+                    continue;
+                }
+
+                $module = new Module();
+                $module->setPath($path);
+                $module->setType($moduleType);
+                $module->setTitle(($moduleData['type'] ?? 'Module') . ' - Module ' . ($order + 1));
+                $module->setDescription($moduleData['description'] ?? '');
+                $module->setOrder($order);
+                $module->setCreatedAt(new \DateTimeImmutable());
+                $module->setUpdatedAt(new \DateTimeImmutable());
+
+                $this->entityManager->persist($module);
+                $path->addModule($module);
+
+                // Générer le contenu du module avec les prompts personnalisés
+                $this->generateModuleContentWithPrompts(
+                    $module,
+                    $path,
+                    $moduleType,
+                    $moduleData['description'] ?? '',
+                    $chapterPrompts,
+                    $subChapterPrompts
+                );
+
+                $order++;
+            }
+
+            // Mettre à jour le statut du parcours
+            $path->setStatus(Path::STATUS_GENERATED);
+            $path->setUpdatedAt(new \DateTimeImmutable());
+            $this->entityManager->flush();
+
+            // Convertir et sauvegarder les fichiers H5P
+            $convertedOutput = $this->moduleConversionService->convertInteractiveBookParent($path->getModules());
+            $this->moduleConversionService->saveH5PFiles($path, $convertedOutput, false);
+
+            $this->logger->info('Génération du contenu H5P terminée', [
+                'path_id' => $path->getId()
+            ]);
+
+        } catch (\Exception $e) {
+            $this->logger->error('Erreur lors de la génération du contenu H5P', [
+                'path_id' => $path->getId(),
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            throw $e;
+        }
+    }
+
+    /**
      * Génère le contenu H5P pour tous les modules d'un parcours
      */
     public function generateModulesFromPath(Path $path): array
@@ -62,6 +134,9 @@ class PathGenerationService
             }
             $path->setUpdatedAt(new \DateTimeImmutable());
             $this->entityManager->flush();
+
+            $convertedOutput = $this->moduleConversionService->convertInteractiveBookParent($path->getModules());
+            $this->moduleConversionService->saveH5PFiles($path, $convertedOutput, false);
 
             $this->logger->info('Génération des modules terminée', [
                 'path_id' => $path->getId(),
@@ -116,6 +191,118 @@ class PathGenerationService
         $module->setUpdatedAt(new \DateTimeImmutable());
 
         $this->entityManager->persist($module);
+    }
+
+    /**
+     * Génère le contenu d'un module avec prompts personnalisés
+     */
+    private function generateModuleContentWithPrompts(
+        Module $module,
+        Path $path,
+        ModuleType $moduleType,
+        string $description,
+        ?array $chapterPrompts = null,
+        ?array $subChapterPrompts = null
+    ): void {
+        // Construire le prompt avec les prompts personnalisés
+        $prompt = $this->buildPromptForModuleWithPrompts(
+            $module,
+            $path,
+            $moduleType,
+            $description,
+            $chapterPrompts,
+            $subChapterPrompts
+        );
+
+        // Appeler l'IA
+        $aiResponse = $this->callOpenAI($prompt, $moduleType);
+
+        // Parser la réponse JSON
+        $parsedContent = $this->parseAIResponse($aiResponse, $moduleType);
+
+        // Convertir en format H5P
+        $h5pContent = $this->moduleConversionService->convertIAOutputToModuleFormat(
+            $moduleType,
+            $parsedContent
+        );
+
+        // Mettre à jour le module
+        $module->setContent($parsedContent);
+        $module->setH5pContent($h5pContent);
+        $module->setUpdatedAt(new \DateTimeImmutable());
+
+        $this->entityManager->persist($module);
+    }
+
+    /**
+     * Construit le prompt pour générer le contenu d'un module avec prompts personnalisés
+     */
+    private function buildPromptForModuleWithPrompts(
+        Module $module,
+        Path $path,
+        ModuleType $moduleType,
+        string $description,
+        ?array $chapterPrompts = null,
+        ?array $subChapterPrompts = null
+    ): string {
+        $expectedInputs = $moduleType->getExpectedInputs();
+        
+        // Récupérer le contexte du chapitre/sous-chapitre
+        $context = $this->getPathContext($path);
+        
+        $prompt = "Tu es un assistant pédagogique expert qui crée des contenus éducatifs interactifs H5P.\n\n";
+        $prompt .= "CONTEXTE DU PARCOURS :\n";
+        $prompt .= $context . "\n\n";
+        
+        // Ajouter les prompts du chapitre/sous-chapitre si disponibles
+        if (!empty($chapterPrompts)) {
+            $prompt .= "PROMPTS PRÉDÉFINIS DU CHAPITRE :\n";
+            foreach ($chapterPrompts as $chapterPrompt) {
+                if (isset($chapterPrompt['prompt_generation'])) {
+                    $prompt .= "- " . $chapterPrompt['prompt_generation'] . "\n";
+                }
+            }
+            $prompt .= "\n";
+        }
+        
+        if (!empty($subChapterPrompts)) {
+            $prompt .= "PROMPTS PRÉDÉFINIS DU SOUS-CHAPITRE :\n";
+            foreach ($subChapterPrompts as $subChapterPrompt) {
+                if (isset($subChapterPrompt['prompt_generation'])) {
+                    $prompt .= "- " . $subChapterPrompt['prompt_generation'] . "\n";
+                }
+            }
+            $prompt .= "\n";
+        }
+        
+        $prompt .= "TYPE DE MODULE : " . $moduleType->value . "\n";
+        $prompt .= "OBJECTIF : " . ($expectedInputs['goal'] ?? 'Créer un contenu éducatif') . "\n\n";
+        
+        if (!empty($description)) {
+            $prompt .= "DESCRIPTION DU MODULE :\n";
+            $prompt .= $description . "\n\n";
+        }
+        
+        if (!empty($expectedInputs['instructions'])) {
+            $prompt .= "INSTRUCTIONS SPÉCIFIQUES :\n";
+            $prompt .= $expectedInputs['instructions'] . "\n\n";
+        }
+        
+        if (!empty($expectedInputs['systemMessage'])) {
+            $prompt .= $expectedInputs['systemMessage'] . "\n\n";
+        }
+        
+        $prompt .= "FORMAT DE SORTIE ATTENDU (JSON uniquement, pas de markdown) :\n";
+        $prompt .= json_encode($expectedInputs['outputFormat'] ?? [], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) . "\n\n";
+        
+        $prompt .= "IMPORTANT :\n";
+        $prompt .= "- Retourne UNIQUEMENT un objet JSON valide, sans markdown, sans code blocks\n";
+        $prompt .= "- Le JSON doit correspondre exactement au format de sortie attendu\n";
+        $prompt .= "- Adapte le contenu au niveau scolaire du parcours\n";
+        $prompt .= "- Le contenu doit être pédagogique et adapté au contexte\n";
+        $prompt .= "- Utilise les prompts prédéfinis comme guide pour créer le contenu\n";
+        
+        return $prompt;
     }
 
     /**

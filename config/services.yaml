@@ -45,7 +45,7 @@ services:
     # Path Generation Service
     App\Service\Path\PathGenerationService:
         arguments:
-            $openaiApiKey: '%env(default::OPENAI_API_KEY)%'
+            $openaiApiKey: '%env(default:OPENAI_API_KEY)%'
 
     # HttpClient pour Mercure (ignore SSL verification)
     mercure.http_client:

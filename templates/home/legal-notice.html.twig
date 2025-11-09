@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ pageTitle }}</title>
+    <link rel="stylesheet" href="{{ asset('tailadmin/style.css') }}">
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+</head>
+<body class="bg-white">
+    <!-- Navigation -->
+    <nav class="sticky top-0 z-50 border-b border-gray-200 bg-white/80 backdrop-blur-sm">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex h-16 items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <a href="{{ path('app_home') }}">
+                        <img src="{{ asset('sara.png') }}" alt="SARA" class="h-10 w-auto" />
+                    </a>
+                    <span class="text-xl font-bold" style="color: rgb(32, 129, 74);">SARA</span>
+                </div>
+                <div class="flex items-center gap-4">
+                    <a href="{{ path('app_home') }}" class="text-sm font-medium text-gray-700 hover:text-brand-600">
+                        Accueil
+                    </a>
+                    <a href="{{ path('app_how_it_works') }}" class="text-sm font-medium text-gray-700 hover:text-brand-600">
+                        Comment ça fonctionne ?
+                    </a>
+                    <a href="{{ path('app_contact') }}" class="text-sm font-medium text-gray-700 hover:text-brand-600">
+                        Contactez-nous
+                    </a>
+                    <a href="{{ path('app_login') }}" class="rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600 transition-colors">
+                        Accéder à l'application
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Contenu principal -->
+    <main class="py-16">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8 max-w-4xl">
+            <h1 class="text-4xl font-bold tracking-tight text-gray-900 mb-8">Mentions légales</h1>
+            
+            <div class="prose prose-lg max-w-none text-gray-700 space-y-8">
+                <p class="text-sm text-gray-500 mb-8">
+                    <strong>Dernière mise à jour :</strong> {{ "now"|date("d/m/Y") }}
+                </p>
+
+                <section>
+                    <h2 class="text-2xl font-semibold text-gray-900 mb-4">1. Informations légales</h2>
+                    
+                    <h3 class="text-xl font-semibold text-gray-900 mb-3">1.1. Éditeur du site</h3>
+                    <div class="bg-gray-50 p-4 rounded-lg mb-4">
+                        <p class="mb-2"><strong>Dénomination sociale :</strong> SARA</p>
+                        <p class="mb-2"><strong>Forme juridique :</strong> [À compléter : SARL, SAS, etc.]</p>
+                        <p class="mb-2"><strong>Capital social :</strong> [À compléter]</p>
+                        <p class="mb-2"><strong>Siège social :</strong> [À compléter avec l'adresse complète]</p>
+                        <p class="mb-2"><strong>SIRET :</strong> [À compléter]</p>
+                        <p class="mb-2"><strong>RCS :</strong> [À compléter]</p>
+                        <p class="mb-2"><strong>Numéro TVA intracommunautaire :</strong> [À compléter]</p>
+                        <p class="mb-2"><strong>Directeur de publication :</strong> [Nom du directeur]</p>
+                    </div>
+
+                    <h3 class="text-xl font-semibold text-gray-900 mb-3">1.2. Contact</h3>
+                    <div class="bg-gray-50 p-4 rounded-lg mb-4">
+                        <p class="mb-2"><strong>Email :</strong> <a href="mailto:contact@sara.education" class="text-brand-600 hover:underline">contact@sara.education</a></p>
+                        <p class="mb-2"><strong>Téléphone :</strong> [À compléter]</p>
+                        <p><strong>Formulaire de contact :</strong> <a href="{{ path('app_contact') }}" class="text-brand-600 hover:underline">Contactez-nous</a></p>
+                    </div>
+                </section>
+
+                <section>
+                    <h2 class="text-2xl font-semibold text-gray-900 mb-4">2. Hébergement</h2>
+                    <div class="bg-gray-50 p-4 rounded-lg mb-4">
+                        <p class="mb-2"><strong>Hébergeur :</strong> [À compléter : nom de l'hébergeur]</p>
+                        <p class="mb-2"><strong>Adresse :</strong> [À compléter : adresse de l'hébergeur]</p>
+                        <p class="mb-2"><strong>Téléphone :</strong> [À compléter]</p>
+                        <p><strong>Site web :</strong> <a href="#" target="_blank" rel="noopener noreferrer" class="text-brand-600 hover:underline">[À compléter]</a></p>
+                    </div>
+                </section>
+
+                <section>
+                    <h2 class="text-2xl font-semibold text-gray-900 mb-4">3. Propriété intellectuelle</h2>
+                    <p class="mb-4">
+                        L'ensemble de ce site relève de la législation française et internationale sur le droit d'auteur et la propriété intellectuelle. Tous les droits de reproduction sont réservés, y compris pour les documents téléchargeables et les représentations iconographiques et photographiques.
+                    </p>
+                    <p class="mb-4">
+                        La reproduction de tout ou partie de ce site sur un support électronique quel qu'il soit est formellement interdite sauf autorisation expresse de l'éditeur.
+                    </p>
+                    <p>
+                        Les marques, logos, signes distinctifs et tout autre contenu du site sont la propriété exclusive de SARA. Toute reproduction, représentation, modification, publication, adaptation de tout ou partie des éléments du site, quel que soit le moyen ou le procédé utilisé, est interdite sans autorisation écrite préalable de SARA.
+                    </p>
+                </section>
+
+                <section>
+                    <h2 class="text-2xl font-semibold text-gray-900 mb-4">4. Protection des données personnelles</h2>
+                    <p class="mb-4">
+                        Conformément à la loi "Informatique et Libertés" du 6 janvier 1978 modifiée et au Règlement Général sur la Protection des Données (RGPD), vous disposez d'un droit d'accès, de rectification, de suppression et d'opposition aux données personnelles vous concernant.
+                    </p>
+                    <p>
+                        Pour plus d'informations, consultez notre <a href="{{ path('app_privacy_policy') }}" class="text-brand-600 hover:underline">Politique de confidentialité</a>.
+                    </p>
+                </section>
+
+                <section>
+                    <h2 class="text-2xl font-semibold text-gray-900 mb-4">5. Cookies</h2>
+                    <p class="mb-4">
+                        Ce site utilise des cookies pour améliorer l'expérience utilisateur et analyser le trafic. En continuant à naviguer sur ce site, vous acceptez l'utilisation de cookies.
+                    </p>
+                    <p>
+                        Vous pouvez configurer votre navigateur pour refuser les cookies, mais certaines fonctionnalités du site pourraient ne plus être accessibles.
+                    </p>
+                </section>
+
+                <section>
+                    <h2 class="text-2xl font-semibold text-gray-900 mb-4">6. Limitation de responsabilité</h2>
+                    <p class="mb-4">
+                        Les informations contenues sur ce site sont aussi précises que possible et le site est mis à jour à différentes périodes de l'année, mais peut toutefois contenir des inexactitudes, des omissions ou des lacunes.
+                    </p>
+                    <p class="mb-4">
+                        SARA ne pourra être tenu responsable :
+                    </p>
+                    <ul class="list-disc list-inside space-y-2 mb-4">
+                        <li>Des dommages directs et indirects causés au matériel de l'utilisateur lors de l'accès au site</li>
+                        <li>Des dommages résultant de l'utilisation ou de l'impossibilité d'utiliser le site</li>
+                        <li>Des dommages résultant d'une intrusion ou d'une modification frauduleuse de données</li>
+                        <li>De l'absence de disponibilité du site ou de ses services</li>
+                    </ul>
+                    <p>
+                        SARA s'efforce de fournir sur le site des informations aussi précises que possible. Toutefois, il ne pourra être tenu responsable des omissions, des inexactitudes et des carences dans la mise à jour, qu'elles soient de son fait ou du fait des tiers partenaires qui lui fournissent ces informations.
+                    </p>
+                </section>
+
+                <section>
+                    <h2 class="text-2xl font-semibold text-gray-900 mb-4">7. Liens hypertextes</h2>
+                    <p class="mb-4">
+                        Le site peut contenir des liens hypertextes vers d'autres sites présents sur le réseau Internet. Les liens vers ces autres ressources vous font quitter le site SARA.
+                    </p>
+                    <p>
+                        Il est possible de créer un lien vers la page de présentation de ce site sans autorisation expresse de l'éditeur. Aucune autorisation ni demande d'information préalable ne peut être exigée par l'éditeur à l'égard d'un site qui souhaite établir un lien vers le site de l'éditeur. Il convient toutefois d'afficher ce site dans une nouvelle fenêtre du navigateur.
+                    </p>
+                </section>
+
+                <section>
+                    <h2 class="text-2xl font-semibold text-gray-900 mb-4">8. Droit applicable</h2>
+                    <p>
+                        Les présentes mentions légales sont régies par le droit français. En cas de litige et à défaut d'accord amiable, le litige sera porté devant les tribunaux français conformément aux règles de compétence en vigueur.
+                    </p>
+                </section>
+
+                <section>
+                    <h2 class="text-2xl font-semibold text-gray-900 mb-4">9. Médiation</h2>
+                    <p class="mb-4">
+                        Conformément à l'article L. 612-1 du Code de la consommation, nous adhérons au service du médiateur suivant :
+                    </p>
+                    <div class="bg-gray-50 p-4 rounded-lg mb-4">
+                        <p class="mb-2"><strong>Médiateur :</strong> [À compléter : nom du médiateur]</p>
+                        <p class="mb-2"><strong>Adresse :</strong> [À compléter]</p>
+                        <p><strong>Site web :</strong> <a href="#" target="_blank" rel="noopener noreferrer" class="text-brand-600 hover:underline">[À compléter]</a></p>
+                    </div>
+                    <p>
+                        Avant de saisir le médiateur, le consommateur doit avoir préalablement tenté de résoudre le litige directement avec le professionnel par voie de réclamation écrite.
+                    </p>
+                </section>
+
+                <section>
+                    <h2 class="text-2xl font-semibold text-gray-900 mb-4">10. Contact</h2>
+                    <p class="mb-4">
+                        Pour toute question concernant ces mentions légales, vous pouvez nous contacter :
+                    </p>
+                    <div class="bg-gray-50 p-4 rounded-lg">
+                        <p class="mb-2"><strong>Email :</strong> <a href="mailto:contact@sara.education" class="text-brand-600 hover:underline">contact@sara.education</a></p>
+                        <p class="mb-2"><strong>Formulaire de contact :</strong> <a href="{{ path('app_contact') }}" class="text-brand-600 hover:underline">Contactez-nous</a></p>
+                    </div>
+                </section>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-gray-900 mt-16">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8 py-16">
+            <div class="flex flex-col items-center justify-center gap-6">
+                <div class="flex items-center gap-3">
+                    <img src="{{ asset('sara.png') }}" alt="SARA" class="h-12 w-auto" />
+                    <span class="text-2xl font-bold" style="color: rgb(32, 129, 74);">SARA</span>
+                </div>
+                <p class="text-sm text-gray-400">
+                    © 2024 SARA. Plateforme d'accompagnement éducatif.
+                </p>
+                <div class="flex gap-6 text-sm text-gray-400">
+                    <a href="{{ path('app_home') }}" class="hover:text-white">Accueil</a>
+                    <a href="{{ path('app_how_it_works') }}" class="hover:text-white">Comment ça fonctionne ?</a>
+                    <a href="{{ path('app_contact') }}" class="hover:text-white">Contactez-nous</a>
+                    <a href="{{ path('app_privacy_policy') }}" class="hover:text-white">Politique de confidentialité</a>
+                    <a href="{{ path('app_legal_notice') }}" class="hover:text-white">Mentions légales</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+</body>
+</html>
+

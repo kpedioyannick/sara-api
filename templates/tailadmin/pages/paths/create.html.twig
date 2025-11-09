@@ -1,0 +1,447 @@
+{% extends 'tailadmin/layouts/base.html.twig' %}
+
+{% block content %}
+<div 
+    x-data="pathCreateManager()"
+    data-classrooms='{{ classrooms|json_encode|e('html_attr') }}'
+    data-module-types='{{ moduleTypes|json_encode|e('html_attr') }}'
+    class="p-4 mx-auto max-w-(--breakpoint-2xl) md:p-6"
+>
+    {% include 'tailadmin/components/breadcrumb.html.twig' %}
+
+    <div class="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
+        <div class="px-6 py-5 border-b border-gray-100 dark:border-gray-800">
+            <h3 class="text-base font-medium text-gray-800 dark:text-white/90">
+                Nouveau parcours scolaire
+            </h3>
+        </div>
+
+        <form @submit.prevent="submitForm()" class="p-6 space-y-6">
+            <!-- Sélection hiérarchique -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Classe</label>
+                    <select x-model="selectedClassroomId" @change="loadSubjects()" required
+                        class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90">
+                        <option value="">Sélectionner une classe</option>
+                        <template x-for="classroom in classrooms" :key="classroom.id">
+                            <option :value="classroom.id" x-text="classroom.name"></option>
+                        </template>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Matière</label>
+                    <select x-model="selectedSubjectId" @change="loadChapters()" :disabled="!selectedClassroomId" required
+                        class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90">
+                        <option value="">Sélectionner une matière</option>
+                        <template x-for="subject in subjects" :key="subject.id">
+                            <option :value="subject.id" x-text="subject.name"></option>
+                        </template>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Chapitre</label>
+                    <select x-model="selectedChapterId" @change="loadSubChapters()" :disabled="!selectedSubjectId" required
+                        class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90">
+                        <option value="">Sélectionner un chapitre</option>
+                        <template x-for="chapter in chapters" :key="chapter.id">
+                            <option :value="chapter.id" x-text="chapter.name"></option>
+                        </template>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Sous-chapitre</label>
+                    <select x-model="selectedSubChapterId" @change="loadPrompts()" :disabled="!selectedChapterId"
+                        class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90">
+                        <option value="">Sélectionner un sous-chapitre (optionnel)</option>
+                        <template x-for="subChapter in subChapters" :key="subChapter.id">
+                            <option :value="subChapter.id" x-text="subChapter.name"></option>
+                        </template>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Type de parcours -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Type</label>
+                <select x-model="selectedType" @change="onTypeChange()" required
+                    class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90">
+                    <option value="">Sélectionner un type</option>
+                    <option value="h5p">H5P</option>
+                    <option value="video">Vidéo</option>
+                    <option value="link">Lien</option>
+                    <option value="kahoot">Kahoot</option>
+                </select>
+            </div>
+
+            <!-- Lien (si type != h5p) -->
+            <div x-show="selectedType && selectedType !== 'h5p'">
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Lien</label>
+                <input type="url" x-model="link" :required="selectedType && selectedType !== 'h5p'"
+                    class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+                    placeholder="https://...">
+            </div>
+
+            <!-- Prompts prédéfinis (si type = h5p) -->
+            <div x-show="selectedType === 'h5p'">
+                <h4 class="text-lg font-semibold text-gray-800 dark:text-white/90 mb-4">Prompts prédéfinis</h4>
+                
+                <!-- Prompts du chapitre -->
+                <div x-show="chapterPrompts.length > 0" class="mb-4">
+                    <h5 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Prompts du chapitre</h5>
+                    <div class="space-y-2 max-h-48 overflow-y-auto border border-gray-200 rounded-lg p-4 dark:border-gray-800">
+                        <template x-for="(prompt, index) in chapterPrompts" :key="index">
+                            <div class="rounded-lg border border-gray-200 bg-gray-50 p-3 dark:border-gray-800 dark:bg-gray-800/50">
+                                <div class="flex items-start justify-between mb-2">
+                                    <span class="text-sm font-medium text-gray-800 dark:text-white/90" x-text="prompt.title"></span>
+                                    <span class="text-xs text-gray-500 dark:text-gray-400" x-text="prompt.niveau"></span>
+                                </div>
+                                <p class="text-xs text-gray-600 dark:text-gray-400" x-text="prompt.prompt_generation"></p>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+
+                <!-- Prompts du sous-chapitre -->
+                <div x-show="subChapterPrompts.length > 0" class="mb-4">
+                    <h5 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Prompts du sous-chapitre</h5>
+                    <div class="space-y-2 max-h-48 overflow-y-auto border border-gray-200 rounded-lg p-4 dark:border-gray-800">
+                        <template x-for="(prompt, index) in subChapterPrompts" :key="index">
+                            <div class="rounded-lg border border-gray-200 bg-gray-50 p-3 dark:border-gray-800 dark:bg-gray-800/50">
+                                <div class="flex items-start justify-between mb-2">
+                                    <span class="text-sm font-medium text-gray-800 dark:text-white/90" x-text="prompt.title"></span>
+                                    <span class="text-xs text-gray-500 dark:text-gray-400" x-text="prompt.niveau"></span>
+                                </div>
+                                <p class="text-xs text-gray-600 dark:text-gray-400" x-text="prompt.prompt_generation"></p>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+
+                <!-- Modules à générer -->
+                <div>
+                    <div class="flex items-center justify-between mb-4">
+                        <h5 class="text-sm font-medium text-gray-700 dark:text-gray-300">Modules à générer</h5>
+                        <button type="button" @click="addModule()" 
+                            class="inline-flex items-center gap-2 rounded-lg bg-brand-500 px-3 py-1.5 text-sm font-medium text-white hover:bg-brand-600">
+                            + Ajouter un module
+                        </button>
+                    </div>
+                    <div class="space-y-4">
+                        <template x-for="(module, index) in modules" :key="index">
+                            <div class="rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-800 dark:bg-gray-800/50">
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Type de module</label>
+                                        <select x-model="module.type" @change="loadModulePrompt(index)" required
+                                            class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90">
+                                            <option value="">Sélectionner un type</option>
+                                            <template x-for="moduleType in moduleTypes" :key="moduleType.value">
+                                                <option :value="moduleType.value" x-text="moduleType.label"></option>
+                                            </template>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <button type="button" @click="removeModule(index)" 
+                                            class="mt-6 inline-flex items-center gap-2 rounded-lg border border-red-200 bg-white px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-red-50 dark:border-red-800 dark:bg-gray-800 dark:text-red-400">
+                                            Supprimer
+                                        </button>
+                                    </div>
+                                </div>
+                                <div x-show="module.prompt" class="mb-4 rounded-lg border border-blue-200 bg-blue-50 p-3 dark:border-blue-800 dark:bg-blue-900/20">
+                                    <p class="text-xs text-blue-800 dark:text-blue-200" x-text="module.prompt"></p>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Description (optionnel)</label>
+                                    <textarea x-model="module.description" rows="2"
+                                        class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+                                        placeholder="Description personnalisée pour ce module..."></textarea>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Boutons -->
+            <div class="flex items-center justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-800">
+                <a href="{{ path('admin_paths_list') }}" 
+                    class="inline-flex items-center gap-2 rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-white/[0.03]">
+                    Annuler
+                </a>
+                <button type="submit" :disabled="isGenerating"
+                    class="inline-flex items-center gap-2 rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white shadow-theme-xs hover:bg-brand-600 disabled:opacity-50 disabled:cursor-not-allowed">
+                    <span x-show="!isGenerating">Créer le parcours</span>
+                    <span x-show="isGenerating">Génération en cours...</span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function pathCreateManager() {
+    return {
+        classrooms: [],
+        subjects: [],
+        chapters: [],
+        subChapters: [],
+        chapterPrompts: [],
+        subChapterPrompts: [],
+        moduleTypes: [],
+        selectedClassroomId: '',
+        selectedSubjectId: '',
+        selectedChapterId: '',
+        selectedSubChapterId: '',
+        selectedType: '',
+        link: '',
+        modules: [],
+        isGenerating: false,
+
+        init() {
+            this.classrooms = JSON.parse(this.$el.dataset.classrooms || '[]');
+            this.moduleTypes = JSON.parse(this.$el.dataset.moduleTypes || '[]');
+        },
+
+        async loadSubjects() {
+            if (!this.selectedClassroomId) {
+                this.subjects = [];
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/classrooms/${this.selectedClassroomId}/subjects`, {
+                    method: 'GET',
+                    credentials: 'same-origin',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json',
+                    },
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                this.subjects = Array.isArray(data) ? data : [];
+                this.selectedSubjectId = '';
+                this.chapters = [];
+                this.subChapters = [];
+                
+                console.log('Matières chargées:', this.subjects.length, 'matières');
+            } catch (error) {
+                console.error('Erreur lors du chargement des matières:', error);
+                this.subjects = [];
+                alert('Erreur lors du chargement des matières. Veuillez réessayer.');
+            }
+        },
+
+        async loadChapters() {
+            if (!this.selectedSubjectId) {
+                this.chapters = [];
+                return;
+            }
+            try {
+                const response = await fetch(`/api/subjects/${this.selectedSubjectId}/chapters`, {
+                    method: 'GET',
+                    credentials: 'same-origin',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json',
+                    },
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                this.chapters = Array.isArray(data) ? data : [];
+                this.chapterPrompts = this.chapters.find(c => c.id == this.selectedChapterId)?.prompts || [];
+                this.selectedChapterId = '';
+                this.subChapters = [];
+                
+                console.log('Chapitres chargés:', this.chapters);
+            } catch (error) {
+                console.error('Erreur lors du chargement des chapitres:', error);
+                this.chapters = [];
+                alert('Erreur lors du chargement des chapitres. Veuillez réessayer.');
+            }
+        },
+
+        async loadSubChapters() {
+            if (!this.selectedChapterId) {
+                this.subChapters = [];
+                return;
+            }
+            try {
+                const response = await fetch(`/api/chapters/${this.selectedChapterId}/subchapters`, {
+                    method: 'GET',
+                    credentials: 'same-origin',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json',
+                    },
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                this.subChapters = Array.isArray(data) ? data : [];
+                this.chapterPrompts = this.chapters.find(c => c.id == this.selectedChapterId)?.prompts || [];
+                this.selectedSubChapterId = '';
+                this.subChapterPrompts = [];
+                
+                console.log('Sous-chapitres chargés:', this.subChapters);
+            } catch (error) {
+                console.error('Erreur lors du chargement des sous-chapitres:', error);
+                this.subChapters = [];
+                alert('Erreur lors du chargement des sous-chapitres. Veuillez réessayer.');
+            }
+        },
+
+        loadPrompts() {
+            if (this.selectedSubChapterId) {
+                const subChapter = this.subChapters.find(sc => sc.id == this.selectedSubChapterId);
+                this.subChapterPrompts = subChapter?.prompts || [];
+            }
+        },
+
+        onTypeChange() {
+            if (this.selectedType !== 'h5p') {
+                this.modules = [];
+            } else if (this.modules.length === 0) {
+                this.addModule();
+            }
+        },
+
+        addModule() {
+            this.modules.push({
+                type: '',
+                description: '',
+                prompt: ''
+            });
+        },
+
+        removeModule(index) {
+            this.modules.splice(index, 1);
+        },
+
+        async loadModulePrompt(index) {
+            const module = this.modules[index];
+            if (!module.type) return;
+            try {
+                const response = await fetch(`/api/module-types/${module.type}/prompt`, {
+                    method: 'GET',
+                    credentials: 'same-origin',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json',
+                    },
+                });
+                const data = await response.json();
+                module.prompt = data.systemMessage || data.goal || '';
+            } catch (error) {
+                console.error('Erreur lors du chargement du prompt:', error);
+            }
+        },
+
+        async submitForm() {
+            if (this.isGenerating) return;
+
+            const formData = {
+                classroomId: parseInt(this.selectedClassroomId),
+                subjectId: parseInt(this.selectedSubjectId),
+                chapterId: parseInt(this.selectedChapterId),
+                subChapterId: this.selectedSubChapterId ? parseInt(this.selectedSubChapterId) : null,
+                type: this.selectedType,
+                link: this.link,
+                modules: this.modules.filter(m => m.type).map(m => ({
+                    type: m.type,
+                    description: m.description || ''
+                }))
+            };
+
+            this.isGenerating = true;
+
+            try {
+                const response = await fetch('/admin/paths/generate', {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(formData)
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Erreur lors de la création');
+                }
+
+                if (data.status === 'generating') {
+                    // Génération asynchrone - polling
+                    this.pollPathStatus(data.pathId);
+                } else {
+                    // Génération immédiate
+                    window.location.href = `/admin/paths/${data.pathId}`;
+                }
+            } catch (error) {
+                alert('Erreur: ' + error.message);
+                this.isGenerating = false;
+            }
+        },
+
+        async pollPathStatus(pathId) {
+            const maxAttempts = 60; // 2 minutes max
+            let attempts = 0;
+
+            const checkStatus = async () => {
+                try {
+                    const response = await fetch(`/admin/paths/${pathId}/status`, {
+                        method: 'GET',
+                        credentials: 'same-origin',
+                        headers: {
+                            'Accept': 'application/json',
+                            'Content-Type': 'application/json',
+                        },
+                    });
+                    const data = await response.json();
+
+                    if (data.status === 'generated' || data.status === 'published') {
+                        window.location.href = `/admin/paths/${pathId}`;
+                    } else if (data.status === 'draft' && attempts > 5) {
+                        // Probablement une erreur
+                        alert('La génération a échoué. Le parcours est resté en brouillon.');
+                        window.location.href = `/admin/paths/${pathId}`;
+                    } else if (attempts < maxAttempts) {
+                        attempts++;
+                        setTimeout(checkStatus, 2000); // Vérifier toutes les 2 secondes
+                    } else {
+                        alert('Timeout: La génération prend plus de temps que prévu.');
+                        window.location.href = `/admin/paths/${pathId}`;
+                    }
+                } catch (error) {
+                    console.error('Erreur lors de la vérification du statut:', error);
+                    if (attempts < maxAttempts) {
+                        attempts++;
+                        setTimeout(checkStatus, 2000);
+                    }
+                }
+            };
+
+            checkStatus();
+        }
+    }
+}
+</script>
+{% endblock %}
+

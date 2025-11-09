@@ -1,0 +1,81 @@
+{
+    "showCoverPage": false,
+    "bookCover": {
+        "coverDescription": "MultiChoice - Module 1",
+        "coverMedium": ""
+    },
+    "chapters": [
+        {
+            "library": "H5P.Column 1.18",
+            "params": {
+                "content": [
+                    {
+                        "content": {
+                            "library": "H5P.MultiChoice 1.16",
+                            "params": {
+                                "media": [],
+                                "question": "",
+                                "answers": []
+                            },
+                            "subContentId": "submodule-22-0",
+                            "metadata": {
+                                "contentType": "Text",
+                                "license": "U",
+                                "title": "MultiChoice - Module 1",
+                                "authors": [],
+                                "changes": []
+                            }
+                        },
+                        "useSeparator": "auto"
+                    }
+                ]
+            },
+            "subContentId": "module-22-0",
+            "metadata": {
+                "contentType": "Column",
+                "license": "U",
+                "title": "MultiChoice - Module 1"
+            }
+        },
+        {
+            "library": "H5P.Column 1.18",
+            "params": {
+                "content": [
+                    {
+                        "content": {
+                            "library": "H5P.TrueFalse 1.8",
+                            "params": {
+                                "media": [],
+                                "question": "",
+                                "correct": "false"
+                            },
+                            "subContentId": "submodule-23-0",
+                            "metadata": {
+                                "contentType": "Text",
+                                "license": "U",
+                                "title": "TrueFalse - Module 2",
+                                "authors": [],
+                                "changes": []
+                            }
+                        },
+                        "useSeparator": "auto"
+                    }
+                ]
+            },
+            "subContentId": "module-23-0",
+            "metadata": {
+                "contentType": "Column",
+                "license": "U",
+                "title": "TrueFalse - Module 2"
+            }
+        }
+    ],
+    "behaviour": {
+        "baseColor": "#1768c4",
+        "defaultTableOfContents": true,
+        "progressIndicators": true,
+        "progressAuto": true,
+        "displaySummary": true,
+        "enableRetry": true
+    }
+}

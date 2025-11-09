@@ -11,12 +11,15 @@ use App\Repository\ParentUserRepository;
 use App\Repository\SpecialistRepository;
 use App\Repository\StudentRepository;
 use App\Repository\TaskRepository;
+use App\Service\TaskPlanningService;
+use App\Service\PermissionService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 class TaskController extends AbstractController
@@ -32,21 +35,62 @@ class TaskController extends AbstractController
         private readonly StudentRepository $studentRepository,
         private readonly ParentUserRepository $parentRepository,
         private readonly SpecialistRepository $specialistRepository,
-        private readonly ValidatorInterface $validator
+        private readonly ValidatorInterface $validator,
+        private readonly TaskPlanningService $taskPlanningService,
+        private readonly PermissionService $permissionService
     ) {
     }
 
     #[Route('/admin/objectives/{objectiveId}/tasks/create', name: 'admin_tasks_create', methods: ['POST'])]
+    #[IsGranted('ROLE_USER')]
     public function create(int $objectiveId, Request $request): JsonResponse
     {
-        $coach = $this->getCurrentCoach($this->coachRepository, $this->security);
-        if (!$coach) {
-            return new JsonResponse(['success' => false, 'message' => 'Coach non trouvé'], 404);
+        $user = $this->getUser();
+        if (!$user) {
+            return new JsonResponse(['success' => false, 'message' => 'Vous devez être connecté'], 403);
         }
 
         $objective = $this->objectiveRepository->find($objectiveId);
-        if (!$objective || $objective->getCoach() !== $coach) {
+        if (!$objective) {
             return new JsonResponse(['success' => false, 'message' => 'Objectif non trouvé'], 404);
+        }
+
+        // Vérifier les permissions d'accès à l'objectif
+        if (!$this->permissionService->canViewObjective($user, $objective)) {
+            return new JsonResponse(['success' => false, 'message' => 'Vous n\'avez pas accès à cet objectif'], 403);
+        }
+
+        // Vérifier les permissions de modification de tâches
+        if (!$this->permissionService->canModifyTask($user, null, $objective)) {
+            return new JsonResponse(['success' => false, 'message' => 'Vous n\'avez pas le droit de créer des tâches'], 403);
+        }
+
+        // Pour les coaches, vérifier qu'ils sont bien le coach de l'objectif
+        $coach = null;
+        if ($user->isCoach()) {
+            $coach = $this->getCurrentCoach($this->coachRepository, $this->security);
+            if (!$coach || $objective->getCoach() !== $coach) {
+                return new JsonResponse(['success' => false, 'message' => 'Vous n\'avez pas le droit de créer des tâches pour cet objectif'], 403);
+            }
+        } else {
+            // Pour les autres rôles, vérifier qu'ils peuvent modifier l'objectif
+            if (!$this->permissionService->canModifyObjective($user, $objective)) {
+                return new JsonResponse(['success' => false, 'message' => 'Vous n\'avez pas le droit de créer des tâches pour cet objectif'], 403);
+            }
+        }
+
+        // Vérifier si on peut créer des tâches pour cet objectif (statut)
+        if (!$objective->canModifyTasks()) {
+            return new JsonResponse([
+                'success' => false, 
+                'message' => 'Impossible de créer une tâche. ' . $objective->getStatusMessage()
+            ], 403);
+        }
+
+        // Utiliser le coach de l'objectif pour la création
+        $coach = $objective->getCoach();
+        if (!$coach) {
+            return new JsonResponse(['success' => false, 'message' => 'Coach non trouvé'], 404);
         }
 
         $data = json_decode($request->getContent(), true);
@@ -84,26 +128,74 @@ class TaskController extends AbstractController
         $this->em->persist($task);
         $this->em->flush();
 
+        // Générer les événements Planning à partir de la tâche
+        try {
+            $this->taskPlanningService->generatePlanningFromTask($task);
+            $this->em->flush();
+        } catch (\Exception $e) {
+            // Logger l'erreur mais ne pas faire échouer la création de la tâche
+            // Les événements Planning peuvent être régénérés plus tard
+        }
+
         return new JsonResponse(['success' => true, 'id' => $task->getId(), 'message' => 'Tâche créée avec succès']);
     }
 
     #[Route('/admin/tasks/{id}/update', name: 'admin_tasks_update', methods: ['POST'])]
+    #[IsGranted('ROLE_USER')]
     public function update(int $id, Request $request): JsonResponse
     {
-        $coach = $this->getCurrentCoach($this->coachRepository, $this->security);
-        if (!$coach) {
-            return new JsonResponse(['success' => false, 'message' => 'Coach non trouvé'], 404);
+        $user = $this->getUser();
+        if (!$user) {
+            return new JsonResponse(['success' => false, 'message' => 'Vous devez être connecté'], 403);
         }
 
         $task = $this->taskRepository->find($id);
-        if (!$task || $task->getCoach() !== $coach) {
+        if (!$task) {
             return new JsonResponse(['success' => false, 'message' => 'Tâche non trouvée'], 404);
+        }
+
+        // Vérifier les permissions d'accès à la tâche
+        if (!$this->permissionService->canViewTask($user, $task)) {
+            return new JsonResponse(['success' => false, 'message' => 'Vous n\'avez pas accès à cette tâche'], 403);
+        }
+
+        // Vérifier les permissions de modification
+        if (!$this->permissionService->canModifyTask($user, $task)) {
+            return new JsonResponse(['success' => false, 'message' => 'Vous n\'avez pas le droit de modifier cette tâche'], 403);
+        }
+
+        $objective = $task->getObjective();
+        if (!$objective) {
+            return new JsonResponse(['success' => false, 'message' => 'Objectif non trouvé'], 404);
+        }
+
+        // Pour les coaches, vérifier qu'ils sont bien le coach de l'objectif
+        $coach = null;
+        if ($user->isCoach()) {
+            $coach = $this->getCurrentCoach($this->coachRepository, $this->security);
+            if (!$coach || $task->getCoach() !== $coach || $objective->getCoach() !== $coach) {
+                return new JsonResponse(['success' => false, 'message' => 'Vous n\'avez pas le droit de modifier cette tâche'], 403);
+            }
+        }
+
+        // Vérifier si on peut modifier des tâches pour cet objectif (statut)
+        if (!$objective->canModifyTasks()) {
+            return new JsonResponse([
+                'success' => false, 
+                'message' => 'Impossible de modifier cette tâche. ' . $objective->getStatusMessage()
+            ], 403);
         }
 
         $data = json_decode($request->getContent(), true);
         if (isset($data['title'])) $task->setTitle($data['title']);
         if (isset($data['description'])) $task->setDescription($data['description']);
-        if (isset($data['status'])) $task->setStatus($data['status']);
+        // Seul le coach peut changer le statut d'une tâche
+        if (isset($data['status'])) {
+            if (!$user->isCoach()) {
+                return new JsonResponse(['success' => false, 'message' => 'Seul le coach peut changer le statut d\'une tâche'], 403);
+            }
+            $task->setStatus($data['status']);
+        }
         if (isset($data['frequency'])) $task->setFrequency($data['frequency']);
         // Mettre à jour requiresProof si fourni, sinon garder la valeur actuelle
         if (isset($data['requiresProof'])) {
@@ -150,6 +242,13 @@ class TaskController extends AbstractController
 
         $this->em->flush();
 
+        // Mettre à jour les événements Planning
+        try {
+            $this->taskPlanningService->updatePlanningForTask($task);
+        } catch (\Exception $e) {
+            // Logger l'erreur mais ne pas faire échouer la mise à jour
+        }
+
         return new JsonResponse(['success' => true, 'message' => 'Tâche modifiée avec succès']);
     }
 
@@ -164,6 +263,13 @@ class TaskController extends AbstractController
         $task = $this->taskRepository->find($id);
         if (!$task || $task->getCoach() !== $coach) {
             return new JsonResponse(['success' => false, 'message' => 'Tâche non trouvée'], 404);
+        }
+
+        // Supprimer les événements Planning associés
+        try {
+            $this->taskPlanningService->removePlanningForTask($task);
+        } catch (\Exception $e) {
+            // Logger l'erreur mais continuer la suppression
         }
 
         $this->em->remove($task);
@@ -218,6 +324,13 @@ class TaskController extends AbstractController
         }
 
         $this->em->flush();
+
+        // Mettre à jour les événements Planning si la fréquence a changé
+        try {
+            $this->taskPlanningService->updatePlanningForTask($task);
+        } catch (\Exception $e) {
+            // Logger l'erreur mais ne pas faire échouer la mise à jour
+        }
 
         return new JsonResponse([
             'success' => true, 

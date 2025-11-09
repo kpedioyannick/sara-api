@@ -4,6 +4,7 @@ namespace App\Controller;
 
 use App\Entity\Integration;
 use App\Repository\IntegrationRepository;
+use App\Repository\StudentRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -19,26 +20,43 @@ class IntegrationController extends AbstractController
 {
     public function __construct(
         private readonly IntegrationRepository $integrationRepository,
+        private readonly StudentRepository $studentRepository,
         private readonly EntityManagerInterface $em,
         private readonly ValidatorInterface $validator
     ) {
     }
 
     #[Route('', name: 'admin_integrations_list')]
-    public function list(): Response
+    public function list(Request $request): Response
     {
         // Initialiser les intégrations par défaut si elles n'existent pas
         $this->initializeDefaultIntegrations();
 
+        $studentId = $request->query->get('student_id');
+        
         $integrations = $this->integrationRepository->findAll();
         // Filtrer pour exclure Ecole Directe
         $integrations = array_filter($integrations, fn($integration) => $integration->getType() !== Integration::TYPE_ECOLE_DIRECTE);
+        
+        // Filtrer par étudiant si demandé
+        if ($studentId) {
+            $integrations = array_filter($integrations, fn($integration) => 
+                $integration->getStudent() && $integration->getStudent()->getId() == $studentId
+            );
+        }
+        
         $integrationsData = array_map(fn($integration) => $integration->toArray(), $integrations);
+        
+        // Récupérer tous les étudiants pour le filtre
+        $students = $this->studentRepository->findAll();
+        $studentsData = array_map(fn($s) => $s->toSimpleArray(), $students);
 
         return $this->render('tailadmin/pages/integrations/list.html.twig', [
             'pageTitle' => 'Intégrations | SARA',
             'pageName' => 'integrations',
             'integrations' => $integrationsData,
+            'students' => $studentsData,
+            'selectedStudentId' => $studentId,
             'breadcrumbs' => [
                 ['label' => 'Dashboard', 'url' => $this->generateUrl('admin_dashboard')],
                 ['label' => 'Intégrations', 'url' => ''],
@@ -83,9 +101,6 @@ class IntegrationController extends AbstractController
         $integration = new Integration();
         $integration->setName($data['name']);
         $integration->setType($data['type']);
-        $integration->setClientId($data['clientId'] ?? null);
-        $integration->setClientSecret($data['clientSecret'] ?? null);
-        $integration->setAuthBaseUri($data['authBaseUri'] ?? null);
         $integration->setIsActive(true);
 
         $errors = $this->validator->validate($integration);
@@ -128,15 +143,6 @@ class IntegrationController extends AbstractController
         }
         if (isset($data['type']) && in_array($data['type'], Integration::TYPES)) {
             $integration->setType($data['type']);
-        }
-        if (isset($data['clientId'])) {
-            $integration->setClientId($data['clientId']);
-        }
-        if (isset($data['clientSecret'])) {
-            $integration->setClientSecret($data['clientSecret']);
-        }
-        if (isset($data['authBaseUri'])) {
-            $integration->setAuthBaseUri($data['authBaseUri']);
         }
         if (isset($data['isActive'])) {
             $integration->setIsActive($data['isActive']);

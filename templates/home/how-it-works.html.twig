@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ pageTitle }}</title>
+    <link rel="stylesheet" href="{{ asset('tailadmin/style.css') }}">
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <style>
+        .menu-item {
+            transition: all 0.3s ease;
+        }
+        .menu-item.active {
+            color: rgb(32, 129, 74);
+            border-bottom: 2px solid rgb(32, 129, 74);
+        }
+        .section-content {
+            scroll-margin-top: 100px;
+        }
+    </style>
+</head>
+<body class="bg-white">
+    <!-- Navigation -->
+    <nav class="sticky top-0 z-50 border-b border-gray-200 bg-white/80 backdrop-blur-sm">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex h-16 items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <a href="{{ path('app_home') }}">
+                        <img src="{{ asset('sara.png') }}" alt="SARA" class="h-10 w-auto" />
+                    </a>
+                    <span class="text-xl font-bold" style="color: rgb(32, 129, 74);">SARA</span>
+                </div>
+                <div class="flex items-center gap-4">
+                    <a href="{{ path('app_home') }}" class="text-sm font-medium text-gray-700 hover:text-brand-600">
+                        Accueil
+                    </a>
+                    <a href="{{ path('app_how_it_works') }}" class="text-sm font-medium text-brand-600">
+                        Comment ça fonctionne ?
+                    </a>
+                    <a href="{{ path('app_contact') }}" class="text-sm font-medium text-gray-700 hover:text-brand-600">
+                        Contactez-nous
+                    </a>
+                    <a href="{{ path('app_login') }}" class="text-sm font-medium text-gray-700 hover:text-brand-600">
+                        Connexion
+                    </a>
+                    <a href="{{ path('app_login') }}" class="rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600 transition-colors">
+                        Accéder à l'application
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Menu de navigation interne -->
+    <div class="sticky top-16 z-40 border-b border-gray-200 bg-white/95 backdrop-blur-sm" x-data="{ activeSection: 'how-it-works' }">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center gap-8">
+                <button 
+                    @click="activeSection = 'how-it-works'; document.getElementById('how-it-works').scrollIntoView({ behavior: 'smooth', block: 'start' })"
+                    :class="activeSection === 'how-it-works' ? 'menu-item active font-semibold' : 'menu-item text-gray-600 hover:text-gray-900'"
+                    class="py-4 px-2 text-base"
+                >
+                    Comment ça fonctionne ?
+                </button>
+                <button 
+                    @click="activeSection = 'faq'; document.getElementById('faq').scrollIntoView({ behavior: 'smooth', block: 'start' })"
+                    :class="activeSection === 'faq' ? 'menu-item active font-semibold' : 'menu-item text-gray-600 hover:text-gray-900'"
+                    class="py-4 px-2 text-base"
+                >
+                    FAQ
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Section: Comment ça fonctionne ? -->
+    <section id="how-it-works" class="section-content py-20 bg-white">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="mx-auto max-w-4xl">
+                <div class="text-center mb-16">
+                    <h1 class="text-4xl font-bold tracking-tight text-gray-900 sm:text-5xl mb-6">
+                        Comment ça fonctionne ?
+                    </h1>
+                    <p class="text-xl text-gray-600">
+                        Découvrez comment SARA accompagne les parents dans la réussite scolaire de leur enfant
+                    </p>
+                </div>
+
+                <!-- Introduction -->
+                <div class="mb-16 p-8 rounded-2xl bg-gradient-to-br from-brand-50 to-white border border-brand-100">
+                    <p class="text-lg leading-relaxed text-gray-700 mb-4">
+                        <strong>SARA</strong> est une plateforme éducative qui accompagne les parents dans la réussite scolaire de leur enfant, tant sur le plan scolaire que comportemental et émotionnel.
+                    </p>
+                    <p class="text-lg leading-relaxed text-gray-700">
+                        Le parent ne se sent plus seul. Le parent ne joue plus le mauvais rôle ou le mauvais flic, mais grâce à SARA, il est accompagné à travers des objectifs et tâches pour leur enfant. Les enfants seront challengés et les parents seront les encouragements. Parent et enfant travaillent ensemble pour la réussite de leur enfant - guidé par un coach sur l'application.
+                    </p>
+                </div>
+
+                <!-- Processus étape par étape -->
+                <div class="space-y-12">
+                    <!-- Étape 1 -->
+                    <div class="flex gap-6">
+                        <div class="flex-shrink-0">
+                            <div class="flex h-12 w-12 items-center justify-center rounded-full bg-brand-500 text-white font-bold text-xl">
+                                1
+                            </div>
+                        </div>
+                        <div class="flex-1">
+                            <h3 class="text-2xl font-semibold text-gray-900 mb-4">
+                                Les parents définissent leurs besoins
+                            </h3>
+                            <p class="text-gray-600 leading-relaxed mb-4">
+                                Les parents expriment leurs préoccupations et leurs objectifs pour leur enfant. Cela peut concerner des difficultés scolaires, comportementales ou émotionnelles.
+                            </p>
+                            <div class="bg-gray-50 p-4 rounded-lg">
+                                <p class="text-sm text-gray-700 italic">
+                                    Exemple : "Mon enfant a des difficultés en mathématiques et manque de motivation"
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Étape 2 -->
+                    <div class="flex gap-6">
+                        <div class="flex-shrink-0">
+                            <div class="flex h-12 w-12 items-center justify-center rounded-full bg-brand-500 text-white font-bold text-xl">
+                                2
+                            </div>
+                        </div>
+                        <div class="flex-1">
+                            <h3 class="text-2xl font-semibold text-gray-900 mb-4">
+                                Le coach traduit en objectifs
+                            </h3>
+                            <p class="text-gray-600 leading-relaxed mb-4">
+                                Le coach analyse les besoins exprimés et les transforme en objectifs clairs et mesurables à atteindre par l'enfant, accompagné du parent.
+                            </p>
+                            <div class="bg-gray-50 p-4 rounded-lg">
+                                <p class="text-sm text-gray-700 italic">
+                                    Exemple : Objectif "Améliorer les compétences en mathématiques" avec des critères d'évaluation précis
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Étape 3 -->
+                    <div class="flex gap-6">
+                        <div class="flex-shrink-0">
+                            <div class="flex h-12 w-12 items-center justify-center rounded-full bg-brand-500 text-white font-bold text-xl">
+                                3
+                            </div>
+                        </div>
+                        <div class="flex-1">
+                            <h3 class="text-2xl font-semibold text-gray-900 mb-4">
+                                Création d'un programme d'actions
+                            </h3>
+                            <p class="text-gray-600 leading-relaxed mb-4">
+                                Le coach définit, avec les parents et l'enfant, un programme d'actions concrètes pour atteindre ces objectifs. Les tâches sont générées automatiquement par l'IA et peuvent être assignées à l'enfant, au parent ou à un spécialiste.
+                            </p>
+                            <ul class="list-disc list-inside text-gray-600 space-y-2 mb-4">
+                                <li>Tâches quotidiennes, hebdomadaires ou mensuelles</li>
+                                <li>Preuves de réalisation (texte, photos)</li>
+                                <li>Intégration automatique dans le planning</li>
+                            </ul>
+                            <div class="bg-gray-50 p-4 rounded-lg">
+                                <p class="text-sm text-gray-700 italic">
+                                    Exemple : Tâche "Faire 3 exercices de mathématiques par jour" avec preuve photo du cahier
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Étape 4 -->
+                    <div class="flex gap-6">
+                        <div class="flex-shrink-0">
+                            <div class="flex h-12 w-12 items-center justify-center rounded-full bg-brand-500 text-white font-bold text-xl">
+                                4
+                            </div>
+                        </div>
+                        <div class="flex-1">
+                            <h3 class="text-2xl font-semibold text-gray-900 mb-4">
+                                Accompagnement par un professionnel
+                            </h3>
+                            <p class="text-gray-600 leading-relaxed mb-4">
+                                En fonction de l'objectif, l'élève peut être accompagné soit par un professeur, soit par un spécialiste (orthophoniste, psychologue, etc.) selon les besoins identifiés.
+                            </p>
+                            <div class="bg-gray-50 p-4 rounded-lg">
+                                <p class="text-sm text-gray-700 italic">
+                                    Exemple : Un spécialiste en troubles de l'apprentissage pour les difficultés en mathématiques
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Étape 5 -->
+                    <div class="flex gap-6">
+                        <div class="flex-shrink-0">
+                            <div class="flex h-12 w-12 items-center justify-center rounded-full bg-brand-500 text-white font-bold text-xl">
+                                5
+                            </div>
+                        </div>
+                        <div class="flex-1">
+                            <h3 class="text-2xl font-semibold text-gray-900 mb-4">
+                                Suivi hebdomadaire
+                            </h3>
+                            <p class="text-gray-600 leading-relaxed mb-4">
+                                Un suivi hebdomadaire est réalisé pour évaluer la progression, ajuster les objectifs si nécessaire et maintenir la motivation de l'enfant et du parent.
+                            </p>
+                            <div class="bg-gray-50 p-4 rounded-lg">
+                                <p class="text-sm text-gray-700 italic">
+                                    Points de suivi : avancement des tâches, preuves fournies, difficultés rencontrées
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Étape 6 -->
+                    <div class="flex gap-6">
+                        <div class="flex-shrink-0">
+                            <div class="flex h-12 w-12 items-center justify-center rounded-full bg-brand-500 text-white font-bold text-xl">
+                                6
+                            </div>
+                        </div>
+                        <div class="flex-1">
+                            <h3 class="text-2xl font-semibold text-gray-900 mb-4">
+                                Bilan après 3 semaines
+                            </h3>
+                            <p class="text-gray-600 leading-relaxed mb-4">
+                                Au bout de 3 semaines, un bilan complet est réalisé pour évaluer les progrès, célébrer les réussites et définir les prochaines étapes.
+                            </p>
+                            <div class="bg-gray-50 p-4 rounded-lg">
+                                <p class="text-sm text-gray-700 italic">
+                                    Le bilan inclut : statistiques de progression, objectifs atteints, nouvelles orientations si nécessaire
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Avantages -->
+                <div class="mt-20 p-8 rounded-2xl bg-brand-50 border border-brand-100">
+                    <h2 class="text-2xl font-semibold text-gray-900 mb-6">Les avantages de SARA</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="flex items-start gap-3">
+                            <svg class="h-6 w-6 text-brand-600 flex-shrink-0 mt-1" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                            </svg>
+                            <div>
+                                <h4 class="font-semibold text-gray-900 mb-1">Le parent n'est plus seul</h4>
+                                <p class="text-sm text-gray-600">Accompagnement constant par un coach professionnel</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start gap-3">
+                            <svg class="h-6 w-6 text-brand-600 flex-shrink-0 mt-1" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                            </svg>
+                            <div>
+                                <h4 class="font-semibold text-gray-900 mb-1">Fin du rôle de "mauvais flic"</h4>
+                                <p class="text-sm text-gray-600">Le coach prend le relais pour la discipline et la motivation</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start gap-3">
+                            <svg class="h-6 w-6 text-brand-600 flex-shrink-0 mt-1" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                            </svg>
+                            <div>
+                                <h4 class="font-semibold text-gray-900 mb-1">Enfants challengés</h4>
+                                <p class="text-sm text-gray-600">Système de points et défis pour maintenir la motivation</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start gap-3">
+                            <svg class="h-6 w-6 text-brand-600 flex-shrink-0 mt-1" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                            </svg>
+                            <div>
+                                <h4 class="font-semibold text-gray-900 mb-1">Parents encouragés</h4>
+                                <p class="text-sm text-gray-600">Reconnaissance des efforts et célébration des réussites</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start gap-3">
+                            <svg class="h-6 w-6 text-brand-600 flex-shrink-0 mt-1" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                            </svg>
+                            <div>
+                                <h4 class="font-semibold text-gray-900 mb-1">Travail en équipe</h4>
+                                <p class="text-sm text-gray-600">Parent et enfant unis pour la réussite, guidés par le coach</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start gap-3">
+                            <svg class="h-6 w-6 text-brand-600 flex-shrink-0 mt-1" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                            </svg>
+                            <div>
+                                <h4 class="font-semibold text-gray-900 mb-1">Suivi personnalisé</h4>
+                                <p class="text-sm text-gray-600">Adapté aux besoins spécifiques de chaque enfant</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Section: FAQ -->
+    <section id="faq" class="section-content py-20 bg-gray-50">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="mx-auto max-w-4xl">
+                <div class="text-center mb-16">
+                    <h2 class="text-4xl font-bold tracking-tight text-gray-900 sm:text-5xl mb-6">
+                        Questions Fréquentes (FAQ)
+                    </h2>
+                    <p class="text-xl text-gray-600">
+                        Trouvez les réponses aux questions les plus courantes
+                    </p>
+                </div>
+
+                <div class="space-y-6" x-data="{ openFaq: null }">
+                    <!-- FAQ 1 -->
+                    <div class="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
+                        <button 
+                            @click="openFaq = openFaq === 1 ? null : 1"
+                            class="w-full px-6 py-5 text-left flex items-center justify-between hover:bg-gray-50 transition-colors"
+                        >
+                            <span class="text-lg font-semibold text-gray-900">Qu'est-ce que SARA ?</span>
+                            <svg 
+                                class="h-5 w-5 text-gray-500 transition-transform"
+                                :class="openFaq === 1 ? 'rotate-180' : ''"
+                                fill="none" 
+                                viewBox="0 0 24 24" 
+                                stroke="currentColor"
+                            >
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                            </svg>
+                        </button>
+                        <div 
+                            x-show="openFaq === 1"
+                            x-collapse
+                            class="px-6 pb-5 text-gray-600 leading-relaxed"
+                        >
+                            <p class="mb-3">
+                                SARA (Système d'Accompagnement et de Réussite des Apprenants) est une plateforme éducative complète qui accompagne les parents dans la réussite scolaire de leur enfant, tant sur le plan scolaire que comportemental et émotionnel.
+                            </p>
+                            <p>
+                                La plateforme connecte coaches, parents, élèves et spécialistes pour un suivi éducatif personnalisé et efficace.
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- FAQ 2 -->
+                    <div class="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
+                        <button 
+                            @click="openFaq = openFaq === 2 ? null : 2"
+                            class="w-full px-6 py-5 text-left flex items-center justify-between hover:bg-gray-50 transition-colors"
+                        >
+                            <span class="text-lg font-semibold text-gray-900">Comment fonctionne l'accompagnement ?</span>
+                            <svg 
+                                class="h-5 w-5 text-gray-500 transition-transform"
+                                :class="openFaq === 2 ? 'rotate-180' : ''"
+                                fill="none" 
+                                viewBox="0 0 24 24" 
+                                stroke="currentColor"
+                            >
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                            </svg>
+                        </button>
+                        <div 
+                            x-show="openFaq === 2"
+                            x-collapse
+                            class="px-6 pb-5 text-gray-600 leading-relaxed"
+                        >
+                            <p class="mb-3">
+                                Le processus se déroule en plusieurs étapes :
+                            </p>
+                            <ol class="list-decimal list-inside space-y-2">
+                                <li>Les parents expriment leurs besoins</li>
+                                <li>Le coach traduit ces besoins en objectifs mesurables</li>
+                                <li>Un programme d'actions est créé avec des tâches concrètes</li>
+                                <li>L'enfant peut être accompagné par un professionnel si nécessaire</li>
+                                <li>Un suivi hebdomadaire est réalisé</li>
+                                <li>Un bilan est effectué après 3 semaines</li>
+                            </ol>
+                        </div>
+                    </div>
+
+                    <!-- FAQ 3 -->
+                    <div class="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
+                        <button 
+                            @click="openFaq = openFaq === 3 ? null : 3"
+                            class="w-full px-6 py-5 text-left flex items-center justify-between hover:bg-gray-50 transition-colors"
+                        >
+                            <span class="text-lg font-semibold text-gray-900">Qui peut utiliser SARA ?</span>
+                            <svg 
+                                class="h-5 w-5 text-gray-500 transition-transform"
+                                :class="openFaq === 3 ? 'rotate-180' : ''"
+                                fill="none" 
+                                viewBox="0 0 24 24" 
+                                stroke="currentColor"
+                            >
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                            </svg>
+                        </button>
+                        <div 
+                            x-show="openFaq === 3"
+                            x-collapse
+                            class="px-6 pb-5 text-gray-600 leading-relaxed"
+                        >
+                            <p class="mb-3">
+                                SARA est conçu pour quatre types d'utilisateurs :
+                            </p>
+                            <ul class="list-disc list-inside space-y-2">
+                                <li><strong>Coaches</strong> : Coordinateurs principaux qui gèrent les familles, objectifs et spécialistes</li>
+                                <li><strong>Parents</strong> : Suivent la progression de leurs enfants et participent activement</li>
+                                <li><strong>Élèves</strong> : Complètent leurs tâches et suivent leur planning</li>
+                                <li><strong>Spécialistes</strong> : Apportent leur expertise dans des domaines spécifiques</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <!-- FAQ 4 -->
+                    <div class="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
+                        <button 
+                            @click="openFaq = openFaq === 4 ? null : 4"
+                            class="w-full px-6 py-5 text-left flex items-center justify-between hover:bg-gray-50 transition-colors"
+                        >
+                            <span class="text-lg font-semibold text-gray-900">Comment sont créés les objectifs et les tâches ?</span>
+                            <svg 
+                                class="h-5 w-5 text-gray-500 transition-transform"
+                                :class="openFaq === 4 ? 'rotate-180' : ''"
+                                fill="none" 
+                                viewBox="0 0 24 24" 
+                                stroke="currentColor"
+                            >
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                            </svg>
+                        </button>
+                        <div 
+                            x-show="openFaq === 4"
+                            x-collapse
+                            class="px-6 pb-5 text-gray-600 leading-relaxed"
+                        >
+                            <p class="mb-3">
+                                Les objectifs sont créés par le coach à partir des besoins exprimés par les parents. L'intelligence artificielle (IA) peut :
+                            </p>
+                            <ul class="list-disc list-inside space-y-2">
+                                <li>Reformuler automatiquement les titres d'objectifs pour plus de clarté</li>
+                                <li>Générer automatiquement des tâches à partir d'un objectif</li>
+                                <li>Créer des parcours pédagogiques interactifs (H5P)</li>
+                            </ul>
+                            <p class="mt-3">
+                                Les tâches peuvent être assignées à l'élève, au parent, à un spécialiste ou au coach, et apparaissent automatiquement dans le planning selon leur fréquence (quotidienne, hebdomadaire, etc.).
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- FAQ 5 -->
+                    <div class="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
+                        <button 
+                            @click="openFaq = openFaq === 5 ? null : 5"
+                            class="w-full px-6 py-5 text-left flex items-center justify-between hover:bg-gray-50 transition-colors"
+                        >
+                            <span class="text-lg font-semibold text-gray-900">Comment fonctionne le système de preuves ?</span>
+                            <svg 
+                                class="h-5 w-5 text-gray-500 transition-transform"
+                                :class="openFaq === 5 ? 'rotate-180' : ''"
+                                fill="none" 
+                                viewBox="0 0 24 24" 
+                                stroke="currentColor"
+                            >
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                            </svg>
+                        </button>
+                        <div 
+                            x-show="openFaq === 5"
+                            x-collapse
+                            class="px-6 pb-5 text-gray-600 leading-relaxed"
+                        >
+                            <p class="mb-3">
+                                Lorsqu'une tâche est complétée, l'élève (ou le parent) peut ajouter des preuves de réalisation :
+                            </p>
+                            <ul class="list-disc list-inside space-y-2">
+                                <li><strong>Texte</strong> : Description de ce qui a été fait</li>
+                                <li><strong>Photos</strong> : Images du travail réalisé (cahier, exercices, etc.)</li>
+                                <li><strong>Fichiers</strong> : Documents ou autres preuves</li>
+                            </ul>
+                            <p class="mt-3">
+                                Toutes les preuves sont conservées dans un historique, permettant de suivre l'évolution et la progression de l'enfant.
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- FAQ 6 -->
+                    <div class="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
+                        <button 
+                            @click="openFaq = openFaq === 6 ? null : 6"
+                            class="w-full px-6 py-5 text-left flex items-center justify-between hover:bg-gray-50 transition-colors"
+                        >
+                            <span class="text-lg font-semibold text-gray-900">Qu'est-ce qu'un spécialiste et comment intervient-il ?</span>
+                            <svg 
+                                class="h-5 w-5 text-gray-500 transition-transform"
+                                :class="openFaq === 6 ? 'rotate-180' : ''"
+                                fill="none" 
+                                viewBox="0 0 24 24" 
+                                stroke="currentColor"
+                            >
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                            </svg>
+                        </button>
+                        <div 
+                            x-show="openFaq === 6"
+                            x-collapse
+                            class="px-6 pb-5 text-gray-600 leading-relaxed"
+                        >
+                            <p class="mb-3">
+                                Un spécialiste est un professionnel expert dans un domaine spécifique (orthophoniste, psychologue, professeur particulier, etc.). Il peut :
+                            </p>
+                            <ul class="list-disc list-inside space-y-2">
+                                <li>Être assigné à des élèves selon leurs besoins</li>
+                                <li>Répondre aux demandes qui lui sont confiées</li>
+                                <li>Gérer ses disponibilités</li>
+                                <li>Suivre les élèves qui lui sont assignés</li>
+                            </ul>
+                            <p class="mt-3">
+                                Le coach décide quand faire intervenir un spécialiste en fonction de l'objectif et des besoins de l'enfant.
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- FAQ 7 -->
+                    <div class="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
+                        <button 
+                            @click="openFaq = openFaq === 7 ? null : 7"
+                            class="w-full px-6 py-5 text-left flex items-center justify-between hover:bg-gray-50 transition-colors"
+                        >
+                            <span class="text-lg font-semibold text-gray-900">Comment fonctionne le planning ?</span>
+                            <svg 
+                                class="h-5 w-5 text-gray-500 transition-transform"
+                                :class="openFaq === 7 ? 'rotate-180' : ''"
+                                fill="none" 
+                                viewBox="0 0 24 24" 
+                                stroke="currentColor"
+                            >
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                            </svg>
+                        </button>
+                        <div 
+                            x-show="openFaq === 7"
+                            x-collapse
+                            class="px-6 pb-5 text-gray-600 leading-relaxed"
+                        >
+                            <p class="mb-3">
+                                Le planning est automatiquement généré à partir des tâches des objectifs :
+                            </p>
+                            <ul class="list-disc list-inside space-y-2">
+                                <li>Les tâches avec une fréquence (quotidienne, hebdomadaire, etc.) créent automatiquement des événements dans le planning</li>
+                                <li>Les dates de début et de fin sont celles de l'objectif</li>
+                                <li>Si l'objectif n'a pas de date de fin, elle est fixée à 3 semaines après la création</li>
+                                <li>Le planning peut aussi contenir des événements manuels (cours, révisions, activités)</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <!-- FAQ 8 -->
+                    <div class="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
+                        <button 
+                            @click="openFaq = openFaq === 8 ? null : 8"
+                            class="w-full px-6 py-5 text-left flex items-center justify-between hover:bg-gray-50 transition-colors"
+                        >
+                            <span class="text-lg font-semibold text-gray-900">Quels sont les statuts d'un objectif ?</span>
+                            <svg 
+                                class="h-5 w-5 text-gray-500 transition-transform"
+                                :class="openFaq === 8 ? 'rotate-180' : ''"
+                                fill="none" 
+                                viewBox="0 0 24 24" 
+                                stroke="currentColor"
+                            >
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                            </svg>
+                        </button>
+                        <div 
+                            x-show="openFaq === 8"
+                            x-collapse
+                            class="px-6 pb-5 text-gray-600 leading-relaxed"
+                        >
+                            <p class="mb-3">
+                                Un objectif passe par plusieurs états :
+                            </p>
+                            <ol class="list-decimal list-inside space-y-2">
+                                <li><strong>En cours de Modification</strong> : Création/édition en cours</li>
+                                <li><strong>Attente de Validation par Coach</strong> : Soumis pour validation</li>
+                                <li><strong>Validé par le Coach</strong> : Approuvé, prêt à être mis en action</li>
+                                <li><strong>En Action</strong> : Objectif actif, tâches en cours</li>
+                                <li><strong>Terminé</strong> : Objectif complété</li>
+                                <li><strong>En pause</strong> : Temporairement suspendu</li>
+                            </ol>
+                            <p class="mt-3">
+                                <strong>Important</strong> : Seul le coach peut changer le statut d'un objectif. Quand un objectif est en modification ou en attente de validation, on ne peut pas créer ou modifier des tâches, seulement les consulter.
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- FAQ 9 -->
+                    <div class="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
+                        <button 
+                            @click="openFaq = openFaq === 9 ? null : 9"
+                            class="w-full px-6 py-5 text-left flex items-center justify-between hover:bg-gray-50 transition-colors"
+                        >
+                            <span class="text-lg font-semibold text-gray-900">Comment contacter le support ?</span>
+                            <svg 
+                                class="h-5 w-5 text-gray-500 transition-transform"
+                                :class="openFaq === 9 ? 'rotate-180' : ''"
+                                fill="none" 
+                                viewBox="0 0 24 24" 
+                                stroke="currentColor"
+                            >
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                            </svg>
+                        </button>
+                        <div 
+                            x-show="openFaq === 9"
+                            x-collapse
+                            class="px-6 pb-5 text-gray-600 leading-relaxed"
+                        >
+                            <p class="mb-3">
+                                Pour toute question ou problème :
+                            </p>
+                            <ul class="list-disc list-inside space-y-2">
+                                <li>Utilisez la fonctionnalité "Contactez-nous" dans l'application</li>
+                                <li>Consultez les logs dans la section administration (pour les coaches)</li>
+                                <li>Contactez votre coach directement via la messagerie</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <!-- FAQ 10 -->
+                    <div class="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
+                        <button 
+                            @click="openFaq = openFaq === 10 ? null : 10"
+                            class="w-full px-6 py-5 text-left flex items-center justify-between hover:bg-gray-50 transition-colors"
+                        >
+                            <span class="text-lg font-semibold text-gray-900">Quels sont les tarifs ?</span>
+                            <svg 
+                                class="h-5 w-5 text-gray-500 transition-transform"
+                                :class="openFaq === 10 ? 'rotate-180' : ''"
+                                fill="none" 
+                                viewBox="0 0 24 24" 
+                                stroke="currentColor"
+                            >
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                            </svg>
+                        </button>
+                        <div 
+                            x-show="openFaq === 10"
+                            x-collapse
+                            class="px-6 pb-5 text-gray-600 leading-relaxed"
+                        >
+                            <p>
+                                Les informations tarifaires sont disponibles dans la section "Prix" de l'application. Contactez votre coach ou l'administration pour plus de détails sur les forfaits disponibles.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="py-20 bg-brand-600">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="mx-auto max-w-2xl text-center">
+                <h2 class="text-3xl font-bold tracking-tight text-white sm:text-4xl mb-6">
+                    Prêt à commencer ?
+                </h2>
+                <p class="text-lg leading-8 text-brand-100 mb-8">
+                    Rejoignez la communauté SARA et transformez l'accompagnement éducatif de votre enfant.
+                </p>
+                <div class="flex items-center justify-center gap-x-6">
+                    <a href="{{ path('app_login') }}" class="rounded-lg bg-white px-6 py-3 text-base font-semibold text-brand-600 shadow-sm hover:bg-gray-50 transition-colors">
+                        Se connecter
+                    </a>
+                    <a href="{{ path('app_home') }}" class="text-base font-semibold text-white hover:text-brand-100">
+                        Retour à l'accueil
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-gray-900">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8 py-16">
+            <div class="flex flex-col items-center justify-center gap-6">
+                <div class="flex items-center gap-3">
+                    <img src="{{ asset('sara.png') }}" alt="SARA" class="h-12 w-auto" />
+                    <span class="text-2xl font-bold" style="color: rgb(32, 129, 74);">SARA</span>
+                </div>
+                <p class="text-sm text-gray-400">
+                    © 2024 SARA. Plateforme d'accompagnement éducatif.
+                </p>
+                <div class="flex gap-6 text-sm text-gray-400 flex-wrap justify-center">
+                    <a href="{{ path('app_home') }}" class="hover:text-white">Accueil</a>
+                    <a href="{{ path('app_how_it_works') }}" class="hover:text-white">Comment ça fonctionne ?</a>
+                    <a href="{{ path('app_how_it_works') }}#faq" class="hover:text-white">FAQ</a>
+                    <a href="{{ path('app_contact') }}" class="hover:text-white">Contactez-nous</a>
+                    <a href="{{ path('app_privacy_policy') }}" class="hover:text-white">Politique de confidentialité</a>
+                    <a href="{{ path('app_legal_notice') }}" class="hover:text-white">Mentions légales</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+</body>
+</html>
+

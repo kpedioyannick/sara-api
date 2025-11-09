@@ -4,6 +4,7 @@ namespace App\Service;
 
 use App\Entity\Objective;
 use App\Entity\Task;
+use App\Service\TaskPlanningService;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
@@ -19,7 +20,8 @@ class SmartObjectiveService
         private readonly LoggerInterface $logger,
         private readonly string $openaiApiKey,
         private readonly EntityManagerInterface $entityManager,
-        private readonly ValidatorInterface $validator
+        private readonly ValidatorInterface $validator,
+        private readonly TaskPlanningService $taskPlanningService
     ) {}
 
     /**
@@ -364,6 +366,21 @@ class SmartObjectiveService
 
             // Flush toutes les tâches créées
             if (count($createdTasks) > 0) {
+                $this->entityManager->flush();
+                
+                // Générer les événements Planning pour chaque tâche créée
+                foreach ($createdTasks as $task) {
+                    try {
+                        $this->taskPlanningService->generatePlanningFromTask($task);
+                    } catch (\Exception $e) {
+                        $this->logger->warning('Erreur lors de la génération du planning pour une tâche', [
+                            'task_id' => $task->getId(),
+                            'error' => $e->getMessage()
+                        ]);
+                    }
+                }
+                
+                // Flush les événements Planning créés
                 $this->entityManager->flush();
                 
                 $this->logger->info('Tâches créées avec succès', [

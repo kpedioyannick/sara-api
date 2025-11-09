@@ -46,7 +46,7 @@ class GeneratePathCommand extends Command
             ->addArgument('subchapter-id', InputArgument::OPTIONAL, 'ID du sous-chapitre (optionnel)')
             ->addOption('modules', 'm', InputOption::VALUE_REQUIRED, 'Liste des modules au format JSON: [{"type":"MultiChoice","description":"..."},...]')
             ->addOption('modules-file', 'f', InputOption::VALUE_REQUIRED, 'Fichier JSON contenant la liste des modules')
-            ->addOption('user-id', 'u', InputOption::VALUE_REQUIRED, 'ID de l\'utilisateur (par défaut: premier coach trouvé)')
+            ->addOption('user-id', 'u', InputOption::VALUE_REQUIRED, 'ID de l\'utilisateur créateur (par défaut: premier coach trouvé)')
             ->addOption('title', 't', InputOption::VALUE_REQUIRED, 'Titre du parcours (par défaut: généré automatiquement)');
     }
 
@@ -92,7 +92,7 @@ class GeneratePathCommand extends Command
                 return Command::FAILURE;
             }
 
-            // Récupérer l'utilisateur
+            // Récupérer l'utilisateur créateur
             $user = $this->getUser($userId, $io);
             if (!$user) {
                 return Command::FAILURE;
@@ -112,8 +112,9 @@ class GeneratePathCommand extends Command
             $path->setTitle($title);
             $path->setChapter($chapter);
             $path->setSubChapter($subChapter);
-            $path->setUser($user);
+            $path->setType(Path::TYPE_H5P);
             $path->setStatus(Path::STATUS_DRAFT);
+            $path->setCreatedBy($user);
             $path->setDescription(sprintf(
                 'Parcours généré pour le chapitre "%s"%s',
                 $chapter->getName(),
@@ -258,6 +259,5 @@ class GeneratePathCommand extends Command
         $io->info(sprintf('Utilisation de l\'utilisateur : %s (ID: %d)', $coach->getEmail(), $coach->getId()));
         return $coach;
     }
-
 }
 

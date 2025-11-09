@@ -13,6 +13,7 @@ use App\Repository\SpecialistRepository;
 use App\Repository\StudentRepository;
 use App\Service\FileStorageService;
 use App\Service\RequestAIService;
+use App\Service\PermissionService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Bundle\SecurityBundle\Security;
@@ -41,18 +42,18 @@ class RequestController extends AbstractController
         private readonly MessageRepository $messageRepository,
         private readonly HubInterface $hub,
         private readonly FileStorageService $fileStorageService,
-        private readonly RequestAIService $requestAIService
+        private readonly RequestAIService $requestAIService,
+        private readonly PermissionService $permissionService
     ) {
     }
 
     #[Route('/admin/requests', name: 'admin_requests_list')]
-    #[IsGranted('ROLE_COACH')]
+    #[IsGranted('ROLE_USER')]
     public function list(HttpRequest $request): Response
     {
-        $coach = $this->getCurrentCoach($this->coachRepository, $this->security);
-        
-        if (!$coach) {
-            throw $this->createNotFoundException('Aucun coach trouvé');
+        $user = $this->getUser();
+        if (!$user) {
+            throw $this->createAccessDeniedException('Vous devez être connecté');
         }
 
         // Récupération des paramètres de filtrage
@@ -64,61 +65,97 @@ class RequestController extends AbstractController
         $creatorProfile = $request->query->get('creatorProfile'); // 'parent', 'student', 'specialist', 'coach'
         $creatorUserId = $request->query->get('creatorUser'); // ID de l'utilisateur créateur
 
-        // Récupération des demandes avec filtrage
-        $requests = $this->requestRepository->findByCoachWithSearch(
-            $coach,
-            $search ?: null,
-            $familyId ? (int) $familyId : null,
-            $studentId ? (int) $studentId : null,
-            $status ?: null,
-            $specialistId ? (int) $specialistId : null,
-            $creatorProfile ?: null,
-            $creatorUserId ? (int) $creatorUserId : null
-        );
+        // Récupération des demandes selon le rôle de l'utilisateur
+        if ($user->isCoach()) {
+            $coach = $this->getCurrentCoach($this->coachRepository, $this->security);
+            if (!$coach) {
+                throw $this->createNotFoundException('Aucun coach trouvé');
+            }
+            $requests = $this->requestRepository->findByCoachWithSearch(
+                $coach,
+                $search ?: null,
+                $familyId ? (int) $familyId : null,
+                $studentId ? (int) $studentId : null,
+                $status ?: null,
+                $specialistId ? (int) $specialistId : null,
+                $creatorProfile ?: null,
+                $creatorUserId ? (int) $creatorUserId : null
+            );
+        } else {
+            // Pour les autres rôles, utiliser PermissionService
+            $requests = $this->permissionService->getAccessibleRequests($user);
+            // Filtrer par recherche si nécessaire
+            if ($search) {
+                $requests = array_filter($requests, function($req) use ($search) {
+                    return stripos($req->getTitle(), $search) !== false 
+                        || stripos($req->getDescription(), $search) !== false;
+                });
+            }
+            // Filtrer par statut si nécessaire
+            if ($status) {
+                $requests = array_filter($requests, function($req) use ($status) {
+                    return $req->getStatus() === $status;
+                });
+            }
+        }
 
         // Conversion en tableau pour le template
         $requestsData = array_map(fn($request) => $request->toTemplateArray(), $requests);
         
-        // Récupérer les données pour les formulaires
-        $families = $this->familyRepository->findByCoachWithSearch($coach);
-        $familiesData = array_map(fn($family) => [
-            'id' => $family->getId(),
-            'identifier' => $family->getFamilyIdentifier(),
-        ], $families);
-        
-        $students = $this->studentRepository->findByCoach($coach);
-        $studentsData = array_map(fn($student) => [
-            'id' => $student->getId(),
-            'firstName' => $student->getFirstName(),
-            'lastName' => $student->getLastName(),
-        ], $students);
-        
-        $specialists = $this->specialistRepository->findByWithSearch();
-        $specialistsData = array_map(fn($specialist) => [
-            'id' => $specialist->getId(),
-            'firstName' => $specialist->getFirstName(),
-            'lastName' => $specialist->getLastName(),
-        ], $specialists);
-        
-        // Récupérer tous les parents pour le filtre
+        // Récupérer les données pour les formulaires selon le rôle
+        $familiesData = [];
+        $studentsData = [];
+        $specialistsData = [];
         $parentsData = [];
-        foreach ($families as $family) {
-            $parent = $family->getParent();
-            if ($parent) {
-                $parentsData[] = [
-                    'id' => $parent->getId(),
-                    'firstName' => $parent->getFirstName(),
-                    'lastName' => $parent->getLastName(),
-                ];
+        $coachesData = [];
+
+        if ($user->isCoach()) {
+            $coach = $this->getCurrentCoach($this->coachRepository, $this->security);
+            $families = $this->familyRepository->findByCoachWithSearch($coach);
+            $familiesData = array_map(fn($family) => [
+                'id' => $family->getId(),
+                'identifier' => $family->getFamilyIdentifier(),
+            ], $families);
+            
+            $students = $this->studentRepository->findByCoach($coach);
+            $studentsData = array_map(fn($student) => [
+                'id' => $student->getId(),
+                'firstName' => $student->getFirstName(),
+                'lastName' => $student->getLastName(),
+            ], $students);
+            
+            $specialists = $this->specialistRepository->findByWithSearch();
+            $specialistsData = array_map(fn($specialist) => [
+                'id' => $specialist->getId(),
+                'firstName' => $specialist->getFirstName(),
+                'lastName' => $specialist->getLastName(),
+            ], $specialists);
+            
+            foreach ($families as $family) {
+                $parent = $family->getParent();
+                if ($parent) {
+                    $parentsData[] = [
+                        'id' => $parent->getId(),
+                        'firstName' => $parent->getFirstName(),
+                        'lastName' => $parent->getLastName(),
+                    ];
+                }
             }
+            
+            $coachesData = [[
+                'id' => $coach->getId(),
+                'firstName' => $coach->getFirstName(),
+                'lastName' => $coach->getLastName(),
+            ]];
+        } else {
+            // Pour les autres rôles, utiliser PermissionService
+            $students = $this->permissionService->getAccessibleStudents($user);
+            $studentsData = array_map(fn($student) => [
+                'id' => $student->getId(),
+                'firstName' => $student->getFirstName(),
+                'lastName' => $student->getLastName(),
+            ], $students);
         }
-        
-        // Récupérer le coach pour le filtre
-        $coachesData = [[
-            'id' => $coach->getId(),
-            'firstName' => $coach->getFirstName(),
-            'lastName' => $coach->getLastName(),
-        ]];
 
         return $this->render('tailadmin/pages/requests/list.html.twig', [
             'pageTitle' => 'Liste des Demandes | TailAdmin',
@@ -250,18 +287,34 @@ class RequestController extends AbstractController
     }
 
     #[Route('/admin/requests/{id}', name: 'admin_requests_detail')]
-    #[IsGranted('ROLE_COACH')]
+    #[IsGranted('ROLE_USER')]
     public function detail(int $id): Response
     {
-        $coach = $this->getCurrentCoach($this->coachRepository, $this->security);
-        
-        if (!$coach) {
-            throw $this->createNotFoundException('Aucun coach trouvé');
+        $user = $this->getUser();
+        if (!$user) {
+            throw $this->createAccessDeniedException('Vous devez être connecté');
         }
 
         $requestEntity = $this->requestRepository->find($id);
-        if (!$requestEntity || $requestEntity->getCoach() !== $coach) {
+        if (!$requestEntity) {
             throw $this->createNotFoundException('Demande non trouvée');
+        }
+
+        // Vérifier les permissions d'accès
+        if (!$this->permissionService->canViewRequest($user, $requestEntity)) {
+            throw $this->createAccessDeniedException('Vous n\'avez pas accès à cette demande');
+        }
+
+        // Pour les coaches, vérifier qu'ils sont bien le coach de la demande
+        $coach = null;
+        if ($user->isCoach()) {
+            $coach = $this->getCurrentCoach($this->coachRepository, $this->security);
+            if (!$coach || $requestEntity->getCoach() !== $coach) {
+                throw $this->createAccessDeniedException('Vous n\'avez pas accès à cette demande');
+            }
+        } else {
+            // Pour les autres rôles, utiliser l'utilisateur connecté comme "coach" pour l'affichage
+            $coach = $user;
         }
 
         // Récupérer les messages de la requête
@@ -327,17 +380,34 @@ class RequestController extends AbstractController
     }
 
     #[Route('/admin/requests/{id}/messages/create', name: 'admin_requests_messages_create', methods: ['POST'])]
-    #[IsGranted('ROLE_COACH')]
+    #[IsGranted('ROLE_USER')]
     public function createMessage(int $id, HttpRequest $request): JsonResponse
     {
-        $coach = $this->getCurrentCoach($this->coachRepository, $this->security);
-        if (!$coach) {
-            return new JsonResponse(['success' => false, 'message' => 'Coach non trouvé'], 404);
+        $user = $this->getUser();
+        if (!$user) {
+            return new JsonResponse(['success' => false, 'message' => 'Vous devez être connecté'], 403);
         }
 
         $requestEntity = $this->requestRepository->find($id);
-        if (!$requestEntity || $requestEntity->getCoach() !== $coach) {
+        if (!$requestEntity) {
             return new JsonResponse(['success' => false, 'message' => 'Demande non trouvée'], 404);
+        }
+
+        // Vérifier les permissions d'accès
+        if (!$this->permissionService->canViewRequest($user, $requestEntity)) {
+            return new JsonResponse(['success' => false, 'message' => 'Vous n\'avez pas accès à cette demande'], 403);
+        }
+
+        // Pour les coaches, vérifier qu'ils sont bien le coach de la demande
+        $coach = null;
+        if ($user->isCoach()) {
+            $coach = $this->getCurrentCoach($this->coachRepository, $this->security);
+            if (!$coach || $requestEntity->getCoach() !== $coach) {
+                return new JsonResponse(['success' => false, 'message' => 'Vous n\'avez pas accès à cette demande'], 403);
+            }
+        } else {
+            // Pour les autres rôles, utiliser l'utilisateur connecté
+            $coach = $user;
         }
 
         // Gérer les fichiers uploadés (FormData) ou JSON

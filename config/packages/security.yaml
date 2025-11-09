@@ -13,11 +13,6 @@ security:
             pattern: ^/(_(profiler|wdt)|css|images|js)/
             security: false
         
-        api:
-            pattern: ^/api/(?!auth/)
-            stateless: true
-            jwt: ~
-        
         main:
             lazy: true
             provider: app_user_provider
@@ -38,10 +33,16 @@ security:
     # Easy way to control access for large sections of your site
     # Note: Only the *first* access control that matches will be used
     access_control:
-        # API routes
+        # API routes publiques
         - { path: ^/api/auth/register, roles: PUBLIC_ACCESS }
         - { path: ^/api/auth/login, roles: PUBLIC_ACCESS }
         - { path: ^/api/files, roles: PUBLIC_ACCESS }
+        - { path: ^/api/classrooms, roles: PUBLIC_ACCESS }
+        - { path: ^/api/subjects, roles: PUBLIC_ACCESS }
+        - { path: ^/api/chapters, roles: PUBLIC_ACCESS }
+        - { path: ^/api/module-types, roles: PUBLIC_ACCESS }
+        - { path: ^/api/prompt-types, roles: PUBLIC_ACCESS }
+        # API routes protégées
         - { path: ^/api/coach, roles: ROLE_COACH }
         - { path: ^/api/parent, roles: ROLE_PARENT }
         - { path: ^/api/student, roles: ROLE_STUDENT }

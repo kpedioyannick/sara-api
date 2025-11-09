@@ -16,6 +16,12 @@ class Path
     public const STATUS_GENERATED = 'generated';
     public const STATUS_PUBLISHED = 'published';
 
+    public const TYPE_H5P = 'h5p';
+    public const TYPE_VIDEO  = 'video';
+    public const TYPE_LINK = 'link';
+    public const TYPE_KAHOOT = 'kahoot';
+
+
     public const STATUSES = [
         self::STATUS_DRAFT,
         self::STATUS_GENERATED,
@@ -33,11 +39,11 @@ class Path
     #[ORM\Column(type: 'text', nullable: true)]
     private ?string $description = null;
 
-    #[ORM\Column(type: 'json', nullable: true)]
-    private ?array $h5pContent = null;
+    #[ORM\Column(length: 50, nullable: true)]
+    private ?string $type = null;
 
-    #[ORM\Column(length: 500, nullable: true)]
-    private ?string $h5pFilePath = null;
+    #[ORM\Column(type: 'text', nullable: true)]
+    private ?string $content = null;
 
     #[ORM\Column(length: 50)]
     private ?string $status = self::STATUS_DRAFT;
@@ -48,10 +54,6 @@ class Path
     #[ORM\Column]
     private ?\DateTimeImmutable $updatedAt = null;
 
-    #[ORM\ManyToOne]
-    #[ORM\JoinColumn(nullable: false)]
-    private ?User $user = null;
-
     #[ORM\ManyToOne(inversedBy: 'paths')]
     #[ORM\JoinColumn(nullable: true)]
     private ?SubChapter $subChapter = null;
@@ -59,6 +61,10 @@ class Path
     #[ORM\ManyToOne(inversedBy: 'paths')]
     #[ORM\JoinColumn(nullable: true)]
     private ?Chapter $chapter = null;
+
+    #[ORM\ManyToOne]
+    #[ORM\JoinColumn(nullable: true)]
+    private ?User $createdBy = null;
 
     #[ORM\OneToMany(mappedBy: 'path', targetEntity: Module::class, cascade: ['persist', 'remove'], fetch: 'EXTRA_LAZY', orphanRemoval: true)]
     #[ORM\OrderBy(['order' => 'ASC'])]
@@ -98,25 +104,28 @@ class Path
         return $this;
     }
 
-    public function getH5pContent(): ?array
+    public function getType(): ?string
     {
-        return $this->h5pContent;
+        return $this->type;
     }
 
-    public function setH5pContent(?array $h5pContent): static
+    public function setType(?string $type): static
     {
-        $this->h5pContent = $h5pContent;
+        $this->type = $type;
         return $this;
     }
 
-    public function getH5pFilePath(): ?string
+    public function getContent(): ?string
     {
-        return $this->h5pFilePath;
+        if ($this->type === Path::TYPE_H5P) {
+            return 'https://h5p.sara.education/view/h5p-course-presentation/'. $this->id;
+        }
+        return $this->content;
     }
 
-    public function setH5pFilePath(?string $h5pFilePath): static
+    public function setContent(?string $content): static
     {
-        $this->h5pFilePath = $h5pFilePath;
+        $this->content = $content;
         return $this;
     }
 
@@ -153,17 +162,6 @@ class Path
         return $this;
     }
 
-    public function getUser(): ?User
-    {
-        return $this->user;
-    }
-
-    public function setUser(?User $user): static
-    {
-        $this->user = $user;
-        return $this;
-    }
-
     public function getSubChapter(): ?SubChapter
     {
         return $this->subChapter;
@@ -183,6 +181,17 @@ class Path
     public function setChapter(?Chapter $chapter): static
     {
         $this->chapter = $chapter;
+        return $this;
+    }
+
+    public function getCreatedBy(): ?User
+    {
+        return $this->createdBy;
+    }
+
+    public function setCreatedBy(?User $createdBy): static
+    {
+        $this->createdBy = $createdBy;
         return $this;
     }
 
@@ -219,9 +228,10 @@ class Path
             'id' => $this->getId(),
             'title' => $this->getTitle(),
             'description' => $this->getDescription(),
+            'type' => $this->getType(),
+            'content' => $this->getContent(),
             'status' => $this->getStatus(),
-            'h5pFilePath' => $this->getH5pFilePath(),
-            'user' => $this->getUser()?->toSimpleArray(),
+            'createdBy' => $this->getCreatedBy()?->toSimpleArray(),
             'chapter' => $this->getChapter()?->toArray(),
             'subChapter' => $this->getSubChapter()?->toArray(),
             'modulesCount' => $this->getModules()->count(),

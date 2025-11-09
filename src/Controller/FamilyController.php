@@ -13,6 +13,7 @@ use App\Repository\CoachRepository;
 use App\Repository\FamilyRepository;
 use App\Repository\ParentUserRepository;
 use App\Repository\StudentRepository;
+use App\Service\PermissionService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Bundle\SecurityBundle\Security;
@@ -36,30 +37,49 @@ class FamilyController extends AbstractController
         private readonly UserPasswordHasherInterface $passwordHasher,
         private readonly ParentUserRepository $parentRepository,
         private readonly StudentRepository $studentRepository,
-        private readonly ValidatorInterface $validator
+        private readonly ValidatorInterface $validator,
+        private readonly PermissionService $permissionService
     ) {
     }
 
     #[Route('/admin/families', name: 'admin_families_list')]
-    #[IsGranted('ROLE_COACH')]
+    #[IsGranted('ROLE_USER')]
     public function list(Request $request): Response
     {
-        $coach = $this->getCurrentCoach($this->coachRepository, $this->security);
-        
-        if (!$coach) {
-            throw $this->createNotFoundException('Aucun coach trouvé');
+        $user = $this->getUser();
+        if (!$user) {
+            throw $this->createAccessDeniedException('Vous devez être connecté');
+        }
+
+        // Vérifier l'accès au menu Famille
+        if (!$this->permissionService->canAccessFamilyMenu($user)) {
+            throw $this->createAccessDeniedException('Vous n\'avez pas accès à cette page');
         }
 
         // Récupération des paramètres de filtrage
         $search = $request->query->get('search', '');
         $status = $request->query->get('status');
 
-        // Récupération des familles avec filtrage
-        $families = $this->familyRepository->findByCoachWithSearch(
-            $coach,
-            $search,
-            $status
-        );
+        // Récupération des familles selon le rôle
+        $families = [];
+        $coach = null;
+        if ($user->isCoach()) {
+            $coach = $this->getCurrentCoach($this->coachRepository, $this->security);
+            if (!$coach) {
+                throw $this->createNotFoundException('Aucun coach trouvé');
+            }
+            $families = $this->familyRepository->findByCoachWithSearch(
+                $coach,
+                $search,
+                $status
+            );
+        } elseif ($user->isParent()) {
+            // Les parents voient uniquement leur propre famille
+            $family = $user->getFamily();
+            if ($family) {
+                $families = [$family];
+            }
+        }
 
         // Conversion en tableau pour le template
         $familiesData = array_map(fn($family) => $family->toTemplateArray($coach), $families);
@@ -257,16 +277,32 @@ class FamilyController extends AbstractController
     }
 
     #[Route('/admin/families/{familyId}/students/create', name: 'admin_families_students_create', methods: ['POST'])]
+    #[IsGranted('ROLE_USER')]
     public function createStudent(int $familyId, Request $request): JsonResponse
     {
-        $coach = $this->getCurrentCoach($this->coachRepository, $this->security);
-        if (!$coach) {
-            return new JsonResponse(['success' => false, 'message' => 'Coach non trouvé'], 404);
+        $user = $this->getUser();
+        if (!$user) {
+            return new JsonResponse(['success' => false, 'message' => 'Vous devez être connecté'], 403);
         }
 
         $family = $this->familyRepository->find($familyId);
-        if (!$family || $family->getCoach() !== $coach) {
+        if (!$family) {
             return new JsonResponse(['success' => false, 'message' => 'Famille non trouvée'], 404);
+        }
+
+        // Vérifier les permissions
+        if ($user->isCoach()) {
+            $coach = $this->getCurrentCoach($this->coachRepository, $this->security);
+            if (!$coach || $family->getCoach() !== $coach) {
+                return new JsonResponse(['success' => false, 'message' => 'Vous n\'avez pas accès à cette famille'], 403);
+            }
+        } elseif ($user->isParent()) {
+            // Les parents peuvent créer des enfants dans leur famille
+            if ($user->getFamily() !== $family) {
+                return new JsonResponse(['success' => false, 'message' => 'Vous n\'avez pas accès à cette famille'], 403);
+            }
+        } else {
+            return new JsonResponse(['success' => false, 'message' => 'Vous n\'avez pas le droit de créer des enfants'], 403);
         }
 
         $data = json_decode($request->getContent(), true);
@@ -302,21 +338,32 @@ class FamilyController extends AbstractController
     }
 
     #[Route('/admin/families/{familyId}/students/{studentId}/update', name: 'admin_families_students_update', methods: ['POST'])]
+    #[IsGranted('ROLE_USER')]
     public function updateStudent(int $familyId, int $studentId, Request $request): JsonResponse
     {
-        $coach = $this->getCurrentCoach($this->coachRepository, $this->security);
-        if (!$coach) {
-            return new JsonResponse(['success' => false, 'message' => 'Coach non trouvé'], 404);
+        $user = $this->getUser();
+        if (!$user) {
+            return new JsonResponse(['success' => false, 'message' => 'Vous devez être connecté'], 403);
         }
 
         $family = $this->familyRepository->find($familyId);
-        if (!$family || $family->getCoach() !== $coach) {
+        if (!$family) {
             return new JsonResponse(['success' => false, 'message' => 'Famille non trouvée'], 404);
         }
 
         $student = $this->studentRepository->find($studentId);
-        if (!$student || $student->getFamily() !== $family) {
+        if (!$student) {
             return new JsonResponse(['success' => false, 'message' => 'Élève non trouvé'], 404);
+        }
+
+        // Vérifier les permissions de modification
+        if (!$this->permissionService->canModifyStudent($user, $student)) {
+            return new JsonResponse(['success' => false, 'message' => 'Vous n\'avez pas le droit de modifier cet élève'], 403);
+        }
+
+        // Vérifier que l'élève appartient bien à la famille
+        if ($student->getFamily() !== $family) {
+            return new JsonResponse(['success' => false, 'message' => 'L\'élève n\'appartient pas à cette famille'], 403);
         }
 
         $data = json_decode($request->getContent(), true);
@@ -345,21 +392,32 @@ class FamilyController extends AbstractController
     }
 
     #[Route('/admin/families/{familyId}/students/{studentId}/delete', name: 'admin_families_students_delete', methods: ['DELETE'])]
+    #[IsGranted('ROLE_USER')]
     public function deleteStudent(int $familyId, int $studentId): JsonResponse
     {
-        $coach = $this->getCurrentCoach($this->coachRepository, $this->security);
-        if (!$coach) {
-            return new JsonResponse(['success' => false, 'message' => 'Coach non trouvé'], 404);
+        $user = $this->getUser();
+        if (!$user) {
+            return new JsonResponse(['success' => false, 'message' => 'Vous devez être connecté'], 403);
         }
 
         $family = $this->familyRepository->find($familyId);
-        if (!$family || $family->getCoach() !== $coach) {
+        if (!$family) {
             return new JsonResponse(['success' => false, 'message' => 'Famille non trouvée'], 404);
         }
 
         $student = $this->studentRepository->find($studentId);
-        if (!$student || $student->getFamily() !== $family) {
+        if (!$student) {
             return new JsonResponse(['success' => false, 'message' => 'Élève non trouvé'], 404);
+        }
+
+        // Vérifier les permissions de modification
+        if (!$this->permissionService->canModifyStudent($user, $student)) {
+            return new JsonResponse(['success' => false, 'message' => 'Vous n\'avez pas le droit de supprimer cet élève'], 403);
+        }
+
+        // Vérifier que l'élève appartient bien à la famille
+        if ($student->getFamily() !== $family) {
+            return new JsonResponse(['success' => false, 'message' => 'L\'élève n\'appartient pas à cette famille'], 403);
         }
 
         $this->em->remove($student);

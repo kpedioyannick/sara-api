@@ -30,15 +30,6 @@ class Integration
     #[ORM\Column(length: 50)]
     private ?string $type = null;
 
-    #[ORM\Column(type: 'text', nullable: true)]
-    private ?string $clientId = null;
-
-    #[ORM\Column(type: 'text', nullable: true)]
-    private ?string $clientSecret = null;
-
-    #[ORM\Column(type: 'text', nullable: true)]
-    private ?string $authBaseUri = null;
-
     #[ORM\Column]
     private ?bool $isActive = true;
 
@@ -47,6 +38,19 @@ class Integration
 
     #[ORM\Column]
     private ?\DateTimeImmutable $updatedAt = null;
+
+    #[ORM\ManyToOne]
+    #[ORM\JoinColumn(nullable: true)]
+    private ?Student $student = null;
+
+    #[ORM\Column(type: 'json', nullable: true)]
+    private ?array $metadata = [];
+
+    #[ORM\Column(type: 'json', nullable: true)]
+    private ?array $credentials = [];
+
+    #[ORM\Column(type: 'datetime_immutable', nullable: true)]
+    private ?\DateTimeImmutable $lastSyncAt = null;
 
     public function __construct()
     {
@@ -81,39 +85,6 @@ class Integration
         return $this;
     }
 
-    public function getClientId(): ?string
-    {
-        return $this->clientId;
-    }
-
-    public function setClientId(?string $clientId): static
-    {
-        $this->clientId = $clientId;
-        return $this;
-    }
-
-    public function getClientSecret(): ?string
-    {
-        return $this->clientSecret;
-    }
-
-    public function setClientSecret(?string $clientSecret): static
-    {
-        $this->clientSecret = $clientSecret;
-        return $this;
-    }
-
-    public function getAuthBaseUri(): ?string
-    {
-        return $this->authBaseUri;
-    }
-
-    public function setAuthBaseUri(?string $authBaseUri): static
-    {
-        $this->authBaseUri = $authBaseUri;
-        return $this;
-    }
-
     public function isActive(): ?bool
     {
         return $this->isActive;
@@ -141,6 +112,50 @@ class Integration
         return $this;
     }
 
+    public function getStudent(): ?Student
+    {
+        return $this->student;
+    }
+
+    public function setStudent(?Student $student): static
+    {
+        $this->student = $student;
+        return $this;
+    }
+
+    public function getMetadata(): ?array
+    {
+        return $this->metadata;
+    }
+
+    public function setMetadata(?array $metadata): static
+    {
+        $this->metadata = $metadata;
+        return $this;
+    }
+
+    public function getCredentials(): ?array
+    {
+        return $this->credentials;
+    }
+
+    public function setCredentials(?array $credentials): static
+    {
+        $this->credentials = $credentials;
+        return $this;
+    }
+
+    public function getLastSyncAt(): ?\DateTimeImmutable
+    {
+        return $this->lastSyncAt;
+    }
+
+    public function setLastSyncAt(?\DateTimeImmutable $lastSyncAt): static
+    {
+        $this->lastSyncAt = $lastSyncAt;
+        return $this;
+    }
+
     public function toArray(): array
     {
         return [
@@ -148,6 +163,8 @@ class Integration
             'name' => $this->name,
             'type' => $this->type,
             'isActive' => $this->isActive,
+            'student' => $this->student?->toSimpleArray(),
+            'lastSyncAt' => $this->lastSyncAt?->format('Y-m-d H:i:s'),
             'createdAt' => $this->createdAt?->format('Y-m-d H:i:s'),
             'updatedAt' => $this->updatedAt?->format('Y-m-d H:i:s'),
         ];

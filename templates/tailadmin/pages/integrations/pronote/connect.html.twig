@@ -1,0 +1,220 @@
+{% extends 'tailadmin/layouts/base.html.twig' %}
+
+{% block content %}
+<div class="p-4 mx-auto max-w-4xl md:p-6">
+    {% include 'tailadmin/components/breadcrumb.html.twig' %}
+
+    <div class="mb-6">
+        <h2 class="text-xl font-semibold text-gray-800 dark:text-white/90">
+            Connexion PRONOTE
+        </h2>
+        <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">
+            Scannez le QR code depuis l'application PRONOTE pour connecter le compte de l'élève.
+        </p>
+    </div>
+
+    <div class="rounded-2xl border border-gray-200 bg-white p-6 dark:border-gray-800 dark:bg-white/3">
+        <form method="POST" id="pronoteConnectForm" x-data="pronoteConnectForm()">
+            <div class="space-y-6">
+                <!-- Sélection de l'élève -->
+                <div>
+                    <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
+                        Élève <span class="text-error-500">*</span>
+                    </label>
+                    <select
+                        name="student_id"
+                        required
+                        class="dark:bg-dark-900 shadow-theme-xs focus:border-brand-300 focus:ring-brand-500/10 dark:focus:border-brand-800 h-11 w-full appearance-none rounded-lg border border-gray-300 bg-transparent bg-none px-4 py-2.5 pr-11 text-sm text-gray-800 placeholder:text-gray-400 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30"
+                    >
+                        <option value="">Sélectionner un élève</option>
+                        {% for student in students %}
+                            <option value="{{ student.id }}">
+                                {{ student.firstName }} {{ student.lastName }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Option 1 : Champ texte pour JSON -->
+                <div>
+                    <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
+                        Option 1 : Coller le JSON du QR code
+                    </label>
+                    <textarea
+                        name="qr_code_json"
+                        id="qr_code_json"
+                        rows="5"
+                        placeholder='{"url":"...","login":"...","jeton":"...","pin":"1234"}'
+                        class="dark:bg-dark-900 shadow-theme-xs focus:border-brand-300 focus:ring-brand-500/10 dark:focus:border-brand-800 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 placeholder:text-gray-400 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30"
+                    ></textarea>
+                    <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                        Collez ici le contenu JSON du QR code scanné depuis l'application PRONOTE.
+                    </p>
+                </div>
+
+                <!-- Séparateur -->
+                <div class="relative">
+                    <div class="absolute inset-0 flex items-center">
+                        <div class="w-full border-t border-gray-300 dark:border-gray-700"></div>
+                    </div>
+                    <div class="relative flex justify-center text-sm">
+                        <span class="bg-white px-2 text-gray-500 dark:bg-gray-900 dark:text-gray-400">OU</span>
+                    </div>
+                </div>
+
+                <!-- Option 2 : Upload d'image QR code -->
+                <div>
+                    <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
+                        Option 2 : Upload d'image QR code
+                    </label>
+                    <div class="mt-2 flex justify-center rounded-lg border border-dashed border-gray-300 px-6 py-10 dark:border-gray-700">
+                        <div class="text-center">
+                            <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+                                <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                            </svg>
+                            <div class="mt-4 flex text-sm leading-6 text-gray-600 dark:text-gray-400">
+                                <label for="qr_code_image" class="relative cursor-pointer rounded-md bg-white font-semibold text-brand-600 focus-within:outline-none focus-within:ring-2 focus-within:ring-brand-600 focus-within:ring-offset-2 hover:text-brand-500 dark:bg-gray-900">
+                                    <span>Téléverser un fichier</span>
+                                    <input 
+                                        id="qr_code_image" 
+                                        name="qr_code_image" 
+                                        type="file" 
+                                        accept="image/*" 
+                                        class="sr-only"
+                                        @change="decodeQrCodeImage($event)"
+                                    />
+                                </label>
+                                <p class="pl-1">ou glissez-déposez</p>
+                            </div>
+                            <p class="text-xs leading-5 text-gray-600 dark:text-gray-400">PNG, JPG, GIF jusqu'à 10MB</p>
+                            <p x-show="qrCodeDecoding" class="mt-2 text-xs text-gray-500">Décodage en cours...</p>
+                            <p x-show="qrCodeError" class="mt-2 text-xs text-red-500" x-text="qrCodeError"></p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Champ PIN -->
+                <div>
+                    <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
+                        PIN <span class="text-error-500">*</span>
+                    </label>
+                    <input
+                        type="text"
+                        name="pin"
+                        required
+                        maxlength="4"
+                        pattern="[0-9]{4}"
+                        placeholder="1234"
+                        class="dark:bg-dark-900 shadow-theme-xs focus:border-brand-300 focus:ring-brand-500/10 dark:focus:border-brand-800 h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 placeholder:text-gray-400 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30"
+                    />
+                    <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                        Code PIN à 4 chiffres créé lors de la génération du QR code dans l'application PRONOTE.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Messages flash -->
+            {% for message in app.flashes('error') %}
+                <div class="mt-4 rounded-lg bg-red-50 p-4 text-sm text-red-800 dark:bg-red-900/20 dark:text-red-400">
+                    {{ message }}
+                </div>
+            {% endfor %}
+
+            {% for message in app.flashes('success') %}
+                <div class="mt-4 rounded-lg bg-green-50 p-4 text-sm text-green-800 dark:bg-green-900/20 dark:text-green-400">
+                    {{ message }}
+                </div>
+            {% endfor %}
+
+            <!-- Boutons -->
+            <div class="mt-8 flex items-center justify-end gap-3">
+                <a
+                    href="{{ path('admin_integrations_list') }}"
+                    class="shadow-theme-xs flex justify-center rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50 hover:text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03] dark:hover:text-gray-200"
+                >
+                    Annuler
+                </a>
+                <button
+                    type="submit"
+                    class="bg-brand-500 shadow-theme-xs hover:bg-brand-600 flex justify-center rounded-lg px-4 py-3 text-sm font-medium text-white"
+                >
+                    Connecter
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Bibliothèque JS pour décoder les QR codes -->
+<script src="https://cdn.jsdelivr.net/npm/qrcode-reader@1.0.4/dist/qr-code-reader.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+
+<script>
+function pronoteConnectForm() {
+    return {
+        qrCodeDecoding: false,
+        qrCodeError: null,
+        
+        async decodeQrCodeImage(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            this.qrCodeDecoding = true;
+            this.qrCodeError = null;
+            
+            try {
+                // Créer une image à partir du fichier
+                const imageUrl = URL.createObjectURL(file);
+                const img = new Image();
+                
+                img.onload = () => {
+                    // Utiliser jsQR pour décoder
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    ctx.drawImage(img, 0, 0);
+                    
+                    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                    const code = jsQR(imageData.data, imageData.width, imageData.height);
+                    
+                    URL.revokeObjectURL(imageUrl);
+                    
+                    if (code) {
+                        // Vérifier que c'est un JSON valide PRONOTE
+                        try {
+                            const data = JSON.parse(code.data);
+                            if (data.url && data.login && data.jeton) {
+                                // Remplir le champ JSON
+                                document.getElementById('qr_code_json').value = code.data;
+                                this.qrCodeError = null;
+                            } else {
+                                this.qrCodeError = 'Le QR code ne contient pas les données PRONOTE attendues';
+                            }
+                        } catch (e) {
+                            this.qrCodeError = 'Le QR code ne contient pas un JSON valide';
+                        }
+                    } else {
+                        this.qrCodeError = 'Aucun QR code détecté dans l\'image';
+                    }
+                    
+                    this.qrCodeDecoding = false;
+                };
+                
+                img.onerror = () => {
+                    URL.revokeObjectURL(imageUrl);
+                    this.qrCodeError = 'Erreur lors du chargement de l\'image';
+                    this.qrCodeDecoding = false;
+                };
+                
+                img.src = imageUrl;
+            } catch (error) {
+                this.qrCodeError = 'Erreur lors du décodage: ' + error.message;
+                this.qrCodeDecoding = false;
+            }
+        }
+    };
+}
+</script>
+{% endblock %}
+

@@ -1,0 +1,156 @@
+{% extends 'tailadmin/layouts/base.html.twig' %}
+
+{% block content %}
+<div 
+    x-data="pathManager()"
+    data-paths='{{ paths|json_encode|e('html_attr') }}'
+    data-classrooms='{{ classrooms|json_encode|e('html_attr') }}'
+    data-subjects='{{ subjects|json_encode|e('html_attr') }}'
+    data-chapters='{{ chapters|json_encode|e('html_attr') }}'
+    class="p-4 mx-auto max-w-(--breakpoint-2xl) md:p-6"
+>
+    {% include 'tailadmin/components/breadcrumb.html.twig' %}
+
+    <div class="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
+        <div class="px-6 py-5 border-b border-gray-100 dark:border-gray-800">
+            <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                    <h3 class="text-base font-medium text-gray-800 dark:text-white/90">
+                        Activités scolaires
+                    </h3>
+                </div>
+                <div class="flex items-center gap-3">
+                    <a
+                        href="{{ path('admin_paths_create') }}"
+                        class="inline-flex items-center gap-2 rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white shadow-theme-xs hover:bg-brand-600"
+                    >
+                        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                        </svg>
+                        Nouveau parcours
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filtres -->
+        <div class="border-b border-gray-100 p-4 dark:border-gray-800">
+            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <input
+                    type="text"
+                    x-model="searchQuery"
+                    @input.debounce.300ms="applyFilters()"
+                    placeholder="Rechercher..."
+                    class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+                />
+                <select
+                    x-model="selectedType"
+                    @change="applyFilters()"
+                    class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+                >
+                    <option value="">Tous les types</option>
+                    <option value="h5p">H5P</option>
+                    <option value="video">Vidéo</option>
+                    <option value="link">Lien</option>
+                    <option value="kahoot">Kahoot</option>
+                </select>
+                <select
+                    x-model="selectedStatus"
+                    @change="applyFilters()"
+                    class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+                >
+                    <option value="">Tous les statuts</option>
+                    <option value="draft">Brouillon</option>
+                    <option value="generated">Généré</option>
+                    <option value="published">Publié</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Liste des parcours -->
+        <div class="border-t border-gray-100 p-4 dark:border-gray-800 sm:p-6">
+            <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3" x-show="filteredPaths.length > 0">
+                <template x-for="path in filteredPaths" :key="path.id">
+                    <div class="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] sm:p-6 hover:shadow-lg transition-shadow cursor-pointer"
+                         @click="viewPath(path.id)">
+                        <div class="mb-4 flex items-center justify-between">
+                            <span class="text-theme-xs font-medium text-gray-500 dark:text-gray-400" x-text="path.type"></span>
+                            <span 
+                                class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium"
+                                :class="{
+                                    'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400': path.status === 'draft',
+                                    'bg-brand-100 text-brand-600 dark:bg-brand-900/30 dark:text-brand-400': path.status === 'generated',
+                                    'bg-success-100 text-success-600 dark:bg-success-900/30 dark:text-success-400': path.status === 'published'
+                                }"
+                                x-text="path.status === 'draft' ? 'Brouillon' : path.status === 'generated' ? 'Généré' : 'Publié'"
+                            ></span>
+                        </div>
+
+                        <h4 class="mb-3 text-theme-xl font-medium text-gray-800 dark:text-white/90" x-text="path.title"></h4>
+                        <p class="mb-4 text-sm text-gray-600 dark:text-gray-400 line-clamp-2" x-text="path.description"></p>
+
+                        <div class="mb-4 space-y-2 text-sm text-gray-600 dark:text-gray-400">
+                            <div x-show="path.chapter">
+                                <span class="font-medium">Chapitre:</span> <span x-text="path.chapter?.name"></span>
+                            </div>
+                            <div x-show="path.subChapter">
+                                <span class="font-medium">Sous-chapitre:</span> <span x-text="path.subChapter?.name"></span>
+                            </div>
+                            <div>
+                                <span class="font-medium">Modules:</span> <span x-text="path.modulesCount"></span>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center justify-between">
+                            <a
+                                :href="'/admin/paths/' + path.id"
+                                @click.stop
+                                class="text-sm font-medium text-brand-600 hover:text-brand-700 dark:text-brand-400"
+                            >
+                                Voir détails →
+                            </a>
+                        </div>
+                    </div>
+                </template>
+            </div>
+
+            <div x-show="filteredPaths.length === 0" class="text-center py-12">
+                <p class="text-gray-500 dark:text-gray-400">Aucun parcours trouvé</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function pathManager() {
+    return {
+        paths: [],
+        searchQuery: '',
+        selectedType: '',
+        selectedStatus: '',
+        filteredPaths: [],
+
+        init() {
+            this.paths = JSON.parse(this.$el.dataset.paths || '[]');
+            this.filteredPaths = this.paths;
+        },
+
+        applyFilters() {
+            this.filteredPaths = this.paths.filter(path => {
+                const matchesSearch = !this.searchQuery || 
+                    path.title.toLowerCase().includes(this.searchQuery.toLowerCase()) ||
+                    (path.description || '').toLowerCase().includes(this.searchQuery.toLowerCase());
+                const matchesType = !this.selectedType || path.type === this.selectedType;
+                const matchesStatus = !this.selectedStatus || path.status === this.selectedStatus;
+                return matchesSearch && matchesType && matchesStatus;
+            });
+        },
+
+        viewPath(id) {
+            window.location.href = '/admin/paths/' + id;
+        }
+    }
+}
+</script>
+{% endblock %}
+

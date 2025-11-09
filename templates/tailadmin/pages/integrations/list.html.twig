@@ -12,16 +12,26 @@
         <h2 class="text-xl font-semibold text-gray-800 dark:text-white/90">
             ETN
         </h2>
-        <div x-data="{isModalOpen: false}">
-            <button
-                @click="isModalOpen = !isModalOpen"
+        <div class="flex gap-3">
+            <a
+                href="{{ path('admin_pronote_connect') }}"
                 class="bg-brand-500 hover:bg-brand-600 inline-flex items-center justify-center gap-2 rounded-lg px-4 py-3 text-sm font-medium text-white transition"
             >
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="none">
                     <path d="M5 10.0002H15.0006M10.0002 5V15.0006" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>
-                Ajouter une intégration
-            </button>
+                Ajouter une synchronisation avec ENT
+            </a>
+            <div x-data="{isModalOpen: false}">
+                <button
+                    @click="isModalOpen = !isModalOpen"
+                    class="bg-gray-500 hover:bg-gray-600 inline-flex items-center justify-center gap-2 rounded-lg px-4 py-3 text-sm font-medium text-white transition"
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="none">
+                        <path d="M5 10.0002H15.0006M10.0002 5V15.0006" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    Ajouter une intégration
+                </button>
 
             <!-- Modal Add Integration -->
             <div
@@ -137,6 +147,24 @@
         </div>
     </div>
 
+    <!-- Filtre par élève -->
+    <div class="mb-6">
+        <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
+            Filtrer par élève
+        </label>
+        <select
+            onchange="if(this.value) window.location.href='{{ path('admin_integrations_list') }}?student_id=' + this.value; else window.location.href='{{ path('admin_integrations_list') }}';"
+            class="dark:bg-dark-900 shadow-theme-xs focus:border-brand-300 focus:ring-brand-500/10 dark:focus:border-brand-800 h-11 w-full max-w-xs appearance-none rounded-lg border border-gray-300 bg-transparent bg-none px-4 py-2.5 pr-11 text-sm text-gray-800 placeholder:text-gray-400 focus:ring-3 focus:outline-hidden dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30"
+        >
+            <option value="">Tous les élèves</option>
+            {% for student in students %}
+                <option value="{{ student.id }}" {% if selectedStudentId == student.id %}selected{% endif %}>
+                    {{ student.firstName }} {{ student.lastName }}
+                </option>
+            {% endfor %}
+        </select>
+    </div>
+
     <!-- Integrations Grid -->
     <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
         <template x-for="integration in integrations" :key="integration.id">
@@ -155,7 +183,7 @@
                         </template>
                     </div>
                     <h3 class="mb-3 text-lg font-semibold text-gray-800 dark:text-white/90" x-text="integration.name"></h3>
-                    <p class="max-w-xs text-sm text-gray-500 dark:text-gray-400">
+                    <p class="max-w-xs text-sm text-gray-500 dark:text-gray-400 mb-2">
                         <template x-if="integration.type === 'pronote'">
                             Connectez Pronote pour synchroniser les notes, devoirs et informations scolaires.
                         </template>
@@ -163,6 +191,16 @@
                             Intégration personnalisée configurée.
                         </template>
                     </p>
+                    <template x-if="integration.student">
+                        <p class="text-xs text-gray-400 dark:text-gray-500">
+                            Élève: <span x-text="integration.student.firstName + ' ' + integration.student.lastName"></span>
+                        </p>
+                    </template>
+                    <template x-if="integration.lastSyncAt">
+                        <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                            Dernière sync: <span x-text="integration.lastSyncAt"></span>
+                        </p>
+                    </template>
                     <div x-data="{openDropDown: false}" class="absolute top-5 right-5 h-fit">
                         <button
                             @click="openDropDown = !openDropDown"
@@ -178,6 +216,12 @@
                             class="shadow-theme-lg dark:bg-gray-dark absolute top-full right-0 z-40 w-40 space-y-1 rounded-2xl border border-gray-200 bg-white p-2 dark:border-gray-800"
                             style="display: none;"
                         >
+                            <a
+                                :href="`{{ path('admin_integration_detail', {id: '__ID__'}) }}`.replace('__ID__', integration.id)"
+                                class="text-theme-xs flex w-full rounded-lg px-3 py-2 text-left font-medium text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300"
+                            >
+                                Voir les détails
+                            </a>
                             <button
                                 @click="deleteIntegration(integration.id); openDropDown = false"
                                 class="text-theme-xs flex w-full rounded-lg px-3 py-2 text-left font-medium text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-white/5 dark:hover:text-gray-300"
