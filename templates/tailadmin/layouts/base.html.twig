@@ -10,6 +10,7 @@
     <title>{% block page_title %}{{ pageTitle|default('TailAdmin') }}{% endblock %}</title>
     <link rel="icon" href="{{ asset('tailadmin/favicon.ico') }}">
     <link href="{{ asset('tailadmin/style.css') }}" rel="stylesheet">
+    {% block stylesheets %}{% endblock %}
 </head>
 <body
     x-data="{ page: '{{ pageName|default('blank') }}', 'loaded': true, 'darkMode': false, 'stickyMenu': false, 'sidebarToggle': false, 'scrollTop': false }"

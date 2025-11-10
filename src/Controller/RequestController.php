@@ -64,6 +64,8 @@ class RequestController extends AbstractController
         $specialistId = $request->query->get('specialist');
         $creatorProfile = $request->query->get('creatorProfile'); // 'parent', 'student', 'specialist', 'coach'
         $creatorUserId = $request->query->get('creatorUser'); // ID de l'utilisateur créateur
+        $profileType = $request->query->get('profileType'); // 'parent', 'specialist', 'student', ou null
+        $selectedIds = $request->query->get('selectedIds', ''); // IDs séparés par des virgules
 
         // Récupération des demandes selon le rôle de l'utilisateur
         if ($user->isCoach()) {
@@ -104,6 +106,61 @@ class RequestController extends AbstractController
                 });
             }
         }
+        
+        // Appliquer les filtres par profil si spécifiés (pour les coaches uniquement)
+        if ($user->isCoach() && $profileType && $selectedIds) {
+            $ids = array_filter(array_map('intval', explode(',', $selectedIds)));
+            if (!empty($ids)) {
+                $filteredRequests = [];
+                foreach ($requests as $request) {
+                    $shouldInclude = false;
+                    
+                    if ($profileType === 'parent') {
+                        // Filtrer par parent (demandes créées par le parent ou concernant ses enfants)
+                        $creator = $request->getCreator();
+                        if ($creator && $creator instanceof \App\Entity\ParentUser && in_array($creator->getId(), $ids)) {
+                            $shouldInclude = true;
+                        } else {
+                            // Vérifier si la demande concerne un enfant du parent
+                            $student = $request->getStudent();
+                            if ($student && $student->getFamily() && $student->getFamily()->getParent()) {
+                                if (in_array($student->getFamily()->getParent()->getId(), $ids)) {
+                                    $shouldInclude = true;
+                                }
+                            }
+                        }
+                    } elseif ($profileType === 'specialist') {
+                        // Filtrer par spécialiste (demandes assignées à ce spécialiste)
+                        if ($request->getSpecialist() && in_array($request->getSpecialist()->getId(), $ids)) {
+                            $shouldInclude = true;
+                        }
+                    } elseif ($profileType === 'student') {
+                        // Filtrer par élève (demandes créées par cet élève ou qui le concernent)
+                        $creator = $request->getCreator();
+                        if ($creator && $creator instanceof \App\Entity\Student && in_array($creator->getId(), $ids)) {
+                            $shouldInclude = true;
+                        } else {
+                            // Vérifier si la demande concerne cet élève
+                            $student = $request->getStudent();
+                            if ($student && in_array($student->getId(), $ids)) {
+                                $shouldInclude = true;
+                            }
+                            // Vérifier si l'élève est assigné à la demande
+                            if ($request->getAssignedTo() && $request->getAssignedTo() instanceof \App\Entity\Student) {
+                                if (in_array($request->getAssignedTo()->getId(), $ids)) {
+                                    $shouldInclude = true;
+                                }
+                            }
+                        }
+                    }
+                    
+                    if ($shouldInclude) {
+                        $filteredRequests[] = $request;
+                    }
+                }
+                $requests = $filteredRequests;
+            }
+        }
 
         // Conversion en tableau pour le template
         $requestsData = array_map(fn($request) => $request->toTemplateArray(), $requests);
@@ -128,6 +185,8 @@ class RequestController extends AbstractController
                 'id' => $student->getId(),
                 'firstName' => $student->getFirstName(),
                 'lastName' => $student->getLastName(),
+                'pseudo' => $student->getPseudo(),
+                'class' => $student->getClass(),
             ], $students);
             
             $specialists = $this->specialistRepository->findByWithSearch();
@@ -144,6 +203,7 @@ class RequestController extends AbstractController
                         'id' => $parent->getId(),
                         'firstName' => $parent->getFirstName(),
                         'lastName' => $parent->getLastName(),
+                        'email' => $parent->getEmail(),
                     ];
                 }
             }
@@ -176,6 +236,8 @@ class RequestController extends AbstractController
             'creatorUserFilter' => $creatorUserId,
             'familyFilter' => $familyId,
             'studentFilter' => $studentId,
+            'profileType' => $profileType,
+            'selectedIds' => $selectedIds,
             'breadcrumbs' => [
                 ['label' => 'Dashboard', 'url' => $this->generateUrl('admin_dashboard')],
             ],

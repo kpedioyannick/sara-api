@@ -7,6 +7,7 @@ use App\Entity\Planning;
 use App\Repository\CoachRepository;
 use App\Repository\FamilyRepository;
 use App\Repository\PlanningRepository;
+use App\Repository\SpecialistRepository;
 use App\Repository\StudentRepository;
 use App\Service\PermissionService;
 use Doctrine\ORM\EntityManagerInterface;
@@ -31,7 +32,8 @@ class PlanningController extends AbstractController
         private readonly EntityManagerInterface $em,
         private readonly StudentRepository $studentRepository,
         private readonly ValidatorInterface $validator,
-        private readonly PermissionService $permissionService
+        private readonly PermissionService $permissionService,
+        private readonly SpecialistRepository $specialistRepository
     ) {
     }
 
@@ -69,6 +71,8 @@ class PlanningController extends AbstractController
         
         // Récupérer le paramètre de filtrage par élève
         $studentId = $request->query->get('student');
+        $profileType = $request->query->get('profileType'); // 'parent', 'specialist', 'student', ou null
+        $selectedIds = $request->query->get('selectedIds', ''); // IDs séparés par des virgules
         
         // Récupérer les événements selon le rôle de l'utilisateur
         $allEvents = [];
@@ -101,7 +105,7 @@ class PlanningController extends AbstractController
             $students = $accessibleStudents;
         }
         
-        // Filtrer par élève si spécifié
+        // Filtrer par élève si spécifié (ancien système)
         if ($studentId) {
             $allEvents = array_filter($allEvents, function($event) use ($studentId, $user) {
                 $student = $event->getStudent();
@@ -111,6 +115,50 @@ class PlanningController extends AbstractController
                 // Vérifier les permissions pour cet étudiant
                 return $this->permissionService->canViewStudentPlanning($user, $student);
             });
+        }
+        
+        // Appliquer les filtres par profil si spécifiés
+        if ($profileType && $selectedIds) {
+            $ids = array_filter(array_map('intval', explode(',', $selectedIds)));
+            if (!empty($ids)) {
+                $filteredEvents = [];
+                foreach ($allEvents as $event) {
+                    $shouldInclude = false;
+                    $eventStudent = $event->getStudent();
+                    
+                    if (!$eventStudent) {
+                        continue; // Ignorer les événements sans élève
+                    }
+                    
+                    if ($profileType === 'parent') {
+                        // Filtrer par parent (planning des enfants du parent)
+                        if ($eventStudent->getFamily() && $eventStudent->getFamily()->getParent()) {
+                            if (in_array($eventStudent->getFamily()->getParent()->getId(), $ids)) {
+                                $shouldInclude = true;
+                            }
+                        }
+                    } elseif ($profileType === 'specialist') {
+                        // Filtrer par spécialiste (planning des élèves assignés au spécialiste)
+                        foreach ($eventStudent->getSpecialists() as $specialist) {
+                            if (in_array($specialist->getId(), $ids)) {
+                                $shouldInclude = true;
+                                break;
+                            }
+                        }
+                    } elseif ($profileType === 'student') {
+                        // Filtrer par élève
+                        if (in_array($eventStudent->getId(), $ids)) {
+                            $shouldInclude = true;
+                        }
+                    }
+                    
+                    // Vérifier les permissions avant d'inclure l'événement
+                    if ($shouldInclude && $this->permissionService->canViewStudentPlanning($user, $eventStudent)) {
+                        $filteredEvents[] = $event;
+                    }
+                }
+                $allEvents = $filteredEvents;
+            }
         }
         
         // Générer les 7 jours de la semaine
@@ -165,7 +213,44 @@ class PlanningController extends AbstractController
             'id' => $student->getId(),
             'firstName' => $student->getFirstName(),
             'lastName' => $student->getLastName(),
+            'pseudo' => $student->getPseudo(),
+            'class' => $student->getClass(),
         ], $students);
+
+        // Récupérer les parents et spécialistes pour les filtres (selon le rôle)
+        $parentsData = [];
+        $specialistsData = [];
+        
+        if ($user->isCoach()) {
+            $coach = $this->getCurrentCoach($this->coachRepository, $this->security);
+            if ($coach) {
+                $families = $this->familyRepository->findByCoachWithSearch($coach);
+                foreach ($families as $family) {
+                    $parent = $family->getParent();
+                    if ($parent) {
+                        $parentsData[] = [
+                            'id' => $parent->getId(),
+                            'firstName' => $parent->getFirstName(),
+                            'lastName' => $parent->getLastName(),
+                            'email' => $parent->getEmail(),
+                        ];
+                    }
+                }
+                // Récupérer tous les spécialistes
+                $specialists = $this->specialistRepository->findAll();
+                $specialistsData = array_map(fn($s) => [
+                    'id' => $s->getId(),
+                    'firstName' => $s->getFirstName(),
+                    'lastName' => $s->getLastName(),
+                ], $specialists);
+            }
+        } elseif ($user->isParent()) {
+            // Pour les parents, les élèves sont déjà récupérés via PermissionService
+            // Pas besoin de filtres par parent (ils voient leurs enfants)
+        } elseif ($user->isSpecialist()) {
+            // Pour les spécialistes, les élèves sont déjà récupérés via PermissionService
+            // Pas besoin de filtres par spécialiste (ils voient leurs élèves assignés)
+        }
 
         return $this->render('tailadmin/pages/planning/list.html.twig', [
             'pageTitle' => 'Planning | TailAdmin',
@@ -178,6 +263,10 @@ class PlanningController extends AbstractController
             'weekStartFormatted' => $weekStart->format('d/m/Y'),
             'weekEndFormatted' => $weekEnd->format('d/m/Y'),
             'students' => $studentsData,
+            'parents' => $parentsData,
+            'specialists' => $specialistsData,
+            'profileType' => $profileType,
+            'selectedIds' => $selectedIds,
             'breadcrumbs' => [
                 ['label' => 'Dashboard', 'url' => $this->generateUrl('admin_dashboard')],
             ],

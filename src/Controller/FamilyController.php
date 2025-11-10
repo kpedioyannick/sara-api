@@ -12,6 +12,7 @@ use App\Form\StudentType;
 use App\Repository\CoachRepository;
 use App\Repository\FamilyRepository;
 use App\Repository\ParentUserRepository;
+use App\Repository\SpecialistRepository;
 use App\Repository\StudentRepository;
 use App\Service\PermissionService;
 use Doctrine\ORM\EntityManagerInterface;
@@ -37,6 +38,7 @@ class FamilyController extends AbstractController
         private readonly UserPasswordHasherInterface $passwordHasher,
         private readonly ParentUserRepository $parentRepository,
         private readonly StudentRepository $studentRepository,
+        private readonly SpecialistRepository $specialistRepository,
         private readonly ValidatorInterface $validator,
         private readonly PermissionService $permissionService
     ) {
@@ -59,6 +61,8 @@ class FamilyController extends AbstractController
         // Récupération des paramètres de filtrage
         $search = $request->query->get('search', '');
         $status = $request->query->get('status');
+        $profileType = $request->query->get('profileType'); // 'parent', 'specialist', 'student', ou null
+        $selectedIds = $request->query->get('selectedIds', ''); // IDs séparés par des virgules
 
         // Récupération des familles selon le rôle
         $families = [];
@@ -73,6 +77,47 @@ class FamilyController extends AbstractController
                 $search,
                 $status
             );
+            
+            // Appliquer les filtres par profil si spécifiés
+            if ($profileType && $selectedIds) {
+                $ids = array_filter(array_map('intval', explode(',', $selectedIds)));
+                if (!empty($ids)) {
+                    $filteredFamilies = [];
+                    foreach ($families as $family) {
+                        $shouldInclude = false;
+                        
+                        if ($profileType === 'parent') {
+                            // Filtrer par parent
+                            if ($family->getParent() && in_array($family->getParent()->getId(), $ids)) {
+                                $shouldInclude = true;
+                            }
+                        } elseif ($profileType === 'specialist') {
+                            // Filtrer par spécialiste (si au moins un élève a ce spécialiste)
+                            foreach ($family->getStudents() as $student) {
+                                foreach ($student->getSpecialists() as $specialist) {
+                                    if (in_array($specialist->getId(), $ids)) {
+                                        $shouldInclude = true;
+                                        break 2;
+                                    }
+                                }
+                            }
+                        } elseif ($profileType === 'student') {
+                            // Filtrer par élève
+                            foreach ($family->getStudents() as $student) {
+                                if (in_array($student->getId(), $ids)) {
+                                    $shouldInclude = true;
+                                    break;
+                                }
+                            }
+                        }
+                        
+                        if ($shouldInclude) {
+                            $filteredFamilies[] = $family;
+                        }
+                    }
+                    $families = $filteredFamilies;
+                }
+            }
         } elseif ($user->isParent()) {
             // Les parents voient uniquement leur propre famille
             $family = $user->getFamily();
@@ -81,13 +126,63 @@ class FamilyController extends AbstractController
             }
         }
 
+        // Trier les familles par date de création décroissante (les plus récentes en premier)
+        usort($families, function($a, $b) {
+            $dateA = $a->getCreatedAt();
+            $dateB = $b->getCreatedAt();
+            if ($dateA == $dateB) {
+                return 0;
+            }
+            return ($dateA > $dateB) ? -1 : 1;
+        });
+
         // Conversion en tableau pour le template
         $familiesData = array_map(fn($family) => $family->toTemplateArray($coach), $families);
+
+        // Récupérer tous les spécialistes pour la sélection
+        $specialists = $this->specialistRepository->findAll();
+        $specialistsData = array_map(fn($s) => [
+            'id' => $s->getId(),
+            'firstName' => $s->getFirstName(),
+            'lastName' => $s->getLastName(),
+        ], $specialists);
+
+        // Récupérer les parents et élèves pour les filtres (uniquement pour les coaches)
+        $parentsData = [];
+        $studentsData = [];
+        if ($user->isCoach() && $coach) {
+            $allFamilies = $this->familyRepository->findByCoachWithSearch($coach);
+            foreach ($allFamilies as $family) {
+                $parent = $family->getParent();
+                if ($parent) {
+                    $parentsData[] = [
+                        'id' => $parent->getId(),
+                        'firstName' => $parent->getFirstName(),
+                        'lastName' => $parent->getLastName(),
+                        'email' => $parent->getEmail(),
+                    ];
+                }
+                foreach ($family->getStudents() as $student) {
+                    $studentsData[] = [
+                        'id' => $student->getId(),
+                        'firstName' => $student->getFirstName(),
+                        'lastName' => $student->getLastName(),
+                        'pseudo' => $student->getPseudo(),
+                        'class' => $student->getClass(),
+                    ];
+                }
+            }
+        }
 
         return $this->render('tailadmin/pages/families/list.html.twig', [
             'pageTitle' => 'Liste des Familles | TailAdmin',
             'pageName' => 'Familles',
             'families' => $familiesData,
+            'specialists' => $specialistsData,
+            'parents' => $parentsData,
+            'students' => $studentsData,
+            'profileType' => $profileType,
+            'selectedIds' => $selectedIds,
             'breadcrumbs' => [
                 ['label' => 'Dashboard', 'url' => $this->generateUrl('admin_dashboard')],
             ],
@@ -95,6 +190,7 @@ class FamilyController extends AbstractController
     }
 
     #[Route('/admin/families/create', name: 'admin_families_create', methods: ['POST'])]
+    #[IsGranted('ROLE_COACH')]
     public function create(Request $request): JsonResponse
     {
         $coach = $this->getCurrentCoach($this->coachRepository, $this->security);
@@ -141,9 +237,6 @@ class FamilyController extends AbstractController
             if (isset($parentData['lastName'])) {
                 $parent->setLastName($parentData['lastName']);
             }
-            if (isset($parentData['phone'])) {
-                $parent->setPhone($parentData['phone']);
-            }
             
             // Mot de passe par défaut
             $defaultPassword = 'password123';
@@ -169,6 +262,7 @@ class FamilyController extends AbstractController
     }
 
     #[Route('/admin/families/{id}/update', name: 'admin_families_update', methods: ['POST'])]
+    #[IsGranted('ROLE_COACH')]
     public function update(int $id, Request $request): JsonResponse
     {
         $coach = $this->getCurrentCoach($this->coachRepository, $this->security);
@@ -206,6 +300,7 @@ class FamilyController extends AbstractController
     }
 
     #[Route('/admin/families/{id}/delete', name: 'admin_families_delete', methods: ['DELETE'])]
+    #[IsGranted('ROLE_COACH')]
     public function delete(int $id): JsonResponse
     {
         $coach = $this->getCurrentCoach($this->coachRepository, $this->security);
@@ -225,6 +320,7 @@ class FamilyController extends AbstractController
     }
 
     #[Route('/admin/families/{familyId}/parent/update', name: 'admin_families_parent_update', methods: ['POST'])]
+    #[IsGranted('ROLE_COACH')]
     public function updateParent(int $familyId, Request $request): JsonResponse
     {
         $coach = $this->getCurrentCoach($this->coachRepository, $this->security);
@@ -252,12 +348,18 @@ class FamilyController extends AbstractController
         if (isset($data['email'])) $parent->setEmail($data['email']);
         if (isset($data['firstName'])) $parent->setFirstName($data['firstName']);
         if (isset($data['lastName'])) $parent->setLastName($data['lastName']);
-        if (isset($data['phone'])) $parent->setPhone($data['phone']);
         if (!isset($data['isActive'])) {
             $parent->setIsActive(true);
         } elseif (isset($data['isActive'])) {
             $parent->setIsActive($data['isActive']);
         }
+        
+        // Gérer le changement de mot de passe si fourni
+        if (isset($data['newPassword']) && !empty(trim($data['newPassword']))) {
+            $hashedPassword = $this->passwordHasher->hashPassword($parent, $data['newPassword']);
+            $parent->setPassword($hashedPassword);
+        }
+        
         $parent->setUpdatedAt(new \DateTimeImmutable());
 
         // Validation
@@ -374,6 +476,29 @@ class FamilyController extends AbstractController
         if (isset($data['class'])) $student->setClass($data['class']);
         if (isset($data['schoolName'])) $student->setSchoolName($data['schoolName']);
         if (isset($data['points'])) $student->setPoints($data['points']);
+        
+        // Gérer le changement de mot de passe si fourni
+        if (isset($data['newPassword']) && !empty(trim($data['newPassword']))) {
+            $hashedPassword = $this->passwordHasher->hashPassword($student, $data['newPassword']);
+            $student->setPassword($hashedPassword);
+        }
+        
+        // Gérer l'assignation des spécialistes
+        if (isset($data['specialistIds']) && is_array($data['specialistIds'])) {
+            // Retirer tous les spécialistes actuels
+            foreach ($student->getSpecialists()->toArray() as $specialist) {
+                $student->removeSpecialist($specialist);
+            }
+            
+            // Ajouter les nouveaux spécialistes
+            foreach ($data['specialistIds'] as $specialistId) {
+                $specialist = $this->specialistRepository->find($specialistId);
+                if ($specialist) {
+                    $student->addSpecialist($specialist);
+                }
+            }
+        }
+        
         $student->setUpdatedAt(new \DateTimeImmutable());
 
         // Validation

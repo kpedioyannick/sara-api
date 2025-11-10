@@ -224,6 +224,11 @@ class Family
                 'pseudo' => $student->getPseudo(),
                 'class' => $student->getClass(),
                 'points' => $student->getPoints(),
+                'specialists' => array_map(fn($s) => [
+                    'id' => $s->getId(),
+                    'firstName' => $s->getFirstName(),
+                    'lastName' => $s->getLastName(),
+                ], $student->getSpecialists()->toArray()),
             ];
         }, $this->getStudents()->toArray());
         

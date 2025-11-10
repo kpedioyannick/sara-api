@@ -1,5 +1,9 @@
 {% extends 'tailadmin/layouts/base.html.twig' %}
 
+{% block stylesheets %}
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css" />
+{% endblock %}
+
 {% block content %}
 <div 
     x-data="objectiveManager()"
@@ -11,6 +15,83 @@
     class="p-4 mx-auto max-w-(--breakpoint-2xl) md:p-6"
 >
     {% include 'tailadmin/components/breadcrumb.html.twig' %}
+
+    {% if app.user.isCoach() %}
+    <!-- Barre de filtres -->
+    <div 
+        x-data="filterManager()"
+        data-parents='{{ parents|json_encode|e('html_attr') }}'
+        data-specialists='{{ specialists|json_encode|e('html_attr') }}'
+        data-students='{{ students|json_encode|e('html_attr') }}'
+        data-profile-type='{{ profileType|default('') }}'
+        data-selected-ids='{{ selectedIds|default('') }}'
+        class="mb-6 rounded-2xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-white/[0.03]"
+    >
+        <div class="mb-4">
+            <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Filtrer par profil
+            </label>
+            <div class="flex gap-2">
+                <button
+                    @click="setProfileType('')"
+                    :class="profileType === '' ? 'bg-brand-500 text-white' : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'"
+                    class="rounded-lg px-4 py-2 text-sm font-medium transition-colors hover:bg-brand-600 hover:text-white dark:hover:bg-gray-700"
+                >
+                    Tous
+                </button>
+                <button
+                    @click="setProfileType('parent')"
+                    :class="profileType === 'parent' ? 'bg-brand-500 text-white' : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'"
+                    class="rounded-lg px-4 py-2 text-sm font-medium transition-colors hover:bg-brand-600 hover:text-white dark:hover:bg-gray-700"
+                >
+                    Parent
+                </button>
+                <button
+                    @click="setProfileType('specialist')"
+                    :class="profileType === 'specialist' ? 'bg-brand-500 text-white' : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'"
+                    class="rounded-lg px-4 py-2 text-sm font-medium transition-colors hover:bg-brand-600 hover:text-white dark:hover:bg-gray-700"
+                >
+                    Spécialiste
+                </button>
+                <button
+                    @click="setProfileType('student')"
+                    :class="profileType === 'student' ? 'bg-brand-500 text-white' : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'"
+                    class="rounded-lg px-4 py-2 text-sm font-medium transition-colors hover:bg-brand-600 hover:text-white dark:hover:bg-gray-700"
+                >
+                    Élève
+                </button>
+            </div>
+        </div>
+        
+        <div x-show="profileType !== ''">
+            <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Rechercher et sélectionner
+            </label>
+            <select
+                id="choices-select-objectives"
+                x-ref="choicesSelect"
+                class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+                multiple
+            >
+            </select>
+        </div>
+        
+        <div class="mt-4 flex items-center gap-2" x-show="profileType !== '' || selectedIds.length > 0">
+            <button
+                @click="applyFilters()"
+                class="rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white shadow-theme-xs hover:bg-brand-600"
+            >
+                Appliquer les filtres
+            </button>
+            <button
+                @click="resetFilters()"
+                class="rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+            >
+                Réinitialiser
+            </button>
+        </div>
+    </div>
+    {% endif %}
 
     <div class="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
         <div class="px-6 py-5 border-b border-gray-100 dark:border-gray-800">
@@ -1355,6 +1436,179 @@ function objectiveManager() {
             this.currentId = null;
             this.currentTasks = [];
             this.currentComments = [];
+        }
+    };
+}
+
+// Charger Choices.js si pas déjà chargé
+if (typeof Choices === 'undefined') {
+    const script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js';
+    script.onload = function() {
+        // Réinitialiser les composants Alpine.js qui utilisent Choices
+        if (window.Alpine) {
+            document.querySelectorAll('[x-data="filterManager()"]').forEach(el => {
+                if (el.__x) {
+                    el.__x.$data.initChoices();
+                }
+            });
+        }
+    };
+    document.head.appendChild(script);
+}
+
+function filterManager() {
+    return {
+        profileType: '',
+        selectedIds: [],
+        choicesInstance: null,
+        parentsData: [],
+        specialistsData: [],
+        studentsData: [],
+        currentOptions: [],
+        init() {
+            // Récupérer les données depuis les attributs data
+            const parentsJson = this.$el.getAttribute('data-parents');
+            const specialistsJson = this.$el.getAttribute('data-specialists');
+            const studentsJson = this.$el.getAttribute('data-students');
+            const profileTypeAttr = this.$el.getAttribute('data-profile-type');
+            const selectedIdsAttr = this.$el.getAttribute('data-selected-ids');
+            
+            if (parentsJson) this.parentsData = JSON.parse(parentsJson);
+            if (specialistsJson) this.specialistsData = JSON.parse(specialistsJson);
+            if (studentsJson) this.studentsData = JSON.parse(studentsJson);
+            if (profileTypeAttr) this.profileType = profileTypeAttr;
+            if (selectedIdsAttr) this.selectedIds = selectedIdsAttr ? selectedIdsAttr.split(',').map(id => parseInt(id)) : [];
+            
+            // Attendre que Choices.js soit chargé
+            if (typeof Choices !== 'undefined') {
+                this.$nextTick(() => {
+                    this.initChoices();
+                });
+            } else {
+                // Si Choices.js n'est pas encore chargé, attendre
+                const checkChoices = setInterval(() => {
+                    if (typeof Choices !== 'undefined') {
+                        clearInterval(checkChoices);
+                        this.$nextTick(() => {
+                            this.initChoices();
+                        });
+                    }
+                }, 100);
+                
+                // Timeout après 5 secondes
+                setTimeout(() => clearInterval(checkChoices), 5000);
+            }
+        },
+        initChoices() {
+            // Détruire l'instance existante si elle existe
+            if (this.choicesInstance) {
+                this.choicesInstance.destroy();
+            }
+            
+            // Récupérer les options selon le type de profil
+            this.updateOptions();
+            
+            // Initialiser Choices.js
+            const selectElement = this.$refs.choicesSelect;
+            if (selectElement && this.currentOptions.length > 0) {
+                this.choicesInstance = new Choices(selectElement, {
+                    removeItemButton: true,
+                    searchEnabled: true,
+                    searchChoices: true,
+                    searchFields: ['label', 'value'],
+                    placeholder: true,
+                    placeholderValue: 'Rechercher et sélectionner...',
+                    noResultsText: 'Aucun résultat trouvé',
+                    noChoicesText: 'Aucune option disponible',
+                    itemSelectText: 'Appuyez pour sélectionner',
+                });
+                
+                // Pré-sélectionner les IDs si présents
+                if (this.selectedIds.length > 0) {
+                    this.choicesInstance.setChoiceByValue(this.selectedIds.map(String));
+                }
+                
+                // Écouter les changements
+                selectElement.addEventListener('change', () => {
+                    this.selectedIds = this.choicesInstance.getValue(true).map(id => parseInt(id));
+                });
+            }
+        },
+        updateOptions() {
+            this.currentOptions = [];
+            
+            if (this.profileType === 'parent') {
+                this.currentOptions = this.parentsData.map(p => ({
+                    value: p.id,
+                    label: `${p.firstName} ${p.lastName}`
+                }));
+            } else if (this.profileType === 'specialist') {
+                this.currentOptions = this.specialistsData.map(s => ({
+                    value: s.id,
+                    label: `${s.firstName} ${s.lastName}`
+                }));
+            } else if (this.profileType === 'student') {
+                this.currentOptions = this.studentsData.map(s => ({
+                    value: s.id,
+                    label: `${s.firstName} ${s.lastName}${s.pseudo ? ' (' + s.pseudo + ')' : ''}${s.class ? ' - ' + s.class : ''}`
+                }));
+            }
+            
+            // Mettre à jour le select HTML
+            const selectElement = this.$refs.choicesSelect;
+            if (selectElement) {
+                selectElement.innerHTML = '';
+                this.currentOptions.forEach(option => {
+                    const optionElement = document.createElement('option');
+                    optionElement.value = option.value;
+                    optionElement.textContent = option.label;
+                    selectElement.appendChild(optionElement);
+                });
+            }
+        },
+        setProfileType(type) {
+            this.profileType = type;
+            this.selectedIds = [];
+            
+            // Si on clique sur "Tous", réinitialiser complètement et appliquer les filtres
+            if (type === '') {
+                // Détruire l'instance Choices.js si elle existe
+                if (this.choicesInstance) {
+                    this.choicesInstance.destroy();
+                    this.choicesInstance = null;
+                }
+                // Réinitialiser le contenu du select
+                const selectElement = this.$refs.choicesSelect;
+                if (selectElement) {
+                    selectElement.innerHTML = '';
+                }
+                // Appliquer les filtres (réinitialiser)
+                this.resetFilters();
+                return;
+            }
+            
+            // Pour les autres types, réinitialiser Choices.js avec les nouvelles options
+            this.$nextTick(() => {
+                this.initChoices();
+            });
+        },
+        applyFilters() {
+            const params = new URLSearchParams();
+            if (this.profileType) {
+                params.set('profileType', this.profileType);
+            }
+            if (this.selectedIds.length > 0) {
+                params.set('selectedIds', this.selectedIds.join(','));
+            }
+            
+            const url = '/admin/objectives' + (params.toString() ? '?' + params.toString() : '');
+            window.location.href = url;
+        },
+        resetFilters() {
+            this.profileType = '';
+            this.selectedIds = [];
+            window.location.href = '/admin/objectives';
         }
     };
 }

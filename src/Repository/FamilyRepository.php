@@ -70,6 +70,9 @@ class FamilyRepository extends ServiceEntityRepository
             )->setParameter('search', '%' . $search . '%');
         }
 
+        // Trier par date de création décroissante (les plus récentes en premier)
+        $qb->orderBy('f.createdAt', 'DESC');
+
         return $qb->getQuery()->getResult();
     }
 }

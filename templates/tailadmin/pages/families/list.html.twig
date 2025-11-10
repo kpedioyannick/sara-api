@@ -1,12 +1,94 @@
 {% extends 'tailadmin/layouts/base.html.twig' %}
 
+{% block stylesheets %}
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css" />
+{% endblock %}
+
 {% block content %}
 <div 
     x-data="familyManager()"
     data-families='{{ families|json_encode|e('html_attr') }}'
+    data-specialists='{{ specialists|json_encode|e('html_attr') }}'
     class="p-4 mx-auto max-w-(--breakpoint-2xl) md:p-6"
 >
     {% include 'tailadmin/components/breadcrumb.html.twig' %}
+
+    {% if app.user.isCoach() %}
+    <!-- Barre de filtres -->
+    <div 
+        x-data="filterManager()"
+        data-parents='{{ parents|json_encode|e('html_attr') }}'
+        data-specialists='{{ specialists|json_encode|e('html_attr') }}'
+        data-students='{{ students|json_encode|e('html_attr') }}'
+        data-profile-type='{{ profileType|default('') }}'
+        data-selected-ids='{{ selectedIds|default('') }}'
+        class="mb-6 rounded-2xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-white/[0.03]"
+    >
+        <div class="mb-4">
+            <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Filtrer par profil
+            </label>
+            <div class="flex gap-2">
+                <button
+                    @click="setProfileType('')"
+                    :class="profileType === '' ? 'bg-brand-500 text-white' : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'"
+                    class="rounded-lg px-4 py-2 text-sm font-medium transition-colors hover:bg-brand-600 hover:text-white dark:hover:bg-gray-700"
+                >
+                    Tous
+                </button>
+                <button
+                    @click="setProfileType('parent')"
+                    :class="profileType === 'parent' ? 'bg-brand-500 text-white' : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'"
+                    class="rounded-lg px-4 py-2 text-sm font-medium transition-colors hover:bg-brand-600 hover:text-white dark:hover:bg-gray-700"
+                >
+                    Parent
+                </button>
+                <button
+                    @click="setProfileType('specialist')"
+                    :class="profileType === 'specialist' ? 'bg-brand-500 text-white' : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'"
+                    class="rounded-lg px-4 py-2 text-sm font-medium transition-colors hover:bg-brand-600 hover:text-white dark:hover:bg-gray-700"
+                >
+                    Spécialiste
+                </button>
+                <button
+                    @click="setProfileType('student')"
+                    :class="profileType === 'student' ? 'bg-brand-500 text-white' : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'"
+                    class="rounded-lg px-4 py-2 text-sm font-medium transition-colors hover:bg-brand-600 hover:text-white dark:hover:bg-gray-700"
+                >
+                    Élève
+                </button>
+            </div>
+        </div>
+        
+        <div x-show="profileType !== ''">
+            <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Rechercher et sélectionner
+            </label>
+            <select
+                id="choices-select"
+                x-ref="choicesSelect"
+                class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+                multiple
+            >
+            </select>
+        </div>
+        
+        <div class="mt-4 flex items-center gap-2" x-show="profileType !== '' || selectedIds.length > 0">
+            <button
+                @click="applyFilters()"
+                class="rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white shadow-theme-xs hover:bg-brand-600"
+            >
+                Appliquer les filtres
+            </button>
+            <button
+                @click="resetFilters()"
+                class="rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+            >
+                Réinitialiser
+            </button>
+        </div>
+    </div>
+    {% endif %}
 
     <div class="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
         <div class="px-6 py-5 flex items-center justify-between">
@@ -29,7 +111,13 @@
                 <div>
                     <div class="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] sm:p-6">
                         <div class="mb-4 flex items-center justify-between">
-                            <span class="text-theme-xs font-medium text-gray-500 dark:text-gray-400">{{ family.identifier }}</span>
+                            <span class="text-sm font-semibold text-gray-800 dark:text-white/90">
+                                {% if family.parent and family.parent.lastName %}
+                                    {{ family.parent.lastName }}
+                                {% else %}
+                                    Famille #{{ family.id }}
+                                {% endif %}
+                            </span>
                             {% if family.isActive %}
                             <span class="inline-flex items-center rounded-full bg-success-100 px-2.5 py-0.5 text-xs font-medium text-success-600 dark:bg-success-900/30 dark:text-success-400">
                                 Actif
@@ -43,24 +131,13 @@
 
                       
 
-                        <div class="mb-4 space-y-2">
-                            <div class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-                                <svg class="fill-gray-400" width="16" height="16" viewBox="0 0 16 16" fill="none">
-                                    <path d="M8 8a3 3 0 100-6 3 3 0 000 6zM8 10.5a5.5 5.5 0 00-5.5 5.5h11A5.5 5.5 0 008 10.5z" fill=""/>
-                                </svg>
-                                <span>Coach: {% if family.coachName %}{{ family.coachName }}{% else %}Non assigné{% endif %}</span>
-                            </div>
-                            <div class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-                                <svg class="fill-gray-400" width="16" height="16" viewBox="0 0 16 16" fill="none">
-                                    <path d="M8 8a3 3 0 100-6 3 3 0 000 6zM8 10.5a5.5 5.5 0 00-5.5 5.5h11A5.5 5.5 0 008 10.5z" fill=""/>
-                                </svg>
-                                <span>Parent: {% if family.parent %}{{ family.parent.firstName }} {{ family.parent.lastName }}{% else %}Non renseigné{% endif %}</span>
-                            </div>
-                            <div class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
-                                <svg class="fill-gray-400" width="16" height="16" viewBox="0 0 16 16" fill="none">
-                                    <path d="M8 1a7 7 0 100 14A7 7 0 008 1zM7.5 4v4l3.5 2 .5-.866L8.5 7.5V4h-1z" fill=""/>
-                                </svg>
-                                <span>Créée le {{ family.createdAt }}</span>
+                        <div class="mb-4 text-xs text-gray-500 dark:text-gray-400">
+                            <div class="flex items-center gap-3 flex-wrap">
+                                <span>👨‍🏫 {% if family.coachName %}{{ family.coachName }}{% else %}Non assigné{% endif %}</span>
+                                <span>•</span>
+                                <span>👨‍👩‍👧‍👦 {% if family.parent %}{{ family.parent.firstName }} {{ family.parent.lastName }}{% else %}Non renseigné{% endif %}</span>
+                                <span>•</span>
+                                <span>{{ family.createdAt }}</span>
                             </div>
                         </div>
 
@@ -80,25 +157,71 @@
                             </div>
                             <div class="space-y-2">
                                 {% for student in family.students %}
-                                <div class="flex items-center justify-between rounded-lg border border-gray-200 bg-gray-50 p-3 dark:border-gray-700 dark:bg-gray-800/50">
-                                    <div class="flex-1">
-                                        <p class="text-sm font-medium text-gray-800 dark:text-white/90">{{ student.firstName }} {{ student.lastName }}</p>
-                                        <div class="mt-1 flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
-                                            <span>Pseudo: {{ student.pseudo }}</span>
-                                            {% if student.class %}
-                                            <span>•</span>
-                                            <span>{{ student.class }}</span>
-                                            {% endif %}
+                                <div 
+                                    x-show="expandedFamilies[{{ family.id }}] || {{ loop.index0 }} < 3"
+                                    class="rounded-lg border border-gray-200 bg-gray-50 p-3 dark:border-gray-700 dark:bg-gray-800/50"
+                                >
+                                    <div class="flex items-center justify-between">
+                                        <div class="flex-1">
+                                            <p class="text-sm font-medium text-gray-800 dark:text-white/90">{{ student.firstName }} {{ student.lastName }}</p>
+                                            <div class="mt-1 flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
+                                                <span>Pseudo: {{ student.pseudo }}</span>
+                                                {% if student.class %}
+                                                <span>•</span>
+                                                <span>{{ student.class }}</span>
+                                                {% endif %}
+                                            </div>
                                         </div>
+                                        <button
+                                            @click="openStudentEdit({{ family.id }}, {{ student.id }})"
+                                            class="ml-2 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+                                        >
+                                            Éditer
+                                        </button>
                                     </div>
-                                    <button
-                                        @click="openStudentEdit({{ family.id }}, {{ student.id }})"
-                                        class="ml-2 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
-                                    >
-                                        Éditer
-                                    </button>
+                                    <div class="mt-2 flex items-center gap-2">
+                                        <a
+                                            href="{{ path('admin_objectives_list', {student: student.id}) }}"
+                                            class="inline-flex items-center gap-1 rounded-lg border border-brand-200 bg-brand-50 px-2.5 py-1 text-xs font-medium text-brand-700 transition-colors hover:bg-brand-100 dark:border-brand-800 dark:bg-brand-900/30 dark:text-brand-400 dark:hover:bg-brand-900/50"
+                                            title="Voir les objectifs"
+                                        >
+                                            <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                            </svg>
+                                            Objectifs
+                                        </a>
+                                        <a
+                                            href="{{ path('admin_planning_list', {student: student.id}) }}"
+                                            class="inline-flex items-center gap-1 rounded-lg border border-blue-200 bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-700 transition-colors hover:bg-blue-100 dark:border-blue-800 dark:bg-blue-900/30 dark:text-blue-400 dark:hover:bg-blue-900/50"
+                                            title="Voir le planning"
+                                        >
+                                            <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                            </svg>
+                                            Planning
+                                        </a>
+                                        <a
+                                            href="{{ path('admin_requests_list', {student: student.id}) }}"
+                                            class="inline-flex items-center gap-1 rounded-lg border border-purple-200 bg-purple-50 px-2.5 py-1 text-xs font-medium text-purple-700 transition-colors hover:bg-purple-100 dark:border-purple-800 dark:bg-purple-900/30 dark:text-purple-400 dark:hover:bg-purple-900/50"
+                                            title="Voir les demandes"
+                                        >
+                                            <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                            </svg>
+                                            Demandes
+                                        </a>
+                                    </div>
                                 </div>
                                 {% endfor %}
+                                {% if family.students|length > 3 %}
+                                <button
+                                    @click="expandedFamilies[{{ family.id }}] = !expandedFamilies[{{ family.id }}]"
+                                    class="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+                                >
+                                    <span x-show="!expandedFamilies[{{ family.id }}]">Voir tous les élèves ({{ family.students|length - 3 }} de plus)</span>
+                                    <span x-show="expandedFamilies[{{ family.id }}]">Masquer</span>
+                                </button>
+                                {% endif %}
                             </div>
                         </div>
 
@@ -188,10 +311,6 @@
                                 <label class="text-sm font-medium text-gray-500 dark:text-gray-400">Email</label>
                                 <p class="mt-1 text-base text-gray-800 dark:text-white/90" x-text="currentData.email"></p>
                             </div>
-                            <div>
-                                <label class="text-sm font-medium text-gray-500 dark:text-gray-400">Téléphone</label>
-                                <p class="mt-1 text-base text-gray-800 dark:text-white/90" x-text="currentData.phone || 'Non renseigné'"></p>
-                            </div>
                         </div>
                     </template>
 
@@ -223,12 +342,16 @@
                                 />
                             </div>
                             <div>
-                                <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Téléphone</label>
+                                <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Nouveau mot de passe</label>
                                 <input
-                                    type="tel"
-                                    x-model="currentData.phone"
+                                    type="password"
+                                    x-model="currentData.newPassword"
+                                    placeholder="Laisser vide pour ne pas modifier"
                                     class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
                                 />
+                                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                                    Laisser vide si vous ne souhaitez pas modifier le mot de passe
+                                </p>
                             </div>
                         </form>
                     </template>
@@ -326,17 +449,6 @@
                                         x-model="newFamilyData.parentEmail"
                                         required
                                         placeholder="email@example.com"
-                                        class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
-                                    />
-                                </div>
-                                <div>
-                                    <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                                        Téléphone
-                                    </label>
-                                    <input
-                                        type="tel"
-                                        x-model="newFamilyData.parentPhone"
-                                        placeholder="06 12 34 56 78"
                                         class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
                                     />
                                 </div>
@@ -538,6 +650,21 @@
                                 <label class="text-sm font-medium text-gray-500 dark:text-gray-400">Nom de l'établissement</label>
                                 <p class="mt-1 text-base text-gray-800 dark:text-white/90" x-text="currentData.schoolName || 'Non renseigné'"></p>
                             </div>
+                            <div>
+                                <label class="text-sm font-medium text-gray-500 dark:text-gray-400">Spécialistes assignés</label>
+                                <div class="mt-1">
+                                    <template x-if="currentData.specialists && currentData.specialists.length > 0">
+                                        <div class="flex flex-wrap gap-2">
+                                            <template x-for="specialist in currentData.specialists" :key="specialist.id">
+                                                <span class="inline-flex items-center rounded-full bg-brand-50 px-2.5 py-0.5 text-xs font-medium text-brand-600 dark:bg-brand-500/15 dark:text-brand-400">
+                                                    <span x-text="specialist.firstName + ' ' + specialist.lastName"></span>
+                                                </span>
+                                            </template>
+                                        </div>
+                                    </template>
+                                    <p x-show="!currentData.specialists || currentData.specialists.length === 0" class="text-base text-gray-500 dark:text-gray-400">Aucun spécialiste assigné</p>
+                                </div>
+                            </div>
                         </div>
                     </template>
 
@@ -604,6 +731,38 @@
                                     class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
                                 />
                             </div>
+                            <div>
+                                <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Spécialistes</label>
+                                <div class="space-y-2 max-h-60 overflow-y-auto border border-gray-200 rounded-lg p-3 dark:border-gray-700">
+                                    <template x-for="specialist in specialistsData" :key="specialist.id">
+                                        <label class="flex items-center space-x-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 p-2 rounded">
+                                            <input
+                                                type="checkbox"
+                                                :value="specialist.id"
+                                                x-model="currentData.specialistIds"
+                                                class="rounded border-gray-300 text-brand-500 focus:ring-brand-500 dark:border-gray-600 dark:bg-gray-800"
+                                            />
+                                            <span class="text-sm text-gray-700 dark:text-gray-300" x-text="specialist.firstName + ' ' + specialist.lastName"></span>
+                                        </label>
+                                    </template>
+                                    <p x-show="!specialistsData || specialistsData.length === 0" class="text-sm text-gray-500 dark:text-gray-400">Aucun spécialiste disponible</p>
+                                </div>
+                                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                                    Sélectionnez un ou plusieurs spécialistes à assigner à cet élève
+                                </p>
+                            </div>
+                            <div>
+                                <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Nouveau mot de passe</label>
+                                <input
+                                    type="password"
+                                    x-model="currentData.newPassword"
+                                    placeholder="Laisser vide pour ne pas modifier"
+                                    class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+                                />
+                                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                                    Laisser vide si vous ne souhaitez pas modifier le mot de passe
+                                </p>
+                            </div>
                         </form>
                     </template>
                 </div>
@@ -657,11 +816,12 @@ function familyManager() {
         currentType: '',
         currentData: null,
         familiesData: [],
+        specialistsData: [],
+        expandedFamilies: {}, // Pour gérer l'état pliant/dépliant de chaque famille
         newFamilyData: {
             parentFirstName: '',
             parentLastName: '',
             parentEmail: '',
-            parentPhone: '',
         },
         newStudentData: {
             firstName: '',
@@ -673,6 +833,15 @@ function familyManager() {
             const familiesJson = this.$el.getAttribute('data-families');
             if (familiesJson) {
                 this.familiesData = JSON.parse(familiesJson);
+                // Initialiser l'état pliant/dépliant pour chaque famille
+                this.familiesData.forEach(family => {
+                    this.expandedFamilies[family.id] = false;
+                });
+            }
+            
+            const specialistsJson = this.$el.getAttribute('data-specialists');
+            if (specialistsJson) {
+                this.specialistsData = JSON.parse(specialistsJson);
             }
         },
         currentFamilyId: null,
@@ -683,7 +852,6 @@ function familyManager() {
                 parentFirstName: '',
                 parentLastName: '',
                 parentEmail: '',
-                parentPhone: '',
             };
             this.rightSheetOpen = true;
         },
@@ -705,7 +873,6 @@ function familyManager() {
                         firstName: this.newFamilyData.parentFirstName,
                         lastName: this.newFamilyData.parentLastName,
                         email: this.newFamilyData.parentEmail,
-                        phone: this.newFamilyData.parentPhone || null,
                     },
                 }),
             })
@@ -732,13 +899,14 @@ function familyManager() {
                 this.currentStudentId = null;
                 if (family.parent) {
                     this.currentData = JSON.parse(JSON.stringify(family.parent));
+                    this.currentData.newPassword = ''; // Initialiser le champ mot de passe
                 } else {
                     // Initialiser avec des valeurs par défaut si le parent n'existe pas
                     this.currentData = {
                         firstName: '',
                         lastName: '',
                         email: '',
-                        phone: ''
+                        newPassword: ''
                     };
                 }
                 this.editMode = false;
@@ -795,6 +963,9 @@ function familyManager() {
                     this.currentFamilyId = familyId;
                     this.currentStudentId = studentId;
                     this.currentData = JSON.parse(JSON.stringify(student));
+                    this.currentData.newPassword = ''; // Initialiser le champ mot de passe
+                    // Initialiser les IDs des spécialistes assignés
+                    this.currentData.specialistIds = student.specialists ? student.specialists.map(s => s.id) : [];
                     this.editMode = false;
                     this.rightSheetOpen = true;
                 }
@@ -847,13 +1018,24 @@ function familyManager() {
             // Si c'est une modification (code existant)
             if (!this.currentFamilyId || !this.currentStudentId || !this.currentData) return;
             
+            // Préparer les données à envoyer
+            const dataToSend = {
+                firstName: this.currentData.firstName,
+                lastName: this.currentData.lastName,
+                pseudo: this.currentData.pseudo,
+                class: this.currentData.class,
+                schoolName: this.currentData.schoolName,
+                newPassword: this.currentData.newPassword,
+                specialistIds: this.currentData.specialistIds || []
+            };
+            
             fetch(`/admin/families/${this.currentFamilyId}/students/${this.currentStudentId}/update`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'X-Requested-With': 'XMLHttpRequest',
                 },
-                body: JSON.stringify(this.currentData),
+                body: JSON.stringify(dataToSend),
             })
             .then(response => response.json())
             .then(data => {
@@ -929,6 +1111,179 @@ function familyManager() {
                 class: '',
                 schoolName: '',
             };
+        }
+    };
+}
+
+// Charger Choices.js si pas déjà chargé
+if (typeof Choices === 'undefined') {
+    const script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js';
+    script.onload = function() {
+        // Réinitialiser les composants Alpine.js qui utilisent Choices
+        if (window.Alpine) {
+            document.querySelectorAll('[x-data="filterManager()"]').forEach(el => {
+                if (el.__x) {
+                    el.__x.$data.initChoices();
+                }
+            });
+        }
+    };
+    document.head.appendChild(script);
+}
+
+function filterManager() {
+    return {
+        profileType: '',
+        selectedIds: [],
+        choicesInstance: null,
+        parentsData: [],
+        specialistsData: [],
+        studentsData: [],
+        currentOptions: [],
+        init() {
+            // Récupérer les données depuis les attributs data
+            const parentsJson = this.$el.getAttribute('data-parents');
+            const specialistsJson = this.$el.getAttribute('data-specialists');
+            const studentsJson = this.$el.getAttribute('data-students');
+            const profileTypeAttr = this.$el.getAttribute('data-profile-type');
+            const selectedIdsAttr = this.$el.getAttribute('data-selected-ids');
+            
+            if (parentsJson) this.parentsData = JSON.parse(parentsJson);
+            if (specialistsJson) this.specialistsData = JSON.parse(specialistsJson);
+            if (studentsJson) this.studentsData = JSON.parse(studentsJson);
+            if (profileTypeAttr) this.profileType = profileTypeAttr;
+            if (selectedIdsAttr) this.selectedIds = selectedIdsAttr ? selectedIdsAttr.split(',').map(id => parseInt(id)) : [];
+            
+            // Attendre que Choices.js soit chargé
+            if (typeof Choices !== 'undefined') {
+                this.$nextTick(() => {
+                    this.initChoices();
+                });
+            } else {
+                // Si Choices.js n'est pas encore chargé, attendre
+                const checkChoices = setInterval(() => {
+                    if (typeof Choices !== 'undefined') {
+                        clearInterval(checkChoices);
+                        this.$nextTick(() => {
+                            this.initChoices();
+                        });
+                    }
+                }, 100);
+                
+                // Timeout après 5 secondes
+                setTimeout(() => clearInterval(checkChoices), 5000);
+            }
+        },
+        initChoices() {
+            // Détruire l'instance existante si elle existe
+            if (this.choicesInstance) {
+                this.choicesInstance.destroy();
+            }
+            
+            // Récupérer les options selon le type de profil
+            this.updateOptions();
+            
+            // Initialiser Choices.js
+            const selectElement = this.$refs.choicesSelect;
+            if (selectElement && this.currentOptions.length > 0) {
+                this.choicesInstance = new Choices(selectElement, {
+                    removeItemButton: true,
+                    searchEnabled: true,
+                    searchChoices: true,
+                    searchFields: ['label', 'value'],
+                    placeholder: true,
+                    placeholderValue: 'Rechercher et sélectionner...',
+                    noResultsText: 'Aucun résultat trouvé',
+                    noChoicesText: 'Aucune option disponible',
+                    itemSelectText: 'Appuyez pour sélectionner',
+                });
+                
+                // Pré-sélectionner les IDs si présents
+                if (this.selectedIds.length > 0) {
+                    this.choicesInstance.setChoiceByValue(this.selectedIds.map(String));
+                }
+                
+                // Écouter les changements
+                selectElement.addEventListener('change', () => {
+                    this.selectedIds = this.choicesInstance.getValue(true).map(id => parseInt(id));
+                });
+            }
+        },
+        updateOptions() {
+            this.currentOptions = [];
+            
+            if (this.profileType === 'parent') {
+                this.currentOptions = this.parentsData.map(p => ({
+                    value: p.id,
+                    label: `${p.firstName} ${p.lastName}${p.email ? ' (' + p.email + ')' : ''}`
+                }));
+            } else if (this.profileType === 'specialist') {
+                this.currentOptions = this.specialistsData.map(s => ({
+                    value: s.id,
+                    label: `${s.firstName} ${s.lastName}`
+                }));
+            } else if (this.profileType === 'student') {
+                this.currentOptions = this.studentsData.map(s => ({
+                    value: s.id,
+                    label: `${s.firstName} ${s.lastName}${s.pseudo ? ' (' + s.pseudo + ')' : ''}${s.class ? ' - ' + s.class : ''}`
+                }));
+            }
+            
+            // Mettre à jour le select HTML
+            const selectElement = this.$refs.choicesSelect;
+            if (selectElement) {
+                selectElement.innerHTML = '';
+                this.currentOptions.forEach(option => {
+                    const optionElement = document.createElement('option');
+                    optionElement.value = option.value;
+                    optionElement.textContent = option.label;
+                    selectElement.appendChild(optionElement);
+                });
+            }
+        },
+        setProfileType(type) {
+            this.profileType = type;
+            this.selectedIds = [];
+            
+            // Si on clique sur "Tous", réinitialiser complètement et appliquer les filtres
+            if (type === '') {
+                // Détruire l'instance Choices.js si elle existe
+                if (this.choicesInstance) {
+                    this.choicesInstance.destroy();
+                    this.choicesInstance = null;
+                }
+                // Réinitialiser le contenu du select
+                const selectElement = this.$refs.choicesSelect;
+                if (selectElement) {
+                    selectElement.innerHTML = '';
+                }
+                // Appliquer les filtres (réinitialiser)
+                this.resetFilters();
+                return;
+            }
+            
+            // Pour les autres types, réinitialiser Choices.js avec les nouvelles options
+            this.$nextTick(() => {
+                this.initChoices();
+            });
+        },
+        applyFilters() {
+            const params = new URLSearchParams();
+            if (this.profileType) {
+                params.set('profileType', this.profileType);
+            }
+            if (this.selectedIds.length > 0) {
+                params.set('selectedIds', this.selectedIds.join(','));
+            }
+            
+            const url = '/admin/families' + (params.toString() ? '?' + params.toString() : '');
+            window.location.href = url;
+        },
+        resetFilters() {
+            this.profileType = '';
+            this.selectedIds = [];
+            window.location.href = '/admin/families';
         }
     };
 }

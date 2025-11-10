@@ -63,6 +63,9 @@ class ObjectiveController extends AbstractController
         $creatorProfile = $request->query->get('creatorProfile');
         $creatorUserId = $request->query->get('creatorUser');
         $status = $request->query->get('status');
+        $studentId = $request->query->get('student');
+        $profileType = $request->query->get('profileType'); // 'parent', 'specialist', 'student', ou null
+        $selectedIds = $request->query->get('selectedIds', ''); // IDs séparés par des virgules
 
         // Récupération des objectifs selon le rôle de l'utilisateur
         if ($user->isCoach()) {
@@ -93,6 +96,52 @@ class ObjectiveController extends AbstractController
                 $objectives = array_filter($objectives, function($objective) use ($status) {
                     return $objective->getStatus() === $status;
                 });
+            }
+        }
+        
+        // Filtrer par élève si spécifié
+        if ($studentId) {
+            $objectives = array_filter($objectives, function($objective) use ($studentId) {
+                return $objective->getStudent() && $objective->getStudent()->getId() == (int)$studentId;
+            });
+        }
+        
+        // Appliquer les filtres par profil si spécifiés (pour les coaches uniquement)
+        if ($user->isCoach() && $profileType && $selectedIds) {
+            $ids = array_filter(array_map('intval', explode(',', $selectedIds)));
+            if (!empty($ids)) {
+                $filteredObjectives = [];
+                foreach ($objectives as $objective) {
+                    $shouldInclude = false;
+                    
+                    if ($profileType === 'parent') {
+                        // Filtrer par parent (objectifs des enfants du parent)
+                        $student = $objective->getStudent();
+                        if ($student && $student->getFamily() && $student->getFamily()->getParent()) {
+                            if (in_array($student->getFamily()->getParent()->getId(), $ids)) {
+                                $shouldInclude = true;
+                            }
+                        }
+                    } elseif ($profileType === 'specialist') {
+                        // Filtrer par spécialiste (objectifs où le spécialiste est assigné à au moins une tâche)
+                        foreach ($objective->getTasks() as $task) {
+                            if ($task->getSpecialist() && in_array($task->getSpecialist()->getId(), $ids)) {
+                                $shouldInclude = true;
+                                break;
+                            }
+                        }
+                    } elseif ($profileType === 'student') {
+                        // Filtrer par élève
+                        if ($objective->getStudent() && in_array($objective->getStudent()->getId(), $ids)) {
+                            $shouldInclude = true;
+                        }
+                    }
+                    
+                    if ($shouldInclude) {
+                        $filteredObjectives[] = $objective;
+                    }
+                }
+                $objectives = $filteredObjectives;
             }
         }
 
@@ -164,6 +213,8 @@ class ObjectiveController extends AbstractController
             'coaches' => $coachesData,
             'creatorProfileFilter' => $creatorProfile,
             'creatorUserFilter' => $creatorUserId,
+            'profileType' => $profileType,
+            'selectedIds' => $selectedIds,
             'breadcrumbs' => [
                 ['label' => 'Dashboard', 'url' => $this->generateUrl('admin_dashboard')],
             ],

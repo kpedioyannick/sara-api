@@ -1,12 +1,98 @@
 {% extends 'tailadmin/layouts/base.html.twig' %}
 
+{% block stylesheets %}
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css" />
+{% endblock %}
+
 {% block content %}
 <div 
     x-data="planningManager()"
     data-students='{{ students|json_encode|e('html_attr') }}'
+    data-parents='{{ parents|json_encode|e('html_attr') }}'
+    data-specialists='{{ specialists|json_encode|e('html_attr') }}'
     class="p-4 mx-auto max-w-(--breakpoint-2xl) md:p-6"
 >
     {% include 'tailadmin/components/breadcrumb.html.twig' %}
+
+    {% if app.user.isCoach() or app.user.isParent() or app.user.isSpecialist() %}
+    <!-- Barre de filtres -->
+    <div 
+        x-data="filterManager()"
+        data-parents='{{ parents|json_encode|e('html_attr') }}'
+        data-specialists='{{ specialists|json_encode|e('html_attr') }}'
+        data-students='{{ students|json_encode|e('html_attr') }}'
+        data-profile-type='{{ profileType|default('') }}'
+        data-selected-ids='{{ selectedIds|default('') }}'
+        data-user-role='{% if app.user.isCoach() %}coach{% elseif app.user.isParent() %}parent{% elseif app.user.isSpecialist() %}specialist{% else %}student{% endif %}'
+        class="mb-6 rounded-2xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-white/[0.03]"
+    >
+        <div class="mb-4">
+            <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Filtrer par profil
+            </label>
+            <div class="flex gap-2 flex-wrap">
+                <button
+                    @click="setProfileType('')"
+                    :class="profileType === '' ? 'bg-brand-500 text-white' : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'"
+                    class="rounded-lg px-4 py-2 text-sm font-medium transition-colors hover:bg-brand-600 hover:text-white dark:hover:bg-gray-700"
+                >
+                    Tous
+                </button>
+                {% if app.user.isCoach() %}
+                <button
+                    @click="setProfileType('parent')"
+                    :class="profileType === 'parent' ? 'bg-brand-500 text-white' : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'"
+                    class="rounded-lg px-4 py-2 text-sm font-medium transition-colors hover:bg-brand-600 hover:text-white dark:hover:bg-gray-700"
+                >
+                    Parent
+                </button>
+                <button
+                    @click="setProfileType('specialist')"
+                    :class="profileType === 'specialist' ? 'bg-brand-500 text-white' : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'"
+                    class="rounded-lg px-4 py-2 text-sm font-medium transition-colors hover:bg-brand-600 hover:text-white dark:hover:bg-gray-700"
+                >
+                    Spécialiste
+                </button>
+                {% endif %}
+                <button
+                    @click="setProfileType('student')"
+                    :class="profileType === 'student' ? 'bg-brand-500 text-white' : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'"
+                    class="rounded-lg px-4 py-2 text-sm font-medium transition-colors hover:bg-brand-600 hover:text-white dark:hover:bg-gray-700"
+                >
+                    {% if app.user.isParent() %}Enfant{% else %}Élève{% endif %}
+                </button>
+            </div>
+        </div>
+        
+        <div x-show="profileType !== ''">
+            <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Rechercher et sélectionner
+            </label>
+            <select
+                id="choices-select-planning"
+                x-ref="choicesSelect"
+                class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+                multiple
+            >
+            </select>
+        </div>
+        
+        <div class="mt-4 flex items-center gap-2" x-show="profileType !== '' || selectedIds.length > 0">
+            <button
+                @click="applyFilters()"
+                class="rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white shadow-theme-xs hover:bg-brand-600"
+            >
+                Appliquer les filtres
+            </button>
+            <button
+                @click="resetFilters()"
+                class="rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+            >
+                Réinitialiser
+            </button>
+        </div>
+    </div>
+    {% endif %}
 
     <div class="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
         <!-- Week Navigation Header -->
@@ -21,21 +107,10 @@
                     </p>
                 </div>
                 <div class="flex items-center gap-3">
-                    <!-- Filtre par élève -->
-                    <select
-                        x-model="selectedStudent"
-                        @change="applyFilters()"
-                        class="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"
-                    >
-                        <option value="">Tous les élèves</option>
-                        <template x-for="student in students" :key="student.id">
-                            <option :value="student.id" x-text="student.firstName + ' ' + student.lastName"></option>
-                        </template>
-                    </select>
                     <!-- Navigation buttons -->
                     <div class="flex items-center gap-2 rounded-lg border border-gray-200 bg-white p-1 dark:border-gray-700 dark:bg-gray-800">
                         <a
-                            href="{{ path('admin_planning_list', {'week': prevWeek}) }}"
+                            x-bind:href="getPlanningUrl({{ prevWeek }})"
                             class="flex h-9 w-9 items-center justify-center rounded-lg text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-300"
                             title="Semaine précédente"
                         >
@@ -44,14 +119,14 @@
                             </svg>
                         </a>
                         <a
-                            href="{{ path('admin_planning_list', {'week': 0}) }}"
+                            x-bind:href="getPlanningUrl(0)"
                             class="px-3 py-1.5 text-sm font-medium text-gray-700 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white"
                             title="Cette semaine"
                         >
                             Aujourd'hui
                         </a>
                         <a
-                            href="{{ path('admin_planning_list', {'week': nextWeek}) }}"
+                            x-bind:href="getPlanningUrl({{ nextWeek }})"
                             class="flex h-9 w-9 items-center justify-center rounded-lg text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-300"
                             title="Semaine suivante"
                         >
@@ -496,26 +571,65 @@ function planningManager() {
         },
         studentsData: [],
         students: [],
-        selectedStudent: '{{ studentFilter|default('') }}',
+        selectedStudent: '',
         init() {
             const studentsJson = this.$el.getAttribute('data-students');
             if (studentsJson) {
                 this.studentsData = JSON.parse(studentsJson);
                 this.students = JSON.parse(studentsJson);
             }
+            
+            // Initialiser selectedStudent depuis l'URL
+            const params = new URLSearchParams(window.location.search);
+            const studentParam = params.get('student');
+            if (studentParam) {
+                this.selectedStudent = studentParam;
+            }
         },
         
         applyFilters() {
-            const params = new URLSearchParams();
-            const weekParam = new URLSearchParams(window.location.search).get('week');
-            if (weekParam) {
-                params.set('week', weekParam);
-            }
+            const params = new URLSearchParams(window.location.search);
+            
+            // Préserver le paramètre week s'il existe
+            const weekParam = params.get('week');
+            // Préserver les filtres par profil s'ils existent
+            const profileTypeParam = params.get('profileType');
+            const selectedIdsParam = params.get('selectedIds');
+            
+            // Réinitialiser le paramètre student
+            params.delete('student');
+            
+            // Ajouter le nouveau filtre student
             if (this.selectedStudent) {
                 params.set('student', this.selectedStudent);
             }
+            
+            // Préserver le paramètre week
+            if (weekParam !== null) {
+                params.set('week', weekParam);
+            }
+            // Préserver les filtres par profil
+            if (profileTypeParam !== null) {
+                params.set('profileType', profileTypeParam);
+            }
+            if (selectedIdsParam !== null) {
+                params.set('selectedIds', selectedIdsParam);
+            }
+            
             const queryString = params.toString();
             window.location.href = '/admin/planning' + (queryString ? '?' + queryString : '');
+        },
+        getPlanningUrl(weekOffset) {
+            const params = new URLSearchParams(window.location.search);
+            
+            // Définir le paramètre week
+            params.set('week', weekOffset);
+            
+            // Préserver tous les autres filtres (student, profileType, selectedIds)
+            // Ces paramètres sont déjà dans l'URL, donc ils seront préservés automatiquement
+            
+            const queryString = params.toString();
+            return '/admin/planning' + (queryString ? '?' + queryString : '');
         },
         openCreate() {
             this.isEdit = false;
@@ -747,6 +861,206 @@ function planningManager() {
                 startDate: '',
                 endDate: '',
             };
+        }
+    };
+}
+
+// Charger Choices.js si pas déjà chargé
+if (typeof Choices === 'undefined') {
+    const script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js';
+    script.onload = function() {
+        // Réinitialiser les composants Alpine.js qui utilisent Choices
+        if (window.Alpine) {
+            document.querySelectorAll('[x-data="filterManager()"]').forEach(el => {
+                if (el.__x) {
+                    el.__x.$data.initChoices();
+                }
+            });
+        }
+    };
+    document.head.appendChild(script);
+}
+
+function filterManager() {
+    return {
+        profileType: '',
+        selectedIds: [],
+        choicesInstance: null,
+        parentsData: [],
+        specialistsData: [],
+        studentsData: [],
+        currentOptions: [],
+        userRole: '',
+        init() {
+            // Récupérer les données depuis les attributs data
+            const parentsJson = this.$el.getAttribute('data-parents');
+            const specialistsJson = this.$el.getAttribute('data-specialists');
+            const studentsJson = this.$el.getAttribute('data-students');
+            const profileTypeAttr = this.$el.getAttribute('data-profile-type');
+            const selectedIdsAttr = this.$el.getAttribute('data-selected-ids');
+            const userRoleAttr = this.$el.getAttribute('data-user-role');
+            
+            if (parentsJson) this.parentsData = JSON.parse(parentsJson);
+            if (specialistsJson) this.specialistsData = JSON.parse(specialistsJson);
+            if (studentsJson) this.studentsData = JSON.parse(studentsJson);
+            if (profileTypeAttr) this.profileType = profileTypeAttr;
+            if (selectedIdsAttr) this.selectedIds = selectedIdsAttr ? selectedIdsAttr.split(',').map(id => parseInt(id)) : [];
+            if (userRoleAttr) this.userRole = userRoleAttr;
+            
+            // Attendre que Choices.js soit chargé
+            if (typeof Choices !== 'undefined') {
+                this.$nextTick(() => {
+                    this.initChoices();
+                });
+            } else {
+                // Si Choices.js n'est pas encore chargé, attendre
+                const checkChoices = setInterval(() => {
+                    if (typeof Choices !== 'undefined') {
+                        clearInterval(checkChoices);
+                        this.$nextTick(() => {
+                            this.initChoices();
+                        });
+                    }
+                }, 100);
+                
+                // Timeout après 5 secondes
+                setTimeout(() => clearInterval(checkChoices), 5000);
+            }
+        },
+        initChoices() {
+            // Détruire l'instance existante si elle existe
+            if (this.choicesInstance) {
+                this.choicesInstance.destroy();
+            }
+            
+            // Récupérer les options selon le type de profil
+            this.updateOptions();
+            
+            // Initialiser Choices.js
+            const selectElement = this.$refs.choicesSelect;
+            if (selectElement && this.currentOptions.length > 0) {
+                this.choicesInstance = new Choices(selectElement, {
+                    removeItemButton: true,
+                    searchEnabled: true,
+                    searchChoices: true,
+                    searchFields: ['label', 'value'],
+                    placeholder: true,
+                    placeholderValue: 'Rechercher et sélectionner...',
+                    noResultsText: 'Aucun résultat trouvé',
+                    noChoicesText: 'Aucune option disponible',
+                    itemSelectText: 'Appuyez pour sélectionner',
+                });
+                
+                // Pré-sélectionner les IDs si présents
+                if (this.selectedIds.length > 0) {
+                    this.choicesInstance.setChoiceByValue(this.selectedIds.map(String));
+                }
+                
+                // Écouter les changements
+                selectElement.addEventListener('change', () => {
+                    this.selectedIds = this.choicesInstance.getValue(true).map(id => parseInt(id));
+                });
+            }
+        },
+        updateOptions() {
+            this.currentOptions = [];
+            
+            if (this.profileType === 'parent') {
+                this.currentOptions = this.parentsData.map(p => ({
+                    value: p.id,
+                    label: `${p.firstName} ${p.lastName}${p.email ? ' (' + p.email + ')' : ''}`
+                }));
+            } else if (this.profileType === 'specialist') {
+                this.currentOptions = this.specialistsData.map(s => ({
+                    value: s.id,
+                    label: `${s.firstName} ${s.lastName}`
+                }));
+            } else if (this.profileType === 'student') {
+                this.currentOptions = this.studentsData.map(s => ({
+                    value: s.id,
+                    label: `${s.firstName} ${s.lastName}${s.pseudo ? ' (' + s.pseudo + ')' : ''}${s.class ? ' - ' + s.class : ''}`
+                }));
+            }
+            
+            // Mettre à jour le select HTML
+            const selectElement = this.$refs.choicesSelect;
+            if (selectElement) {
+                selectElement.innerHTML = '';
+                this.currentOptions.forEach(option => {
+                    const optionElement = document.createElement('option');
+                    optionElement.value = option.value;
+                    optionElement.textContent = option.label;
+                    selectElement.appendChild(optionElement);
+                });
+            }
+        },
+        setProfileType(type) {
+            this.profileType = type;
+            this.selectedIds = [];
+            
+            // Si on clique sur "Tous", réinitialiser complètement et appliquer les filtres
+            if (type === '') {
+                // Détruire l'instance Choices.js si elle existe
+                if (this.choicesInstance) {
+                    this.choicesInstance.destroy();
+                    this.choicesInstance = null;
+                }
+                // Réinitialiser le contenu du select
+                const selectElement = this.$refs.choicesSelect;
+                if (selectElement) {
+                    selectElement.innerHTML = '';
+                }
+                // Appliquer les filtres (réinitialiser)
+                this.resetFilters();
+                return;
+            }
+            
+            // Pour les autres types, réinitialiser Choices.js avec les nouvelles options
+            this.$nextTick(() => {
+                this.initChoices();
+            });
+        },
+        applyFilters() {
+            const params = new URLSearchParams(window.location.search);
+            
+            // Préserver le paramètre week s'il existe
+            const weekParam = params.get('week');
+            // Préserver le paramètre student s'il existe (filtre par élève dans le header)
+            const studentParam = params.get('student');
+            
+            // Réinitialiser les paramètres de filtres
+            params.delete('profileType');
+            params.delete('selectedIds');
+            
+            // Ajouter les nouveaux filtres
+            if (this.profileType) {
+                params.set('profileType', this.profileType);
+            }
+            if (this.selectedIds.length > 0) {
+                params.set('selectedIds', this.selectedIds.join(','));
+            }
+            
+            // Préserver le paramètre week
+            if (weekParam !== null) {
+                params.set('week', weekParam);
+            }
+            // Préserver le paramètre student
+            if (studentParam !== null) {
+                params.set('student', studentParam);
+            }
+            
+            const url = '/admin/planning' + (params.toString() ? '?' + params.toString() : '');
+            window.location.href = url;
+        },
+        resetFilters() {
+            const params = new URLSearchParams(window.location.search);
+            
+            // Préserver uniquement le paramètre week
+            const weekParam = params.get('week');
+            
+            const url = '/admin/planning' + (weekParam !== null ? '?week=' + weekParam : '');
+            window.location.href = url;
         }
     };
 }

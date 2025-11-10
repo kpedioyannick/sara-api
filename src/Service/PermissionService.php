@@ -380,8 +380,27 @@ class PermissionService
         if ($user instanceof Student) {
             // Ses propres demandes et celles qui lui sont affectées
             $requests = $user->getRequests()->toArray();
-            // TODO: Ajouter les demandes qui lui sont affectées
-            return $requests;
+            
+            // Ajouter les demandes qui lui sont affectées via assignedTo
+            $assignedRequests = $this->requestRepository->createQueryBuilder('r')
+                ->where('r.assignedTo = :student')
+                ->setParameter('student', $user)
+                ->getQuery()
+                ->getResult();
+            
+            // Fusionner les deux listes et supprimer les doublons
+            $allRequests = array_merge($requests, $assignedRequests);
+            $uniqueRequests = [];
+            $seenIds = [];
+            foreach ($allRequests as $request) {
+                $id = $request->getId();
+                if (!in_array($id, $seenIds)) {
+                    $uniqueRequests[] = $request;
+                    $seenIds[] = $id;
+                }
+            }
+            
+            return $uniqueRequests;
         }
 
         if ($user instanceof Specialist) {
