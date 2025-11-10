@@ -298,6 +298,7 @@ class Planning
         return [
             'id' => $this->getId(),
             'title' => $this->getTitle(),
+            'description' => $this->getDescription(),
             'studentId' => $student?->getId(),
             'studentName' => $student 
                 ? $student->getFirstName() . ' ' . $student->getLastName()

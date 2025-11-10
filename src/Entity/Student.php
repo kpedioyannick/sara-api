@@ -283,6 +283,7 @@ class Student extends User
             'class' => $this->getClass(),
             'schoolName' => $this->getSchoolName(),
             'isActive' => $this->isActive(),
+            'userType' => $this->getUserType(),
         ];
     }
 

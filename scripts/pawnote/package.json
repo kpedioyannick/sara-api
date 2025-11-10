@@ -1,0 +1,27 @@
+{
+  "name": "pawnote",
+  "version": "1.0.0",
+  "description": "Test de synchronisation PRONOTE avec Pawnote.js",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "sync": "node_modules/.bin/tsx qrcode-sync.mts",
+    "fetch": "node_modules/.bin/tsx fetch-data.mts"
+  },
+  "keywords": [
+    "pronote",
+    "pawnote",
+    "test"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "pawnote": "^1.6.2"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "ts-node": "^10.9.2",
+    "tsx": "^4.20.6",
+    "typescript": "^5.0.0"
+  }
+}

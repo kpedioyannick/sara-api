@@ -48,7 +48,7 @@
                                 <svg class="fill-gray-400" width="16" height="16" viewBox="0 0 16 16" fill="none">
                                     <path d="M8 8a3 3 0 100-6 3 3 0 000 6zM8 10.5a5.5 5.5 0 00-5.5 5.5h11A5.5 5.5 0 008 10.5z" fill=""/>
                                 </svg>
-                                <span>Coach: {{ family.coachName }}</span>
+                                <span>Coach: {% if family.coachName %}{{ family.coachName }}{% else %}Non assigné{% endif %}</span>
                             </div>
                             <div class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
                                 <svg class="fill-gray-400" width="16" height="16" viewBox="0 0 16 16" fill="none">

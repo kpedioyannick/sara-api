@@ -193,9 +193,12 @@ class Family
     {
         $data = $this->toArray();
         
-        // Ajout du nom du coach
-        if ($coach) {
-            $data['coachName'] = $coach->getFirstName() . ' ' . $coach->getLastName();
+        // Ajout du nom du coach (utiliser le coach passé en paramètre ou celui de la famille)
+        $coachToUse = $coach ?? $this->getCoach();
+        if ($coachToUse) {
+            $data['coachName'] = $coachToUse->getFirstName() . ' ' . $coachToUse->getLastName();
+        } else {
+            $data['coachName'] = null;
         }
         
         // Formatage de la date

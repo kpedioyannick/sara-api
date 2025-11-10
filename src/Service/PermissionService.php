@@ -208,6 +208,16 @@ class PermissionService
             return true;
         }
 
+        // Parent : peut voir les activités publiées
+        if ($user instanceof ParentUser) {
+            return $activity->getStatus() === Activity::STATUS_PUBLISHED;
+        }
+
+        // Student : peut voir les activités publiées
+        if ($user instanceof Student) {
+            return $activity->getStatus() === Activity::STATUS_PUBLISHED;
+        }
+
         return false;
     }
 

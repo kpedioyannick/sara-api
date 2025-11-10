@@ -101,6 +101,57 @@
         </h3>
         {% if integration.metadata %}
             <div class="space-y-4">
+                <!-- Informations de synchronisation -->
+                <div>
+                    <h4 class="mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">Résumé de la synchronisation</h4>
+                    <div class="rounded-lg bg-gray-50 p-4 dark:bg-gray-800">
+                        <dl class="grid grid-cols-2 gap-3">
+                            <div>
+                                <dt class="text-xs text-gray-500 dark:text-gray-400">📚 Devoirs</dt>
+                                <dd class="mt-1 text-sm font-semibold text-gray-900 dark:text-white/90">{{ integration.metadata.sync_data.homework ?? 0 }}</dd>
+                            </div>
+                            <div>
+                                <dt class="text-xs text-gray-500 dark:text-gray-400">📅 Cours</dt>
+                                <dd class="mt-1 text-sm font-semibold text-gray-900 dark:text-white/90">{{ integration.metadata.sync_data.lessons ?? 0 }}</dd>
+                            </div>
+                            <div>
+                                <dt class="text-xs text-gray-500 dark:text-gray-400">❌ Absences</dt>
+                                <dd class="mt-1 text-sm font-semibold text-gray-900 dark:text-white/90">{{ integration.metadata.sync_data.absences ?? 0 }}</dd>
+                            </div>
+                            <div>
+                                <dt class="text-xs text-gray-500 dark:text-gray-400">📊 Évaluations</dt>
+                                <dd class="mt-1 text-sm font-semibold text-gray-900 dark:text-white/90">
+                                    {% if integration.metadata.evaluations is defined %}
+                                        {{ integration.metadata.evaluations|length }}
+                                    {% elseif integration.metadata.notes is defined %}
+                                        {{ integration.metadata.notes|length }}
+                                    {% else %}
+                                        0
+                                    {% endif %}
+                                </dd>
+                            </div>
+                            <div>
+                                <dt class="text-xs text-gray-500 dark:text-gray-400">📔 Carnet de correspondance</dt>
+                                <dd class="mt-1 text-sm font-semibold text-gray-900 dark:text-white/90">
+                                    {% if integration.metadata.notebook is defined %}
+                                        {{ integration.metadata.notebook|length }} messages
+                                    {% elseif integration.metadata.carnet_correspondance is defined %}
+                                        {{ integration.metadata.carnet_correspondance|length }} messages
+                                    {% else %}
+                                        0 messages
+                                    {% endif %}
+                                </dd>
+                            </div>
+                            {% if integration.metadata.connected_at %}
+                            <div>
+                                <dt class="text-xs text-gray-500 dark:text-gray-400">Connecté le</dt>
+                                <dd class="mt-1 text-sm text-gray-900 dark:text-white/90">{{ integration.metadata.connected_at }}</dd>
+                            </div>
+                            {% endif %}
+                        </dl>
+                    </div>
+                </div>
+
                 {% if integration.metadata.user_info %}
                     <div>
                         <h4 class="mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">Informations utilisateur</h4>
@@ -118,31 +169,35 @@
                                     <dt class="text-xs text-gray-500 dark:text-gray-400">Établissement</dt>
                                     <dd class="mt-1 text-sm text-gray-900 dark:text-white/90">{{ integration.metadata.user_info.school ?? 'N/A' }}</dd>
                                 </div>
-                                <div>
-                                    <dt class="text-xs text-gray-500 dark:text-gray-400">Connecté le</dt>
-                                    <dd class="mt-1 text-sm text-gray-900 dark:text-white/90">{{ integration.metadata.connected_at ?? 'N/A' }}</dd>
-                                </div>
                             </dl>
                         </div>
                     </div>
                 {% endif %}
 
-                {% if integration.metadata.notes %}
+                {% if integration.metadata.evaluations is defined and integration.metadata.evaluations|length > 0 %}
                     <div>
-                        <h4 class="mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">Notes</h4>
+                        <h4 class="mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">Évaluations / Notes</h4>
+                        <pre class="rounded-lg bg-gray-50 p-4 text-xs text-gray-900 dark:bg-gray-800 dark:text-white/90 overflow-auto">{{ integration.metadata.evaluations|json_encode(constant('JSON_PRETTY_PRINT')) }}</pre>
+                    </div>
+                {% elseif integration.metadata.notes is defined and integration.metadata.notes|length > 0 %}
+                    <div>
+                        <h4 class="mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">Évaluations / Notes</h4>
                         <pre class="rounded-lg bg-gray-50 p-4 text-xs text-gray-900 dark:bg-gray-800 dark:text-white/90 overflow-auto">{{ integration.metadata.notes|json_encode(constant('JSON_PRETTY_PRINT')) }}</pre>
                     </div>
                 {% endif %}
 
-                {% if integration.metadata.carnet_correspondance %}
+                {% if integration.metadata.gradebook ?? false %}
                     <div>
-                        <h4 class="mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">Carnet de correspondance</h4>
-                        <pre class="rounded-lg bg-gray-50 p-4 text-xs text-gray-900 dark:bg-gray-800 dark:text-white/90 overflow-auto">{{ integration.metadata.carnet_correspondance|json_encode(constant('JSON_PRETTY_PRINT')) }}</pre>
+                        <h4 class="mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">Bulletin de notes</h4>
+                        <pre class="rounded-lg bg-gray-50 p-4 text-xs text-gray-900 dark:bg-gray-800 dark:text-white/90 overflow-auto">{{ integration.metadata.gradebook|json_encode(constant('JSON_PRETTY_PRINT')) }}</pre>
                     </div>
                 {% endif %}
 
-                {% if not integration.metadata.user_info and not integration.metadata.notes and not integration.metadata.carnet_correspondance %}
-                    <p class="text-sm text-gray-400">Aucune métadonnée disponible</p>
+                {% if (integration.metadata.notebook is defined and integration.metadata.notebook|length > 0) or (integration.metadata.carnet_correspondance is defined and integration.metadata.carnet_correspondance|length > 0) %}
+                    <div>
+                        <h4 class="mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">Carnet de correspondance</h4>
+                        <pre class="rounded-lg bg-gray-50 p-4 text-xs text-gray-900 dark:bg-gray-800 dark:text-white/90 overflow-auto">{{ (integration.metadata.notebook ?? integration.metadata.carnet_correspondance)|json_encode(constant('JSON_PRETTY_PRINT')) }}</pre>
+                    </div>
                 {% endif %}
             </div>
         {% else %}

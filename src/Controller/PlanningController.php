@@ -48,16 +48,24 @@ class PlanningController extends AbstractController
         $weekOffset = (int) $request->query->get('week', 0);
         
         // Calculer le début de la semaine (lundi)
+        // 1. D'abord, calculer le lundi de la semaine courante
         $currentDate = new \DateTime();
-        if ($weekOffset != 0) {
-            $currentDate->modify('+' . ($weekOffset * 7) . ' days');
-        }
-        $dayOfWeek = (int) $currentDate->format('w'); // 0 = dimanche, 1 = lundi, etc.
-        $mondayOffset = $dayOfWeek == 0 ? -6 : -(($dayOfWeek - 1) % 7);
+        $dayOfWeek = (int) $currentDate->format('N'); // 1 = lundi, 7 = dimanche
+        $mondayOffset = -($dayOfWeek - 1); // Si lundi (1), offset = 0; si dimanche (7), offset = -6
         $currentDate->modify($mondayOffset . ' days');
         
+        // 2. Ensuite, appliquer l'offset de semaines (positif = semaines futures, négatif = semaines passées)
         $weekStart = \DateTimeImmutable::createFromMutable($currentDate);
         $weekStart = $weekStart->setTime(0, 0, 0);
+        if ($weekOffset != 0) {
+            // Gérer correctement les offsets négatifs
+            $daysOffset = $weekOffset * 7;
+            if ($daysOffset < 0) {
+                $weekStart = $weekStart->modify($daysOffset . ' days');
+            } else {
+                $weekStart = $weekStart->modify('+' . $daysOffset . ' days');
+            }
+        }
         
         // Récupérer le paramètre de filtrage par élève
         $studentId = $request->query->get('student');
@@ -109,15 +117,20 @@ class PlanningController extends AbstractController
         $weekDays = [];
         $dayNames = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'];
         
+        // Utiliser une variable mutable pour éviter les problèmes avec DateTimeImmutable
+        $currentDay = \DateTime::createFromImmutable($weekStart);
+        
         for ($i = 0; $i < 7; $i++) {
-            $day = $weekStart->modify('+' . $i . ' days');
-            $dayKey = $day->format('Y-m-d');
+            if ($i > 0) {
+                $currentDay->modify('+1 day');
+            }
+            $dayKey = $currentDay->format('Y-m-d');
             
             $weekDays[] = [
                 'date' => $dayKey,
                 'name' => $dayNames[$i],
-                'day' => $day->format('d'),
-                'month' => $day->format('m'),
+                'day' => $currentDay->format('d'),
+                'month' => $currentDay->format('m'),
                 'events' => [],
             ];
         }

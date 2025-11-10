@@ -382,69 +382,73 @@ class ObjectiveController extends AbstractController
             ],
         ];
 
-                    // Récupérer les étudiants, parents et spécialistes pour les sélecteurs d'affectation
-                    if ($coach) {
-                        $students = $this->studentRepository->findByCoach($coach);
-                        $families = $this->familyRepository->findByCoachWithSearch($coach);
-                        foreach ($families as $family) {
-                            $parent = $family->getParent();
-                            if ($parent) {
-                                $parentsData[] = [
-                                    'id' => $parent->getId(),
-                                    'firstName' => $parent->getFirstName(),
-                                    'lastName' => $parent->getLastName(),
-                                ];
-                            }
-                        }
-                        $specialists = $this->specialistRepository->findAll();
-                        $specialistsData = array_map(fn($s) => [
-                            'id' => $s->getId(),
-                            'firstName' => $s->getFirstName(),
-                            'lastName' => $s->getLastName(),
-                        ], $specialists);
-                    } else {
-                        // Pour les autres rôles, utiliser PermissionService
-                        $students = $this->permissionService->getAccessibleStudents($user);
-                    }
-                    
-                    $studentsData = array_map(function($student) {
-                        return [
-                            'id' => $student->getId(),
-                            'firstName' => $student->getFirstName(),
-                            'lastName' => $student->getLastName(),
-                            'pseudo' => $student->getPseudo(),
-                        ];
-                    }, $students);
+        // Initialiser les variables pour les parents et spécialistes
+        $parentsData = [];
+        $specialistsData = [];
 
-                    // Déterminer le type d'utilisateur
-                    $currentUser = $this->getUser();
-                    $userType = 'coach'; // Par défaut
-                    if ($currentUser instanceof \App\Entity\ParentUser) {
-                        $userType = 'parent';
-                    } elseif ($currentUser instanceof \App\Entity\Student) {
-                        $userType = 'student';
-                    } elseif ($currentUser instanceof \App\Entity\Specialist) {
-                        $userType = 'specialist';
-                    } elseif ($currentUser instanceof \App\Entity\Coach) {
-                        $userType = 'coach';
-                    }
+        // Récupérer les étudiants, parents et spécialistes pour les sélecteurs d'affectation
+        if ($coach) {
+            $students = $this->studentRepository->findByCoach($coach);
+            $families = $this->familyRepository->findByCoachWithSearch($coach);
+            foreach ($families as $family) {
+                $parent = $family->getParent();
+                if ($parent) {
+                    $parentsData[] = [
+                        'id' => $parent->getId(),
+                        'firstName' => $parent->getFirstName(),
+                        'lastName' => $parent->getLastName(),
+                    ];
+                }
+            }
+            $specialists = $this->specialistRepository->findAll();
+            $specialistsData = array_map(fn($s) => [
+                'id' => $s->getId(),
+                'firstName' => $s->getFirstName(),
+                'lastName' => $s->getLastName(),
+            ], $specialists);
+        } else {
+            // Pour les autres rôles, utiliser PermissionService
+            $students = $this->permissionService->getAccessibleStudents($user);
+        }
 
-                    return $this->render('tailadmin/pages/objectives/detail.html.twig', [
-                        'pageTitle' => 'Détail de l\'Objectif | TailAdmin',
-                        'pageName' => 'objectives-detail',
-                        'objective' => $objectiveData,
-                        'tasks' => $tasksData,
-                        'comments' => $commentsData,
-                        'userType' => $userType,
-                        'students' => $studentsData,
-                        'parents' => $parentsData,
-                        'specialists' => $specialistsData,
-                        'breadcrumbs' => [
-                            ['label' => 'Dashboard', 'url' => $this->generateUrl('admin_dashboard')],
-                            ['label' => 'Objectifs', 'url' => $this->generateUrl('admin_objectives_list')],
-                            ['label' => 'Détail', 'url' => ''],
-                        ],
-                    ]);
+        $studentsData = array_map(function($student) {
+            return [
+                'id' => $student->getId(),
+                'firstName' => $student->getFirstName(),
+                'lastName' => $student->getLastName(),
+                'pseudo' => $student->getPseudo(),
+            ];
+        }, $students);
+
+        // Déterminer le type d'utilisateur
+        $currentUser = $this->getUser();
+        $userType = 'coach'; // Par défaut
+        if ($currentUser instanceof \App\Entity\ParentUser) {
+            $userType = 'parent';
+        } elseif ($currentUser instanceof \App\Entity\Student) {
+            $userType = 'student';
+        } elseif ($currentUser instanceof \App\Entity\Specialist) {
+            $userType = 'specialist';
+        } elseif ($currentUser instanceof \App\Entity\Coach) {
+            $userType = 'coach';
+        }
+
+        return $this->render('tailadmin/pages/objectives/detail.html.twig', [
+            'pageTitle' => 'Détail de l\'Objectif | TailAdmin',
+            'pageName' => 'objectives-detail',
+            'objective' => $objectiveData,
+            'tasks' => $tasksData,
+            'comments' => $commentsData,
+            'userType' => $userType,
+            'students' => $studentsData,
+            'parents' => $parentsData,
+            'specialists' => $specialistsData,
+            'breadcrumbs' => [
+                ['label' => 'Dashboard', 'url' => $this->generateUrl('admin_dashboard')],
+                ['label' => 'Objectifs', 'url' => $this->generateUrl('admin_objectives_list')],
+                ['label' => 'Détail', 'url' => ''],
+            ],
+        ]);
     }
 
     #[Route('/admin/objectives/{id}/update', name: 'admin_objectives_update', methods: ['POST'])]
@@ -538,23 +542,29 @@ class ObjectiveController extends AbstractController
     }
 
     #[Route('/admin/objectives/{objectiveId}/comments/create', name: 'admin_objectives_comments_create', methods: ['POST'])]
+    #[IsGranted('ROLE_USER')]
     public function createComment(int $objectiveId, Request $request): JsonResponse
     {
-        $coach = $this->getCurrentCoach($this->coachRepository, $this->security);
-        if (!$coach) {
-            return new JsonResponse(['success' => false, 'message' => 'Coach non trouvé'], 404);
+        $user = $this->getUser();
+        if (!$user) {
+            return new JsonResponse(['success' => false, 'message' => 'Vous devez être connecté'], 403);
         }
 
         $objective = $this->objectiveRepository->find($objectiveId);
-        if (!$objective || $objective->getCoach() !== $coach) {
+        if (!$objective) {
             return new JsonResponse(['success' => false, 'message' => 'Objectif non trouvé'], 404);
+        }
+
+        // Vérifier les permissions d'accès
+        if (!$this->permissionService->canViewObjective($user, $objective)) {
+            return new JsonResponse(['success' => false, 'message' => 'Vous n\'avez pas accès à cet objectif'], 403);
         }
 
         $data = json_decode($request->getContent(), true);
         
         $comment = Comment::createForUser([
             'content' => $data['content'] ?? '',
-        ], $coach, $objective, null);
+        ], $user, $objective, null);
 
         // Validation
         $errors = $this->validator->validate($comment);
@@ -573,16 +583,22 @@ class ObjectiveController extends AbstractController
     }
 
     #[Route('/admin/objectives/{objectiveId}/comments/{commentId}/update', name: 'admin_objectives_comments_update', methods: ['POST'])]
+    #[IsGranted('ROLE_USER')]
     public function updateComment(int $objectiveId, int $commentId, Request $request): JsonResponse
     {
-        $coach = $this->getCurrentCoach($this->coachRepository, $this->security);
-        if (!$coach) {
-            return new JsonResponse(['success' => false, 'message' => 'Coach non trouvé'], 404);
+        $user = $this->getUser();
+        if (!$user) {
+            return new JsonResponse(['success' => false, 'message' => 'Vous devez être connecté'], 403);
         }
 
         $objective = $this->objectiveRepository->find($objectiveId);
-        if (!$objective || $objective->getCoach() !== $coach) {
+        if (!$objective) {
             return new JsonResponse(['success' => false, 'message' => 'Objectif non trouvé'], 404);
+        }
+
+        // Vérifier les permissions d'accès
+        if (!$this->permissionService->canViewObjective($user, $objective)) {
+            return new JsonResponse(['success' => false, 'message' => 'Vous n\'avez pas accès à cet objectif'], 403);
         }
 
         $comment = $this->commentRepository->find($commentId);
@@ -590,8 +606,8 @@ class ObjectiveController extends AbstractController
             return new JsonResponse(['success' => false, 'message' => 'Commentaire non trouvé'], 404);
         }
 
-        // Vérifier que le commentaire appartient au coach
-        if ($comment->getAuthor() !== $coach) {
+        // Vérifier que le commentaire appartient à l'utilisateur connecté
+        if ($comment->getAuthor() !== $user) {
             return new JsonResponse(['success' => false, 'message' => 'Vous n\'avez pas le droit de modifier ce commentaire'], 403);
         }
 
@@ -617,16 +633,22 @@ class ObjectiveController extends AbstractController
     }
 
     #[Route('/admin/objectives/{objectiveId}/comments/{commentId}/delete', name: 'admin_objectives_comments_delete', methods: ['DELETE'])]
+    #[IsGranted('ROLE_USER')]
     public function deleteComment(int $objectiveId, int $commentId): JsonResponse
     {
-        $coach = $this->getCurrentCoach($this->coachRepository, $this->security);
-        if (!$coach) {
-            return new JsonResponse(['success' => false, 'message' => 'Coach non trouvé'], 404);
+        $user = $this->getUser();
+        if (!$user) {
+            return new JsonResponse(['success' => false, 'message' => 'Vous devez être connecté'], 403);
         }
 
         $objective = $this->objectiveRepository->find($objectiveId);
-        if (!$objective || $objective->getCoach() !== $coach) {
+        if (!$objective) {
             return new JsonResponse(['success' => false, 'message' => 'Objectif non trouvé'], 404);
+        }
+
+        // Vérifier les permissions d'accès
+        if (!$this->permissionService->canViewObjective($user, $objective)) {
+            return new JsonResponse(['success' => false, 'message' => 'Vous n\'avez pas accès à cet objectif'], 403);
         }
 
         $comment = $this->commentRepository->find($commentId);
@@ -634,8 +656,14 @@ class ObjectiveController extends AbstractController
             return new JsonResponse(['success' => false, 'message' => 'Commentaire non trouvé'], 404);
         }
 
-        // Vérifier que le commentaire appartient au coach
-        if ($comment->getAuthor() !== $coach) {
+        // Vérifier que le commentaire appartient à l'utilisateur connecté ou que l'utilisateur est le coach de l'objectif
+        $canDelete = ($comment->getAuthor() === $user);
+        if (!$canDelete && $user->isCoach()) {
+            $coach = $this->getCurrentCoach($this->coachRepository, $this->security);
+            $canDelete = ($coach && $objective->getCoach() === $coach);
+        }
+        
+        if (!$canDelete) {
             return new JsonResponse(['success' => false, 'message' => 'Vous n\'avez pas le droit de supprimer ce commentaire'], 403);
         }
 

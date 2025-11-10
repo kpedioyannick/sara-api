@@ -129,7 +129,45 @@
           {% endif %}
           <!-- Menu Item Familles -->
 
+          <!-- Menu Item Mes demandes (Spécialiste) -->
+          {% if app.user and app.user.isSpecialist() %}
+          <li>
+            <a
+              href="{{ path("admin_requests_list") }}?specialist={{ app.user.id }}"
+              @click="selected = (selected === 'Mes demandes' ? '':'Mes demandes')"
+              class="menu-item group"
+              :class="page === 'requests' ? 'menu-item-active' : 'menu-item-inactive'"
+            >
+              <svg
+                :class="page === 'requests' ? 'menu-item-icon-active'  :'menu-item-icon-inactive'"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+                  stroke="currentColor"
+                  stroke-width="1.5"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+              </svg>
+
+              <span
+                class="menu-item-text"
+                :class="sidebarToggle ? 'xl:hidden' : ''"
+              >
+                Mes demandes
+              </span>
+                  </a>
+                </li>
+          {% endif %}
+          <!-- Menu Item Mes demandes (Spécialiste) -->
+
           <!-- Menu Item Objectifs -->
+          {% if app.user and (app.user.isCoach() or app.user.isParent() or app.user.isStudent() or app.user.isSpecialist()) %}
           <li>
             <a
               href="{{ path("admin_objectives_list") }}"
@@ -162,9 +200,11 @@
               </span>
                   </a>
                 </li>
+          {% endif %}
           <!-- Menu Item Objectifs -->
 
           <!-- Menu Item Activités -->
+          {% if app.user and (app.user.isCoach() or app.user.isParent() or app.user.isStudent()) %}
           <li>
             <a
               href="{{ path("admin_activities_list") }}"
@@ -211,9 +251,11 @@
               </span>
                   </a>
                 </li>
+          {% endif %}
           <!-- Menu Item Activités -->
 
           <!-- Menu Item Activités scolaires -->
+          {% if app.user and (app.user.isCoach() or app.user.isParent() or app.user.isStudent()) %}
           <li>
             <a
               href="{{ path("admin_paths_list") }}"
@@ -246,6 +288,7 @@
               </span>
                   </a>
                 </li>
+          {% endif %}
           <!-- Menu Item Activités scolaires -->
 
           <!-- Menu Item Demandes -->
@@ -284,6 +327,7 @@
           <!-- Menu Item Demandes -->
 
           <!-- Menu Item Spécialistes -->
+          {% if app.user and app.user.isCoach() %}
           <li>
             <a
               href="{{ path("admin_specialists_list") }}"
@@ -316,9 +360,11 @@
               </span>
                   </a>
                 </li>
+          {% endif %}
           <!-- Menu Item Spécialistes -->
 
           <!-- Menu Item Planning -->
+          {% if app.user and (app.user.isCoach() or app.user.isParent() or app.user.isStudent() or app.user.isSpecialist()) %}
                 <li>
                   <a
               href="{{ path("admin_planning_list") }}"
@@ -350,10 +396,11 @@
               </span>
             </a>
           </li>
+          {% endif %}
           <!-- Menu Item Planning -->
 
           <!-- Menu Item Disponibilités -->
-          <li>
+          {# <li>
             <a
               href="{{ path("admin_availabilities_list") }}"
               @click="selected = (selected === 'Disponibilités' ? '':'Disponibilités')"
@@ -384,11 +431,12 @@
                 Disponibilités
               </span>
                   </a>
-                </li>
+                </li> #}
           <!-- Menu Item Disponibilités -->
 
 
           <!-- Menu Item ETN -->
+          {% if app.user and app.user.isCoach() %}
           <li>
             <a
               href="{{ path("admin_integrations_list") }}"
@@ -421,6 +469,7 @@
               </span>
                   </a>
                 </li>
+          {% endif %}
           <!-- Menu Item ETN -->
 
           <!-- Menu Item Profil Utilisateur -->

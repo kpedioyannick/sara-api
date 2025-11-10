@@ -151,7 +151,8 @@ class Coach extends User
             'id' => $this->getId(),
             'firstName' => $this->getFirstName(),
             'lastName' => $this->getLastName(),
-            'email' => $this->getEmail()
+            'email' => $this->getEmail(),
+            'userType' => $this->getUserType()
         ];
     }
 

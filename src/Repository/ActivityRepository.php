@@ -52,6 +52,11 @@ class ActivityRepository extends ServiceEntityRepository
                 ->setParameter('createdBy', $filters['createdBy']);
         }
 
+        if (isset($filters['status']) && $filters['status']) {
+            $qb->andWhere('a.status = :status')
+                ->setParameter('status', $filters['status']);
+        }
+
         // Recherche textuelle dans la description
         if (isset($filters['search']) && $filters['search']) {
             $qb->andWhere('a.description LIKE :search')

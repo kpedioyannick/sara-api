@@ -76,8 +76,14 @@ class ActivityController extends AbstractController
             }
             $filters['createdBy'] = $coach;
             $activities = $this->activityRepository->findWithFilters($filters);
+        } elseif ($user->isSpecialist()) {
+            // Les spécialistes peuvent voir toutes les activités
+            $activities = $this->activityRepository->findWithFilters($filters);
+        } elseif ($user->isParent() || $user->isStudent()) {
+            // Les parents et étudiants voient uniquement les activités publiées
+            $filters['status'] = Activity::STATUS_PUBLISHED;
+            $activities = $this->activityRepository->findWithFilters($filters);
         } else {
-            // Pour les spécialistes, ils peuvent voir toutes les activités
             // Pour les autres rôles, on peut filtrer selon les besoins
             $activities = $this->activityRepository->findWithFilters($filters);
         }

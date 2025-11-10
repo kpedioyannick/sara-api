@@ -97,6 +97,12 @@ class RequestController extends AbstractController
                     return $req->getStatus() === $status;
                 });
             }
+            // Pour les spécialistes : filtrer par spécialiste si spécifié
+            if ($user->isSpecialist() && $specialistId) {
+                $requests = array_filter($requests, function($req) use ($specialistId) {
+                    return $req->getSpecialist() && $req->getSpecialist()->getId() == (int)$specialistId;
+                });
+            }
         }
 
         // Conversion en tableau pour le template
@@ -400,14 +406,13 @@ class RequestController extends AbstractController
 
         // Pour les coaches, vérifier qu'ils sont bien le coach de la demande
         $coach = null;
+        $sender = $user; // L'expéditeur du message
         if ($user->isCoach()) {
             $coach = $this->getCurrentCoach($this->coachRepository, $this->security);
             if (!$coach || $requestEntity->getCoach() !== $coach) {
                 return new JsonResponse(['success' => false, 'message' => 'Vous n\'avez pas accès à cette demande'], 403);
             }
-        } else {
-            // Pour les autres rôles, utiliser l'utilisateur connecté
-            $coach = $user;
+            $sender = $coach; // Pour les coaches, l'expéditeur est le coach
         }
 
         // Gérer les fichiers uploadés (FormData) ou JSON
@@ -466,7 +471,7 @@ class RequestController extends AbstractController
 
         // Déterminer le destinataire
         $receiver = $requestEntity->getCreator();
-        if ($receiver === $coach) {
+        if ($receiver === $sender) {
             $receiver = $requestEntity->getRecipient();
         }
 
@@ -475,9 +480,9 @@ class RequestController extends AbstractController
         }
 
         // Générer ou récupérer le conversationId
-        $conversationId = $this->messageRepository->findConversationBetweenUsers($coach, $receiver);
+        $conversationId = $this->messageRepository->findConversationBetweenUsers($sender, $receiver);
         if (!$conversationId) {
-            $conversationId = $this->messageRepository->generateConversationId($coach, $receiver);
+            $conversationId = $this->messageRepository->generateConversationId($sender, $receiver);
         }
 
         // Créer le message
@@ -487,9 +492,10 @@ class RequestController extends AbstractController
             'filePath' => $filePath,
             'conversationId' => $conversationId,
             'isRead' => false,
-        ], $coach, $receiver);
+        ], $sender, $receiver);
 
         // Définir coach, recipient et request
+        // Le coach n'est défini que si l'expéditeur est un coach
         $message->setCoach($coach);
         $message->setRecipient($receiver);
         $message->setRequest($requestEntity);
@@ -519,9 +525,9 @@ class RequestController extends AbstractController
                     'type' => $message->getType(),
                     'filePath' => $message->getFilePath() ? $this->fileStorageService->generateSecureUrl($message->getFilePath()) : null,
                     'sender' => [
-                        'id' => $coach->getId(),
-                        'firstName' => $coach->getFirstName(),
-                        'lastName' => $coach->getLastName(),
+                        'id' => $sender->getId(),
+                        'firstName' => $sender->getFirstName(),
+                        'lastName' => $sender->getLastName(),
                     ],
                     'receiverId' => $receiver->getId(),
                     'createdAt' => $message->getCreatedAt()?->format('Y-m-d H:i:s'),
