@@ -436,7 +436,7 @@
 
 
           <!-- Menu Item ETN -->
-          {% if app.user and app.user.isCoach() %}
+          {% if app.user and (app.user.isCoach() or app.user.isParent() or app.user.isStudent() or app.user.isSpecialist()) %}
           <li>
             <a
               href="{{ path("admin_integrations_list") }}"

@@ -17,7 +17,7 @@ use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 #[Route('/admin/integrations/pronote')]
-#[IsGranted('ROLE_COACH')]
+#[IsGranted('ROLE_USER')]
 class PronoteController extends AbstractController
 {
     public function __construct(
@@ -31,11 +31,34 @@ class PronoteController extends AbstractController
     #[Route('/connect', name: 'admin_pronote_connect', methods: ['GET', 'POST'])]
     public function connect(Request $request): Response
     {
+        $user = $this->getUser();
+        if (!$user) {
+            throw $this->createAccessDeniedException('Vous devez être connecté');
+        }
+
+        // Vérifier que l'utilisateur a un rôle autorisé
+        if (!$user->isCoach() && !$user->isParent() && !$user->isStudent() && !$user->isSpecialist()) {
+            throw $this->createAccessDeniedException('Accès refusé');
+        }
+
         if ($request->isMethod('POST')) {
             return $this->handleConnect($request);
         }
 
-        $students = $this->studentRepository->findAll();
+        // Récupérer les étudiants selon le rôle
+        if ($user->isCoach()) {
+            $students = $this->studentRepository->findAll();
+        } elseif ($user->isParent()) {
+            $family = $user->getFamily();
+            $students = $family ? $family->getStudents()->toArray() : [];
+        } elseif ($user->isStudent()) {
+            $students = [$user];
+        } elseif ($user->isSpecialist()) {
+            $students = $user->getStudents()->toArray();
+        } else {
+            $students = [];
+        }
+
         $studentsData = array_map(fn($s) => $s->toSimpleArray(), $students);
 
         return $this->render('tailadmin/pages/integrations/pronote/connect.html.twig', [
@@ -52,6 +75,11 @@ class PronoteController extends AbstractController
 
     private function handleConnect(Request $request): Response
     {
+        $user = $this->getUser();
+        if (!$user) {
+            throw $this->createAccessDeniedException('Vous devez être connecté');
+        }
+
         $qrCodeJson = $request->request->get('qr_code_json');
         $pin = $request->request->get('pin');
         $studentId = $request->request->get('student_id');
@@ -64,6 +92,28 @@ class PronoteController extends AbstractController
         $student = $this->studentRepository->find($studentId);
         if (!$student) {
             $this->addFlash('error', 'Étudiant non trouvé.');
+            return $this->redirectToRoute('admin_pronote_connect');
+        }
+
+        // Vérifier les permissions selon le rôle
+        $hasPermission = false;
+        if ($user->isCoach()) {
+            // Coach : peut créer pour tous les étudiants
+            $hasPermission = true;
+        } elseif ($user->isParent()) {
+            // Parent : peut créer uniquement pour ses enfants
+            $family = $user->getFamily();
+            $hasPermission = $family && $student->getFamily() === $family;
+        } elseif ($user->isStudent()) {
+            // Student : peut créer uniquement pour lui-même
+            $hasPermission = $student->getId() === $user->getId();
+        } elseif ($user->isSpecialist()) {
+            // Specialist : peut créer uniquement pour ses élèves assignés
+            $hasPermission = $user->getStudents()->contains($student);
+        }
+
+        if (!$hasPermission) {
+            $this->addFlash('error', 'Vous n\'avez pas la permission de créer une intégration pour cet étudiant.');
             return $this->redirectToRoute('admin_pronote_connect');
         }
 

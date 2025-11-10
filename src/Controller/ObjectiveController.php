@@ -60,8 +60,6 @@ class ObjectiveController extends AbstractController
 
         // Récupération des paramètres de filtrage
         $search = $request->query->get('search', '');
-        $creatorProfile = $request->query->get('creatorProfile');
-        $creatorUserId = $request->query->get('creatorUser');
         $status = $request->query->get('status');
         $studentId = $request->query->get('student');
         $profileType = $request->query->get('profileType'); // 'parent', 'specialist', 'student', ou null
@@ -76,8 +74,6 @@ class ObjectiveController extends AbstractController
             $objectives = $this->objectiveRepository->findByCoachWithSearch(
                 $coach,
                 $search ?: null,
-                $creatorProfile ?: null,
-                $creatorUserId ? (int) $creatorUserId : null,
                 $status ?: null
             );
         } else {
@@ -211,8 +207,6 @@ class ObjectiveController extends AbstractController
             'parents' => $parentsData,
             'specialists' => $specialistsData,
             'coaches' => $coachesData,
-            'creatorProfileFilter' => $creatorProfile,
-            'creatorUserFilter' => $creatorUserId,
             'profileType' => $profileType,
             'selectedIds' => $selectedIds,
             'breadcrumbs' => [

@@ -23,7 +23,8 @@
         </a>
     </div>
 
-    <!-- Filtre par élève -->
+    <!-- Filtre par élève (uniquement pour coaches, parents et spécialistes) -->
+    {% if app.user and (app.user.isCoach() or (app.user.isParent() and students|length > 1) or (app.user.isSpecialist() and students|length > 1)) %}
     <div class="mb-6">
         <label class="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
             Filtrer par élève
@@ -40,43 +41,52 @@
             {% endfor %}
         </select>
     </div>
+    {% endif %}
 
     <!-- Integrations Grid -->
-    <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
+    <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3" x-cloak>
         <template x-for="integration in integrations" :key="integration.id">
             <article class="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/3">
                 <div class="relative p-5 pb-9">
                     <div class="mb-5 inline-flex h-10 w-10 items-center justify-center">
-                        <template x-if="integration.type === 'pronote'">
-                            <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-brand-100 dark:bg-brand-900/30">
-                                <span class="text-xl font-bold text-brand-600 dark:text-brand-400">P</span>
-                            </div>
-                        </template>
-                        <template x-if="integration.type !== 'pronote'">
-                            <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-gray-100 dark:bg-gray-800">
-                                <span class="text-xl font-bold text-gray-600 dark:text-gray-400">?</span>
-                            </div>
-                        </template>
+                        <div 
+                            x-show="integration && integration.type === 'pronote'"
+                            class="flex h-10 w-10 items-center justify-center rounded-lg bg-brand-100 dark:bg-brand-900/30"
+                            style="display: none;"
+                        >
+                            <span class="text-xl font-bold text-brand-600 dark:text-brand-400">P</span>
+                        </div>
+                        <div 
+                            x-show="integration && integration.type !== 'pronote'"
+                            class="flex h-10 w-10 items-center justify-center rounded-lg bg-gray-100 dark:bg-gray-800"
+                            style="display: none;"
+                        >
+                            <span class="text-xl font-bold text-gray-600 dark:text-gray-400">?</span>
+                        </div>
                     </div>
                     <h3 class="mb-3 text-lg font-semibold text-gray-800 dark:text-white/90" x-text="integration.name"></h3>
                     <p class="max-w-xs text-sm text-gray-500 dark:text-gray-400 mb-2">
-                        <template x-if="integration.type === 'pronote'">
+                        <span x-show="integration && integration.type === 'pronote'" style="display: none;">
                             Connectez Pronote pour synchroniser les notes, devoirs et informations scolaires.
-                        </template>
-                        <template x-if="integration.type !== 'pronote'">
+                        </span>
+                        <span x-show="integration && integration.type !== 'pronote'" style="display: none;">
                             Intégration personnalisée configurée.
-                        </template>
+                        </span>
                     </p>
-                    <template x-if="integration.student">
-                        <p class="text-xs text-gray-400 dark:text-gray-500">
-                            Élève: <span x-text="integration.student.firstName + ' ' + integration.student.lastName"></span>
-                        </p>
-                    </template>
-                    <template x-if="integration.lastSyncAt">
-                        <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">
-                            Dernière sync: <span x-text="integration.lastSyncAt"></span>
-                        </p>
-                    </template>
+                    <p 
+                        x-show="integration.student"
+                        class="text-xs text-gray-400 dark:text-gray-500"
+                        style="display: none;"
+                    >
+                        Élève: <span x-text="integration.student ? (integration.student.firstName + ' ' + integration.student.lastName) : ''"></span>
+                    </p>
+                    <p 
+                        x-show="integration.lastSyncAt"
+                        class="text-xs text-gray-400 dark:text-gray-500 mt-1"
+                        style="display: none;"
+                    >
+                        Dernière sync: <span x-text="integration.lastSyncAt || ''"></span>
+                    </p>
                     <div x-data="{openDropDown: false}" class="absolute top-5 right-5 h-fit">
                         <button
                             @click="openDropDown = !openDropDown"
@@ -107,7 +117,30 @@
                         </div>
                     </div>
                 </div>
-                <div class="flex items-center justify-end border-t border-gray-200 p-5 dark:border-gray-800">
+                <div class="flex items-center justify-between border-t border-gray-200 p-5 dark:border-gray-800">
+                    <div class="flex items-center gap-2">
+                        <a
+                            :href="`{{ path('admin_integration_detail', {id: '__ID__'}) }}`.replace('__ID__', integration.id)"
+                            class="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-theme-xs transition-colors hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+                            title="Voir les détails"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 20 20" fill="none">
+                                <path d="M10 12.5C11.3807 12.5 12.5 11.3807 12.5 10C12.5 8.61929 11.3807 7.5 10 7.5C8.61929 7.5 7.5 8.61929 7.5 10C7.5 11.3807 8.61929 12.5 10 12.5Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path d="M10 3.33334C6.66667 1.66667 3.33333 3.33334 1.66667 6.66667C1.66667 10 3.33333 13.3333 6.66667 15C10 16.6667 13.3333 15 15 11.6667C15 8.33334 13.3333 5 10 3.33334Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                            Détail
+                        </a>
+                        <button
+                            @click="deleteIntegration(integration.id)"
+                            class="inline-flex items-center gap-1.5 rounded-lg border border-red-200 bg-white px-3 py-2 text-sm font-medium text-red-600 shadow-theme-xs transition-colors hover:bg-red-50 dark:border-red-800 dark:bg-gray-800 dark:text-red-400 dark:hover:bg-red-900/20"
+                            title="Supprimer"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 20 20" fill="none">
+                                <path d="M5 5L15 15M15 5L5 15" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                            Supprimer
+                        </button>
+                    </div>
                     <div x-data="{ switcherToggle: integration.isActive }">
                         <label class="cursor-pointer">
                             <div class="relative">

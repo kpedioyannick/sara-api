@@ -571,53 +571,12 @@ function planningManager() {
         },
         studentsData: [],
         students: [],
-        selectedStudent: '',
         init() {
             const studentsJson = this.$el.getAttribute('data-students');
             if (studentsJson) {
                 this.studentsData = JSON.parse(studentsJson);
                 this.students = JSON.parse(studentsJson);
             }
-            
-            // Initialiser selectedStudent depuis l'URL
-            const params = new URLSearchParams(window.location.search);
-            const studentParam = params.get('student');
-            if (studentParam) {
-                this.selectedStudent = studentParam;
-            }
-        },
-        
-        applyFilters() {
-            const params = new URLSearchParams(window.location.search);
-            
-            // Préserver le paramètre week s'il existe
-            const weekParam = params.get('week');
-            // Préserver les filtres par profil s'ils existent
-            const profileTypeParam = params.get('profileType');
-            const selectedIdsParam = params.get('selectedIds');
-            
-            // Réinitialiser le paramètre student
-            params.delete('student');
-            
-            // Ajouter le nouveau filtre student
-            if (this.selectedStudent) {
-                params.set('student', this.selectedStudent);
-            }
-            
-            // Préserver le paramètre week
-            if (weekParam !== null) {
-                params.set('week', weekParam);
-            }
-            // Préserver les filtres par profil
-            if (profileTypeParam !== null) {
-                params.set('profileType', profileTypeParam);
-            }
-            if (selectedIdsParam !== null) {
-                params.set('selectedIds', selectedIdsParam);
-            }
-            
-            const queryString = params.toString();
-            window.location.href = '/admin/planning' + (queryString ? '?' + queryString : '');
         },
         getPlanningUrl(weekOffset) {
             const params = new URLSearchParams(window.location.search);
@@ -625,7 +584,7 @@ function planningManager() {
             // Définir le paramètre week
             params.set('week', weekOffset);
             
-            // Préserver tous les autres filtres (student, profileType, selectedIds)
+            // Préserver tous les autres filtres (profileType, selectedIds)
             // Ces paramètres sont déjà dans l'URL, donc ils seront préservés automatiquement
             
             const queryString = params.toString();
@@ -1026,8 +985,6 @@ function filterManager() {
             
             // Préserver le paramètre week s'il existe
             const weekParam = params.get('week');
-            // Préserver le paramètre student s'il existe (filtre par élève dans le header)
-            const studentParam = params.get('student');
             
             // Réinitialiser les paramètres de filtres
             params.delete('profileType');
@@ -1044,10 +1001,6 @@ function filterManager() {
             // Préserver le paramètre week
             if (weekParam !== null) {
                 params.set('week', weekParam);
-            }
-            // Préserver le paramètre student
-            if (studentParam !== null) {
-                params.set('student', studentParam);
             }
             
             const url = '/admin/planning' + (params.toString() ? '?' + params.toString() : '');

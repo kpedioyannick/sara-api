@@ -15,7 +15,7 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 #[Route('/admin/integrations')]
-#[IsGranted('ROLE_COACH')]
+#[IsGranted('ROLE_USER')]
 class IntegrationController extends AbstractController
 {
     public function __construct(
@@ -29,12 +29,50 @@ class IntegrationController extends AbstractController
     #[Route('', name: 'admin_integrations_list')]
     public function list(Request $request): Response
     {
-        // Initialiser les intégrations par défaut si elles n'existent pas
-        $this->initializeDefaultIntegrations();
+        $user = $this->getUser();
+        if (!$user) {
+            throw $this->createAccessDeniedException('Vous devez être connecté');
+        }
+
+        // Vérifier que l'utilisateur a un rôle autorisé
+        if (!$user->isCoach() && !$user->isParent() && !$user->isStudent() && !$user->isSpecialist()) {
+            throw $this->createAccessDeniedException('Accès refusé');
+        }
+
+        // Initialiser les intégrations par défaut si elles n'existent pas (uniquement pour les coaches)
+        if ($user->isCoach()) {
+            $this->initializeDefaultIntegrations();
+        }
 
         $studentId = $request->query->get('student_id');
         
-        $integrations = $this->integrationRepository->findAll();
+        // Récupérer les intégrations selon le rôle
+        if ($user->isCoach()) {
+            $integrations = $this->integrationRepository->findAll();
+        } elseif ($user->isParent()) {
+            // Parent : intégrations de ses enfants
+            $family = $user->getFamily();
+            $integrations = [];
+            if ($family) {
+                foreach ($family->getStudents() as $student) {
+                    $studentIntegrations = $this->integrationRepository->findBy(['student' => $student]);
+                    $integrations = array_merge($integrations, $studentIntegrations);
+                }
+            }
+        } elseif ($user->isStudent()) {
+            // Student : ses propres intégrations
+            $integrations = $this->integrationRepository->findBy(['student' => $user]);
+        } elseif ($user->isSpecialist()) {
+            // Specialist : intégrations des élèves qui lui sont assignés
+            $integrations = [];
+            foreach ($user->getStudents() as $student) {
+                $studentIntegrations = $this->integrationRepository->findBy(['student' => $student]);
+                $integrations = array_merge($integrations, $studentIntegrations);
+            }
+        } else {
+            $integrations = [];
+        }
+        
         // Filtrer pour exclure Ecole Directe
         $integrations = array_filter($integrations, fn($integration) => $integration->getType() !== Integration::TYPE_ECOLE_DIRECTE);
         
@@ -47,8 +85,20 @@ class IntegrationController extends AbstractController
         
         $integrationsData = array_map(fn($integration) => $integration->toArray(), $integrations);
         
-        // Récupérer tous les étudiants pour le filtre
-        $students = $this->studentRepository->findAll();
+        // Récupérer les étudiants pour le filtre selon le rôle
+        if ($user->isCoach()) {
+            $students = $this->studentRepository->findAll();
+        } elseif ($user->isParent()) {
+            $family = $user->getFamily();
+            $students = $family ? $family->getStudents()->toArray() : [];
+        } elseif ($user->isStudent()) {
+            $students = [$user];
+        } elseif ($user->isSpecialist()) {
+            $students = $user->getStudents()->toArray();
+        } else {
+            $students = [];
+        }
+        
         $studentsData = array_map(fn($s) => $s->toSimpleArray(), $students);
 
         return $this->render('tailadmin/pages/integrations/list.html.twig', [
@@ -58,7 +108,6 @@ class IntegrationController extends AbstractController
             'students' => $studentsData,
             'selectedStudentId' => $studentId,
             'breadcrumbs' => [
-                ['label' => 'Dashboard', 'url' => $this->generateUrl('admin_dashboard')],
                 ['label' => 'Intégrations', 'url' => ''],
             ],
         ]);

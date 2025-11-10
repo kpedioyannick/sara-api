@@ -102,41 +102,6 @@
                     </h3>
                 </div>
                 <div class="flex items-center gap-3">
-                    <!-- Filtre par profil du créateur -->
-                    <select
-                        x-model="selectedCreatorProfile"
-                        @change="selectedCreatorUser = ''; applyFilters()"
-                        class="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"
-                    >
-                        <option value="">Tous les profils</option>
-                        <option value="coach">Coach</option>
-                        <option value="parent">Parent</option>
-                        <option value="student">Élève</option>
-                        <option value="specialist">Spécialiste</option>
-                    </select>
-                    
-                    <!-- Filtre par utilisateur créateur -->
-                    <select
-                        x-model="selectedCreatorUser"
-                        @change="applyFilters()"
-                        x-show="selectedCreatorProfile"
-                        class="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"
-                    >
-                        <option value="">Tous les utilisateurs</option>
-                        <template x-for="coach in coaches" :key="coach.id">
-                            <option x-show="selectedCreatorProfile === 'coach'" :value="coach.id" x-text="coach.firstName + ' ' + coach.lastName"></option>
-                        </template>
-                        <template x-for="parent in parents" :key="parent.id">
-                            <option x-show="selectedCreatorProfile === 'parent'" :value="parent.id" x-text="parent.firstName + ' ' + parent.lastName"></option>
-                        </template>
-                        <template x-for="student in students" :key="student.id">
-                            <option x-show="selectedCreatorProfile === 'student'" :value="student.id" x-text="student.firstName + ' ' + student.lastName"></option>
-                        </template>
-                        <template x-for="specialist in specialists" :key="specialist.id">
-                            <option x-show="selectedCreatorProfile === 'specialist'" :value="specialist.id" x-text="specialist.firstName + ' ' + specialist.lastName"></option>
-                        </template>
-                    </select>
-                    
                     <button
                         @click="openCreate()"
                         class="inline-flex items-center gap-2 rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white shadow-theme-xs hover:bg-brand-600"
@@ -203,7 +168,10 @@
                             <h5 class="mb-3 text-sm font-medium text-gray-700 dark:text-gray-300">Tâches ({{ objective.tasks|length }})</h5>
                             <div class="space-y-2 max-h-48 overflow-y-auto">
                                 {% for task in objective.tasks %}
-                                <div class="flex items-start gap-2 rounded-lg border border-gray-200 bg-gray-50 p-2.5 dark:border-gray-700 dark:bg-gray-800/50">
+                                <div 
+                                    x-show="isTasksExpanded({{ objective.id }}) || {{ loop.index0 }} < 3"
+                                    class="flex items-start gap-2 rounded-lg border border-gray-200 bg-gray-50 p-2.5 dark:border-gray-700 dark:bg-gray-800/50"
+                                >
                                     <div class="mt-0.5 flex-shrink-0">
                                         {% if task.status == 'completed' %}
                                         <svg class="h-5 w-5 text-success-600 dark:text-success-400" fill="currentColor" viewBox="0 0 20 20">
@@ -233,6 +201,15 @@
                                 </div>
                                 {% endfor %}
                             </div>
+                            {% if objective.tasks|length > 3 %}
+                            <button
+                                @click="toggleTasks({{ objective.id }})"
+                                class="mt-3 text-sm font-medium text-brand-600 hover:text-brand-700 dark:text-brand-400 dark:hover:text-brand-300"
+                            >
+                                <span x-show="!isTasksExpanded({{ objective.id }})">Voir toutes les tâches ({{ objective.tasks|length - 3 }} de plus)</span>
+                                <span x-show="isTasksExpanded({{ objective.id }})">Masquer les tâches</span>
+                            </button>
+                            {% endif %}
                         </div>
                         {% endif %}
 
@@ -850,12 +827,17 @@
 <script>
 function objectiveManager() {
     return {
-        selectedCreatorProfile: '{{ creatorProfileFilter|default('') }}',
-        selectedCreatorUser: '{{ creatorUserFilter|default('') }}',
         families: [],
         coaches: [],
         parents: [],
         specialists: [],
+        expandedTasks: {},
+        toggleTasks(objectiveId) {
+            this.expandedTasks[objectiveId] = !this.expandedTasks[objectiveId];
+        },
+        isTasksExpanded(objectiveId) {
+            return this.expandedTasks[objectiveId] || false;
+        },
         rightSheetOpen: false,
         isEdit: false,
         currentId: null,
@@ -925,17 +907,6 @@ function objectiveManager() {
             }
         },
         
-        applyFilters() {
-            const params = new URLSearchParams();
-            if (this.selectedCreatorProfile) {
-                params.set('creatorProfile', this.selectedCreatorProfile);
-            }
-            if (this.selectedCreatorUser) {
-                params.set('creatorUser', this.selectedCreatorUser);
-            }
-            const queryString = params.toString();
-            window.location.href = '/admin/objectives' + (queryString ? '?' + queryString : '');
-        },
         openCreate() {
             this.isEdit = false;
             this.currentId = null;

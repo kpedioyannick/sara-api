@@ -345,10 +345,6 @@
           href="#"
           @click.prevent="dropdownOpen = ! dropdownOpen"
         >
-          <span class="mr-3 h-11 w-11 overflow-hidden rounded-full">
-            <img src="{{ asset('tailadmin/src/images/user/owner.png') }}" alt="User" />
-          </span>
-
           <span class="text-theme-sm mr-1 block font-medium">
             {% if app.user %}
               {{ app.user.firstName }} {{ app.user.lastName }}

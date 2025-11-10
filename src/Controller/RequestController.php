@@ -62,8 +62,6 @@ class RequestController extends AbstractController
         $studentId = $request->query->get('student');
         $status = $request->query->get('status');
         $specialistId = $request->query->get('specialist');
-        $creatorProfile = $request->query->get('creatorProfile'); // 'parent', 'student', 'specialist', 'coach'
-        $creatorUserId = $request->query->get('creatorUser'); // ID de l'utilisateur créateur
         $profileType = $request->query->get('profileType'); // 'parent', 'specialist', 'student', ou null
         $selectedIds = $request->query->get('selectedIds', ''); // IDs séparés par des virgules
 
@@ -79,9 +77,7 @@ class RequestController extends AbstractController
                 $familyId ? (int) $familyId : null,
                 $studentId ? (int) $studentId : null,
                 $status ?: null,
-                $specialistId ? (int) $specialistId : null,
-                $creatorProfile ?: null,
-                $creatorUserId ? (int) $creatorUserId : null
+                $specialistId ? (int) $specialistId : null
             );
         } else {
             // Pour les autres rôles, utiliser PermissionService
@@ -232,8 +228,6 @@ class RequestController extends AbstractController
             'parents' => $parentsData,
             'specialists' => $specialistsData,
             'coaches' => $coachesData,
-            'creatorProfileFilter' => $creatorProfile,
-            'creatorUserFilter' => $creatorUserId,
             'familyFilter' => $familyId,
             'studentFilter' => $studentId,
             'profileType' => $profileType,
