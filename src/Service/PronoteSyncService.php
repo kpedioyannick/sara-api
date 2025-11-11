@@ -53,6 +53,7 @@ class PronoteSyncService
         // npm affiche: "> pawnote@1.0.0 fetch" puis "> node_modules/.bin/tsx fetch-data.mts <args>"
         // Le JSON de la réponse du script vient après ces lignes
         $data = null;
+        $rawJsonFromApi = null; // JSON brut extrait de l'API Node.js
         
         // Chercher le JSON dans stdout (la réponse du script)
         // Le JSON de la réponse commence par {"success" ou contient "success"
@@ -82,8 +83,8 @@ class PronoteSyncService
                 if ($firstBrace !== false) {
                     $lastBrace = strrpos($jsonLine, '}');
                     if ($lastBrace !== false && $lastBrace > $firstBrace) {
-                        $jsonLine = substr($jsonLine, $firstBrace, $lastBrace - $firstBrace + 1);
-                        $data = json_decode($jsonLine, true);
+                        $rawJsonFromApi = substr($jsonLine, $firstBrace, $lastBrace - $firstBrace + 1);
+                        $data = json_decode($rawJsonFromApi, true);
                     }
                 }
             } else {
@@ -106,16 +107,14 @@ class PronoteSyncService
                         }
                     }
                     if ($startBrace < $lastBrace) {
-                        $jsonLine = substr($output, $startBrace, $lastBrace - $startBrace + 1);
-                        $data = json_decode($jsonLine, true);
+                        $rawJsonFromApi = substr($output, $startBrace, $lastBrace - $startBrace + 1);
+                        $data = json_decode($rawJsonFromApi, true);
                     }
                 }
             }
             
-            // Log pour debug si le parsing échoue
             if (json_last_error() !== JSON_ERROR_NONE) {
                 error_log("PRONOTE Sync - JSON decode error: " . json_last_error_msg());
-                error_log("PRONOTE Sync - Raw output (last 1000): " . substr($output, -1000));
             }
         }
         
@@ -125,12 +124,17 @@ class PronoteSyncService
             if ($firstBrace !== false) {
                 $lastBrace = strrpos($errorOutput, '}');
                 if ($lastBrace !== false && $lastBrace > $firstBrace) {
-                    $jsonLine = substr($errorOutput, $firstBrace, $lastBrace - $firstBrace + 1);
-                    $data = json_decode($jsonLine, true);
+                    $rawJsonFromApi = substr($errorOutput, $firstBrace, $lastBrace - $firstBrace + 1);
+                    $data = json_decode($rawJsonFromApi, true);
                 }
             }
         }
 
+        // Logger uniquement les erreurs critiques depuis stderr
+        if (!empty($errorOutput) && strpos($errorOutput, '❌') !== false) {
+            error_log("PRONOTE Sync - Erreur: " . substr($errorOutput, 0, 500));
+        }
+        
         // Vérifier d'abord si on a réussi à parser le JSON
         if (!$data || !isset($data['success'])) {
             $errorMsg = $errorOutput ?: (!empty($output) ? substr($output, 0, 200) : 'Erreur inconnue');
@@ -207,60 +211,61 @@ class PronoteSyncService
 
         // Synchroniser les devoirs (format Pawnote.js: data.assignments)
         if (isset($data['data']['assignments']) && is_array($data['data']['assignments'])) {
-            $results['homework'] = $this->syncHomework($data['data']['assignments'], $student);
+            $results['homework'] = $this->syncHomework($data['data']['assignments'], $student, $integration);
         } elseif (isset($data['homework']) && is_array($data['homework'])) {
             // Format legacy
-            $results['homework'] = $this->syncHomework($data['homework'], $student);
+            $results['homework'] = $this->syncHomework($data['homework'], $student, $integration);
         }
 
         // Synchroniser les cours (format Pawnote.js: data.lessons_list)
         if (isset($data['data']['lessons_list']) && is_array($data['data']['lessons_list'])) {
-            $results['lessons'] = $this->syncLessons($data['data']['lessons_list'], $student);
+            $results['lessons'] = $this->syncLessons($data['data']['lessons_list'], $student, $integration);
         } elseif (isset($data['lessons']) && is_array($data['lessons'])) {
             // Format legacy
-            $results['lessons'] = $this->syncLessons($data['lessons'], $student);
+            $results['lessons'] = $this->syncLessons($data['lessons'], $student, $integration);
         }
 
-        // Synchroniser les absences
-        if (isset($data['absences']) && is_array($data['absences'])) {
-            $results['absences'] = $this->syncAbsences($data['absences'], $student);
+        // Synchroniser les absences (depuis data.data.absences ou data.absences)
+        $absences = $data['data']['absences'] ?? $data['absences'] ?? [];
+        if (is_array($absences) && count($absences) > 0) {
+            $results['absences'] = $this->syncAbsences($absences, $student);
+        } else {
+            $results['absences'] = 0;
         }
 
         // Stocker les évaluations/notes dans metadata (format Pawnote.js: data.evaluations)
-        if (isset($data['data']['evaluations']) && is_array($data['data']['evaluations'])) {
-            $results['notes'] = $data['data']['evaluations'];
-            $metadata = $integration->getMetadata() ?? [];
-            $metadata['evaluations'] = $data['data']['evaluations'];
-            $integration->setMetadata($metadata);
-        } elseif (isset($data['grades']) && is_array($data['grades'])) {
+        // Toujours sauvegarder, même si vide, pour indiquer que la synchronisation a été effectuée
+        $metadata = $integration->getMetadata() ?? [];
+        if (isset($data['data']['evaluations'])) {
+            // Sauvegarder même si vide (tableau vide)
+            $results['notes'] = is_array($data['data']['evaluations']) ? $data['data']['evaluations'] : [];
+            $metadata['evaluations'] = is_array($data['data']['evaluations']) ? $data['data']['evaluations'] : [];
+        } elseif (isset($data['grades'])) {
             // Format legacy
-            $results['notes'] = $data['grades'];
-            $metadata = $integration->getMetadata() ?? [];
-            $metadata['notes'] = $data['grades'];
-            $integration->setMetadata($metadata);
+            $results['notes'] = is_array($data['grades']) ? $data['grades'] : [];
+            $metadata['notes'] = is_array($data['grades']) ? $data['grades'] : [];
         }
 
         // Stocker le bulletin de notes dans metadata (format Pawnote.js: data.gradebook)
-        if (isset($data['data']['gradebook']) && $data['data']['gradebook']) {
-            $metadata = $integration->getMetadata() ?? [];
-            $metadata['gradebook'] = $data['data']['gradebook'];
-            $integration->setMetadata($metadata);
+        if (isset($data['data']['gradebook'])) {
+            $metadata['gradebook'] = $data['data']['gradebook']; // Peut être null
         }
 
         // Stocker le carnet de correspondance dans metadata (format Pawnote.js: data.notebook)
-        if (isset($data['data']['notebook']) && is_array($data['data']['notebook'])) {
-            $results['carnet'] = $data['data']['notebook'];
-            $metadata = $integration->getMetadata() ?? [];
-            $metadata['notebook'] = $data['data']['notebook'];
-            $metadata['carnet_correspondance'] = $data['data']['notebook']; // Compatibilité legacy
-            $integration->setMetadata($metadata);
-        } elseif (isset($data['carnet_correspondance']) && is_array($data['carnet_correspondance'])) {
+        // Toujours sauvegarder, même si vide, pour indiquer que la synchronisation a été effectuée
+        if (isset($data['data']['notebook'])) {
+            $notebookData = is_array($data['data']['notebook']) ? $data['data']['notebook'] : [];
+            $results['carnet'] = $notebookData;
+            $metadata['notebook'] = $notebookData;
+            $metadata['carnet_correspondance'] = $notebookData; // Compatibilité legacy
+        } elseif (isset($data['carnet_correspondance'])) {
             // Format legacy
-            $results['carnet'] = $data['carnet_correspondance'];
-            $metadata = $integration->getMetadata() ?? [];
-            $metadata['carnet_correspondance'] = $data['carnet_correspondance'];
-            $integration->setMetadata($metadata);
+            $carnetData = is_array($data['carnet_correspondance']) ? $data['carnet_correspondance'] : [];
+            $results['carnet'] = $carnetData;
+            $metadata['carnet_correspondance'] = $carnetData;
         }
+        
+        $integration->setMetadata($metadata);
 
         // Mettre à jour sync_data dans les métadonnées avec tous les résultats
         $metadata = $integration->getMetadata() ?? [];
@@ -284,7 +289,7 @@ class PronoteSyncService
     /**
      * Synchronise les devoirs dans Planning
      */
-    private function syncHomework(array $homework, Student $student): int
+    private function syncHomework(array $homework, Student $student, Integration $integration): int
     {
         $count = 0;
         $updated = 0;
@@ -293,16 +298,14 @@ class PronoteSyncService
             $pronoteId = $hw['id'] ?? null;
             $planning = null;
             
-            // Chercher un événement existant par ID PRONOTE
+            // Chercher un événement existant par reference_id et integration
             if ($pronoteId) {
-                $existingId = $this->em->getConnection()->executeQuery(
-                    'SELECT id FROM planning WHERE student_id = ? AND type = ? AND JSON_EXTRACT(metadata, \'$.pronote_id\') = ? LIMIT 1',
-                    [$student->getId(), Planning::TYPE_HOMEWORK, $pronoteId]
-                )->fetchOne();
-                
-                if ($existingId) {
-                    $planning = $this->em->getRepository(Planning::class)->find($existingId);
-                }
+                $planning = $this->em->getRepository(Planning::class)->findOneBy([
+                    'student' => $student,
+                    'type' => Planning::TYPE_HOMEWORK,
+                    'integration' => $integration,
+                    'referenceId' => $pronoteId
+                ]);
             }
             
             // Créer un nouvel événement si non trouvé
@@ -314,60 +317,99 @@ class PronoteSyncService
                 $updated++;
             }
             
-            // Préparer la date (format YYYY-MM-DD ou ISO string)
-            $date = null;
-            if (isset($hw['date']) && $hw['date']) {
-                try {
-                    // Si c'est juste une date (YYYY-MM-DD), créer à minuit
-                    if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $hw['date'])) {
-                        $date = new \DateTimeImmutable($hw['date'] . ' 00:00:00');
-                    } else {
-                        $date = new \DateTimeImmutable($hw['date']);
-                    }
-                } catch (\Exception $e) {
-                    error_log("PRONOTE: Erreur parsing date devoir: " . $e->getMessage());
-                    $date = new \DateTimeImmutable('now');
-                }
-            } else {
-                $date = new \DateTimeImmutable('now');
-            }
+            // Toujours définir l'integration et referenceId (même lors de la mise à jour)
+            $planning->setIntegration($integration);
+            $planning->setReferenceId($pronoteId);
             
-            // Titre : sujet + date/heure si disponible
+            // Récupérer les données depuis raw si disponible
+            $raw = $hw['raw'] ?? [];
+            
+            // Titre : utiliser le subject
             $subject = trim($hw['subject'] ?? 'Devoir');
             if ($subject === 'N/A' || empty($subject)) {
                 $subject = 'Devoir';
             }
+            $planning->setTitle($subject);
             
-            // Ajouter l'heure dans le titre si disponible
-            $title = $subject;
-            if ($date) {
-                $timeStr = $date->format('H:i');
-                if ($timeStr !== '00:00') {
-                    $title = $subject . ' - ' . $timeStr;
-                } else {
-                    // Si pas d'heure, afficher juste la date
-                    $title = $subject . ' - ' . $date->format('d/m/Y');
+            // Description : description + attachments
+            $descriptionParts = [];
+            
+            // Ajouter la description
+            $hwDescription = trim($hw['description'] ?? '');
+            if (!empty($hwDescription)) {
+                // Nettoyer le HTML si nécessaire
+                $hwDescription = strip_tags($hwDescription);
+                $descriptionParts[] = $hwDescription;
+            }
+            
+            // Ajouter les attachments
+            $attachments = $raw['attachments'] ?? [];
+            if (!empty($attachments) && is_array($attachments)) {
+                $attachmentList = [];
+                foreach ($attachments as $attachment) {
+                    if (is_string($attachment)) {
+                        $attachmentList[] = $attachment;
+                    } elseif (is_array($attachment) && isset($attachment['name'])) {
+                        $attachmentList[] = $attachment['name'];
+                    } elseif (is_array($attachment) && isset($attachment['url'])) {
+                        $attachmentList[] = $attachment['url'];
+                    }
+                }
+                if (!empty($attachmentList)) {
+                    $descriptionParts[] = "\n\nPièces jointes: " . implode(', ', $attachmentList);
                 }
             }
-            $planning->setTitle($title);
             
-            // Description : utiliser la description du devoir
-            $description = trim($hw['description'] ?? '');
+            $description = implode('', $descriptionParts);
             $planning->setDescription($description);
             
             $planning->setType(Planning::TYPE_HOMEWORK);
             $planning->setStatus($hw['done'] ?? false ? Planning::STATUS_COMPLETED : Planning::STATUS_TO_DO);
 
-            // Définir les dates (début à la date, fin 1h après ou fin de journée)
-            $planning->setStartDate($date);
-            // Pour les devoirs, mettre fin à la fin de la journée (23:59:59)
-            $endDate = $date->setTime(23, 59, 59);
+            // Dates : utiliser deadline depuis raw
+            // Les dates Pronote sont en UTC (GMT), il faut les convertir en Europe/Paris (+1h ou +2h selon période)
+            $deadline = null;
+            $timezone = new \DateTimeZone('Europe/Paris');
+            
+            if (isset($raw['deadline']) && $raw['deadline']) {
+                try {
+                    // Parser la date ISO en UTC
+                    $deadline = new \DateTimeImmutable($raw['deadline'], new \DateTimeZone('UTC'));
+                    // Convertir en timezone Europe/Paris (ajoute automatiquement +1h ou +2h selon période)
+                    $deadline = $deadline->setTimezone($timezone);
+                } catch (\Exception $e) {
+                    error_log("PRONOTE: Erreur parsing deadline devoir: " . $e->getMessage());
+                    $deadline = new \DateTimeImmutable('now', $timezone);
+                }
+            } elseif (isset($hw['date']) && $hw['date']) {
+                // Fallback sur date si deadline n'existe pas
+                try {
+                    if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $hw['date'])) {
+                        // Date simple sans heure, créer à minuit en timezone locale
+                        $deadline = new \DateTimeImmutable($hw['date'] . ' 00:00:00', $timezone);
+                    } else {
+                        // Date ISO, parser en UTC puis convertir
+                        $deadline = new \DateTimeImmutable($hw['date'], new \DateTimeZone('UTC'));
+                        $deadline = $deadline->setTimezone($timezone);
+                    }
+                } catch (\Exception $e) {
+                    error_log("PRONOTE: Erreur parsing date devoir: " . $e->getMessage());
+                    $deadline = new \DateTimeImmutable('now', $timezone);
+                }
+            } else {
+                $deadline = new \DateTimeImmutable('now', $timezone);
+            }
+            
+            // startDate = deadline, endDate = deadline + 45 min
+            $planning->setStartDate($deadline);
+            $endDate = $deadline->modify('+45 minutes');
             $planning->setEndDate($endDate);
 
-            // Mettre à jour les métadonnées PRONOTE
+            // Mettre à jour les métadonnées PRONOTE (inclure backgroundColor)
             $metadata = $planning->getMetadata() ?? [];
             $metadata['pronote_id'] = $pronoteId;
             $metadata['pronote_subject'] = $hw['subject'] ?? null;
+            $metadata['pronote_backgroundColor'] = $raw['backgroundColor'] ?? null;
             $metadata['pronote_raw'] = $hw;
             $planning->setMetadata($metadata);
 
@@ -382,7 +424,7 @@ class PronoteSyncService
     /**
      * Synchronise les cours dans Planning
      */
-    private function syncLessons(array $lessons, Student $student): int
+    private function syncLessons(array $lessons, Student $student, Integration $integration): int
     {
         $count = 0;
         $updated = 0;
@@ -391,16 +433,14 @@ class PronoteSyncService
             $pronoteId = $lesson['id'] ?? null;
             $planning = null;
             
-            // Chercher un événement existant par ID PRONOTE
+            // Chercher un événement existant par reference_id et integration
             if ($pronoteId) {
-                $existingId = $this->em->getConnection()->executeQuery(
-                    'SELECT id FROM planning WHERE student_id = ? AND type = ? AND JSON_EXTRACT(metadata, \'$.pronote_id\') = ? LIMIT 1',
-                    [$student->getId(), Planning::TYPE_COURSE, $pronoteId]
-                )->fetchOne();
-                
-                if ($existingId) {
-                    $planning = $this->em->getRepository(Planning::class)->find($existingId);
-                }
+                $planning = $this->em->getRepository(Planning::class)->findOneBy([
+                    'student' => $student,
+                    'type' => Planning::TYPE_COURSE,
+                    'integration' => $integration,
+                    'referenceId' => $pronoteId
+                ]);
             }
             
             // Créer un nouvel événement si non trouvé
@@ -412,37 +452,36 @@ class PronoteSyncService
                 $updated++;
             }
             
+            // Toujours définir l'integration et referenceId (même lors de la mise à jour)
+            $planning->setIntegration($integration);
+            $planning->setReferenceId($pronoteId);
+            
             // Parser les dates de début et de fin (format ISO string UTC)
+            // Les dates Pronote sont en UTC (GMT), il faut les convertir en Europe/Paris (+1h ou +2h selon période)
             $startDate = null;
             $endDate = null;
+            $timezone = new \DateTimeZone('Europe/Paris');
             
             if (isset($lesson['start']) && $lesson['start']) {
                 try {
-                    // Parser la date ISO (peut être en UTC)
-                    $startDate = new \DateTimeImmutable($lesson['start']);
-                    // Si la date est en UTC, la convertir en timezone locale (Europe/Paris par défaut)
-                    // PHP gère automatiquement le timezone lors du parsing, mais on peut forcer la timezone
-                    $timezone = new \DateTimeZone('Europe/Paris');
-                    if ($startDate->getTimezone()->getName() === 'UTC' || $startDate->getTimezone()->getName() === '+00:00') {
-                        $startDate = $startDate->setTimezone($timezone);
-                    }
+                    // Parser la date ISO en UTC
+                    $startDate = new \DateTimeImmutable($lesson['start'], new \DateTimeZone('UTC'));
+                    // Convertir en timezone Europe/Paris (ajoute automatiquement +1h ou +2h selon période)
+                    $startDate = $startDate->setTimezone($timezone);
                 } catch (\Exception $e) {
                     error_log("PRONOTE: Erreur parsing date début cours: " . $e->getMessage() . " - Valeur: " . ($lesson['start'] ?? 'null'));
-                    $startDate = new \DateTimeImmutable('now');
+                    $startDate = new \DateTimeImmutable('now', $timezone);
                 }
             } else {
-                $startDate = new \DateTimeImmutable('now');
+                $startDate = new \DateTimeImmutable('now', $timezone);
             }
             
             if (isset($lesson['end']) && $lesson['end']) {
                 try {
-                    // Parser la date ISO (peut être en UTC)
-                    $endDate = new \DateTimeImmutable($lesson['end']);
-                    // Si la date est en UTC, la convertir en timezone locale
-                    $timezone = new \DateTimeZone('Europe/Paris');
-                    if ($endDate->getTimezone()->getName() === 'UTC' || $endDate->getTimezone()->getName() === '+00:00') {
-                        $endDate = $endDate->setTimezone($timezone);
-                    }
+                    // Parser la date ISO en UTC
+                    $endDate = new \DateTimeImmutable($lesson['end'], new \DateTimeZone('UTC'));
+                    // Convertir en timezone Europe/Paris (ajoute automatiquement +1h ou +2h selon période)
+                    $endDate = $endDate->setTimezone($timezone);
                 } catch (\Exception $e) {
                     error_log("PRONOTE: Erreur parsing date fin cours: " . $e->getMessage() . " - Valeur: " . ($lesson['end'] ?? 'null'));
                     $endDate = $startDate->modify('+1 hour');
@@ -463,31 +502,8 @@ class PronoteSyncService
             $title = $subject . ' - ' . $startTime . '-' . $endTime;
             $planning->setTitle($title);
             
-            // Description : construire une description complète avec la salle, le professeur, etc.
-            $descriptionParts = [];
-            if (!empty($lesson['room'])) {
-                $descriptionParts[] = 'Salle: ' . trim($lesson['room']);
-            }
-            if (!empty($lesson['teacher'])) {
-                $descriptionParts[] = 'Professeur: ' . trim($lesson['teacher']);
-            }
-            if (!empty($lesson['group'])) {
-                $descriptionParts[] = 'Groupe: ' . trim($lesson['group']);
-            }
-            // Si d'autres informations sont disponibles dans raw, on peut les ajouter
-            if (isset($lesson['raw']) && is_array($lesson['raw'])) {
-                $raw = $lesson['raw'];
-                // Si teacher n'est pas déjà dans descriptionParts, essayer de le récupérer depuis raw
-                if (empty($lesson['teacher']) && !empty($raw['teacher'])) {
-                    if (is_string($raw['teacher'])) {
-                        $descriptionParts[] = 'Professeur: ' . trim($raw['teacher']);
-                    } elseif (is_array($raw['teacher']) && !empty($raw['teacher']['name'])) {
-                        $descriptionParts[] = 'Professeur: ' . trim($raw['teacher']['name']);
-                    }
-                }
-            }
-            $description = !empty($descriptionParts) ? implode(' | ', $descriptionParts) : '';
-            $planning->setDescription($description);
+            // Description : mettre le subject
+            $planning->setDescription($subject);
             
             $planning->setType(Planning::TYPE_COURSE);
             $planning->setStatus(Planning::STATUS_TO_DO);
@@ -495,11 +511,13 @@ class PronoteSyncService
             $planning->setStartDate($startDate);
             $planning->setEndDate($endDate);
 
-            // Mettre à jour les métadonnées PRONOTE
+            // Mettre à jour les métadonnées PRONOTE (inclure backgroundColor)
+            $raw = $lesson['raw'] ?? [];
             $metadata = $planning->getMetadata() ?? [];
             $metadata['pronote_id'] = $pronoteId;
             $metadata['pronote_subject'] = $lesson['subject'] ?? null;
             $metadata['pronote_room'] = $lesson['room'] ?? null;
+            $metadata['pronote_backgroundColor'] = $raw['backgroundColor'] ?? null;
             $metadata['pronote_raw'] = $lesson;
             $planning->setMetadata($metadata);
 
@@ -580,26 +598,24 @@ class PronoteSyncService
 
         // Synchroniser les devoirs
         if (isset($data['assignments']) && is_array($data['assignments'])) {
-            $results['homework'] = $this->syncHomework($data['assignments'], $student);
+            $results['homework'] = $this->syncHomework($data['assignments'], $student, $integration);
         }
 
         // Synchroniser les cours
         if (isset($data['lessons_list']) && is_array($data['lessons_list'])) {
-            $results['lessons'] = $this->syncLessons($data['lessons_list'], $student);
+            $results['lessons'] = $this->syncLessons($data['lessons_list'], $student, $integration);
         }
 
         // Stocker les évaluations/notes dans metadata
-        if (isset($data['evaluations']) && is_array($data['evaluations'])) {
-            $metadata = $integration->getMetadata() ?? [];
-            $metadata['evaluations'] = $data['evaluations'];
-            $integration->setMetadata($metadata);
+        // Toujours sauvegarder, même si vide, pour indiquer que la synchronisation a été effectuée
+        $metadata = $integration->getMetadata() ?? [];
+        if (isset($data['evaluations'])) {
+            $metadata['evaluations'] = is_array($data['evaluations']) ? $data['evaluations'] : [];
         }
 
         // Stocker le bulletin de notes dans metadata
-        if (isset($data['gradebook']) && $data['gradebook']) {
-            $metadata = $integration->getMetadata() ?? [];
-            $metadata['gradebook'] = $data['gradebook'];
-            $integration->setMetadata($metadata);
+        if (isset($data['gradebook'])) {
+            $metadata['gradebook'] = $data['gradebook']; // Peut être null
         }
 
         // Synchroniser les absences
@@ -608,12 +624,14 @@ class PronoteSyncService
         }
 
         // Stocker le carnet de correspondance dans metadata
-        if (isset($data['notebook']) && is_array($data['notebook'])) {
-            $metadata = $integration->getMetadata() ?? [];
-            $metadata['notebook'] = $data['notebook'];
-            $metadata['carnet_correspondance'] = $data['notebook']; // Compatibilité legacy
-            $integration->setMetadata($metadata);
+        // Toujours sauvegarder, même si vide, pour indiquer que la synchronisation a été effectuée
+        if (isset($data['notebook'])) {
+            $notebookData = is_array($data['notebook']) ? $data['notebook'] : [];
+            $metadata['notebook'] = $notebookData;
+            $metadata['carnet_correspondance'] = $notebookData; // Compatibilité legacy
         }
+        
+        $integration->setMetadata($metadata);
 
         // Mettre à jour sync_data dans les métadonnées avec tous les résultats
         $metadata = $integration->getMetadata() ?? [];
@@ -633,5 +651,6 @@ class PronoteSyncService
 
         return $results;
     }
+
 }
 

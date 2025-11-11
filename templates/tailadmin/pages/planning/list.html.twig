@@ -167,14 +167,15 @@
                             {% for event in day.events %}
                             <div 
                                 @click="openView({{ event.id }}, '{{ event.title|e('js') }}', '{{ event.description|e('js') }}', '{{ event.startDate }}', '{{ event.endDate }}', {{ event.studentId }}, '{{ event.type }}', '{{ event.status }}')"
-                                class="group cursor-pointer rounded-lg border border-gray-200 bg-white p-3 transition-all hover:shadow-theme-xs dark:border-gray-700 dark:bg-gray-800/50"
+                                class="group cursor-pointer rounded-lg border p-3 transition-all hover:shadow-theme-xs {% if event.backgroundColor %}border-opacity-30{% else %}border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/50{% endif %}"
+                                {% if event.backgroundColor %}style="background-color: {{ event.backgroundColor }}; border-color: {{ event.backgroundColor }};"{% endif %}
                             >
                                 <div class="mb-2 flex items-start justify-between">
                                     <div class="flex-1">
-                                        <h4 class="text-sm font-semibold text-gray-800 dark:text-white/90 line-clamp-1">
+                                        <h4 class="text-sm font-semibold {% if event.backgroundColor %}text-white{% else %}text-gray-800 dark:text-white/90{% endif %} line-clamp-1">
                                             {{ event.title }}
                                         </h4>
-                                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                                        <p class="mt-1 text-xs {% if event.backgroundColor %}text-white/90{% else %}text-gray-500 dark:text-gray-400{% endif %}">
                                             {{ event.studentName }}
                                         </p>
                                     </div>
@@ -193,7 +194,7 @@
                                     {% endif %}
                                 </div>
                                 
-                                <div class="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+                                <div class="flex items-center gap-2 text-xs {% if event.backgroundColor %}text-white/90{% else %}text-gray-500 dark:text-gray-400{% endif %}">
                                     <svg class="fill-current" width="14" height="14" viewBox="0 0 16 16" fill="none">
                                         <path d="M8 1a7 7 0 100 14A7 7 0 008 1zM7.5 4v4l3.5 2 .5-.866L8.5 7.5V4h-1z" fill=""/>
                                     </svg>
@@ -203,8 +204,8 @@
                                 </div>
                                 
                                 <div class="mt-2 flex items-center justify-between">
-                                    <span class="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600 dark:bg-gray-800 dark:text-gray-400">
-                                        {{ event.type|upper }}
+                                    <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium {% if event.backgroundColor %}bg-white/20 text-white{% else %}bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400{% endif %}">
+                                        {{ event.typeLabel|default(event.type|upper) }}
                                     </span>
                                     <div class="flex gap-1" @click.stop>
                                         <button

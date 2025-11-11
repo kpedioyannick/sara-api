@@ -3,6 +3,8 @@
 namespace App\Entity;
 
 use App\Repository\IntegrationRepository;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: IntegrationRepository::class)]
@@ -52,10 +54,14 @@ class Integration
     #[ORM\Column(type: 'datetime_immutable', nullable: true)]
     private ?\DateTimeImmutable $lastSyncAt = null;
 
+    #[ORM\OneToMany(mappedBy: 'integration', targetEntity: Planning::class, cascade: ['persist', 'remove'])]
+    private Collection $plannings;
+
     public function __construct()
     {
         $this->createdAt = new \DateTimeImmutable();
         $this->updatedAt = new \DateTimeImmutable();
+        $this->plannings = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -153,6 +159,33 @@ class Integration
     public function setLastSyncAt(?\DateTimeImmutable $lastSyncAt): static
     {
         $this->lastSyncAt = $lastSyncAt;
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Planning>
+     */
+    public function getPlannings(): Collection
+    {
+        return $this->plannings;
+    }
+
+    public function addPlanning(Planning $planning): static
+    {
+        if (!$this->plannings->contains($planning)) {
+            $this->plannings->add($planning);
+            $planning->setIntegration($this);
+        }
+        return $this;
+    }
+
+    public function removePlanning(Planning $planning): static
+    {
+        if ($this->plannings->removeElement($planning)) {
+            if ($planning->getIntegration() === $this) {
+                $planning->setIntegration(null);
+            }
+        }
         return $this;
     }
 

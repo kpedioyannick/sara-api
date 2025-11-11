@@ -158,17 +158,6 @@ class PronoteController extends AbstractController
         $output = trim($process->getOutput());
         $errorOutput = $process->getErrorOutput();
         
-        // Log pour debug
-        error_log("PRONOTE Connect - Process successful: " . ($process->isSuccessful() ? 'yes' : 'no'));
-        error_log("PRONOTE Connect - Exit code: " . $process->getExitCode());
-        error_log("PRONOTE Connect - Output length: " . strlen($output));
-        error_log("PRONOTE Connect - Error output length: " . strlen($errorOutput));
-        if (!empty($output)) {
-            error_log("PRONOTE Connect - Output (first 500 chars): " . substr($output, 0, 500));
-        }
-        if (!empty($errorOutput)) {
-            error_log("PRONOTE Connect - Error output (debug): " . substr($errorOutput, 0, 500));
-        }
         
         // Extraire le JSON de la sortie (npm peut ajouter des messages avant)
         // Le JSON commence par { et se termine par }
@@ -207,8 +196,6 @@ class PronoteController extends AbstractController
             $result = json_decode($jsonLine, true);
             if (json_last_error() !== JSON_ERROR_NONE) {
                 error_log("PRONOTE Connect - JSON decode error: " . json_last_error_msg());
-                error_log("PRONOTE Connect - Raw output: " . substr($output, 0, 500));
-                error_log("PRONOTE Connect - Extracted JSON line: " . substr($jsonLine, 0, 500));
             }
         }
         
@@ -223,7 +210,6 @@ class PronoteController extends AbstractController
                 });
                 $errorMsg = !empty($errorLines) ? implode("\n", $errorLines) : 'Erreur inconnue (code: ' . $process->getExitCode() . ')';
             }
-            error_log("PRONOTE Connect - Process failed: " . $errorMsg);
             $this->addFlash('error', 'Erreur lors de la connexion PRONOTE: ' . $errorMsg);
             return $this->redirectToRoute('admin_pronote_connect');
         }
@@ -235,21 +221,18 @@ class PronoteController extends AbstractController
             });
             $errorMsg = !empty($errorLines) ? implode("\n", $errorLines) : (!empty($output) ? substr($output, 0, 200) : 'Impossible de parser la réponse du script');
             error_log("PRONOTE Connect - Failed to parse JSON: " . $errorMsg);
-            error_log("PRONOTE Connect - Raw output: " . substr($output, 0, 500));
             $this->addFlash('error', 'Échec de la connexion: ' . $errorMsg);
             return $this->redirectToRoute('admin_pronote_connect');
         }
 
         if (!isset($result['success'])) {
             $errorMsg = $result['error'] ?? 'Réponse invalide du script';
-            error_log("PRONOTE Connect - No success field in result: " . json_encode($result));
             $this->addFlash('error', 'Échec de la connexion: ' . $errorMsg);
             return $this->redirectToRoute('admin_pronote_connect');
         }
 
         if (!$result['success']) {
             $error = $result['error'] ?? $result['message'] ?? 'Erreur inconnue';
-            error_log("PRONOTE Connect - Script returned success=false: " . $error);
             $this->addFlash('error', 'Échec de la connexion: ' . $error);
             return $this->redirectToRoute('admin_pronote_connect');
         }

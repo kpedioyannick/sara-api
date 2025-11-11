@@ -487,7 +487,6 @@ class ModuleConversionService
 
     private function convertImageSequencing(array $iaData): array
     {
-        dump($iaData);
         $sequenceImages = [];
 
         foreach ($iaData['sequenceImages'] ?? [] as $imageData) {
@@ -1502,7 +1501,6 @@ class ModuleConversionService
 
     private function convertShortAnswer(array $iaData): array
     {
-        dump($iaData);
         return $this->convertEssay([
             'question' => $iaData['question'] ?? '',
             'placeholderText' => $iaData['placeholderText'] ?? 'Votre réponse courte...',

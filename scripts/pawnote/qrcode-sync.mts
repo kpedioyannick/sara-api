@@ -12,21 +12,12 @@ async function qrcodeLoginAndSync(qrDataJson: string, pin: string) {
   try {
     // Import différé de Pawnote pour éviter les problèmes de chargement
     const pawnote = await import('pawnote');
-    const { createSessionHandle, loginQrCode, AccountKind, assignmentsFromIntervals, timetableFromIntervals, evaluations, gradebook, notebook, sessionInformation } = pawnote;
+    const { createSessionHandle, loginQrCode, AccountKind, assignmentsFromWeek, assignmentsFromIntervals, timetableFromIntervals, evaluations, gradebook, notebook, sessionInformation, translateToWeekNumber, TabLocation } = pawnote;
     const qrData = JSON.parse(qrDataJson);
     
-    // Envoyer les messages de debug sur stderr
-    console.error('🔄 Connexion QR code + Synchronisation PRONOTE');
-    console.error(`   URL: ${qrData.url}`);
-    console.error(`   Login: ${qrData.login}`);
-    console.error(`   PIN: ${pin}`);
-    console.error();
-    
-    // Créer session
     const session = createSessionHandle();
     
     // Se connecter avec QR code
-    console.error('🔐 Connexion avec QR code...');
     const refreshInfo = await loginQrCode(session, {
       deviceUUID: qrData.login,
       pin: pin,
@@ -37,49 +28,26 @@ async function qrcodeLoginAndSync(qrDataJson: string, pin: string) {
         url: qrData.url
       }
     });
-    
-    console.error('✅ Connexion réussie !');
-    console.error(`   Username: ${refreshInfo.username}`);
-    console.error(`   Token: ${refreshInfo.token.substring(0, 30)}...`);
-    console.error();
-    
-    // Utiliser la session immédiatement pour récupérer les données
-    console.error('📚 Récupération des devoirs...');
     const today = new Date();
-    const nextWeek = new Date(today);
-    nextWeek.setDate(today.getDate() + 14); // 2 semaines
-    const assignments = await assignmentsFromIntervals(session, today, nextWeek);
-    console.error(`   ✅ ${assignments.length} devoirs récupérés`);
     
-    if (assignments.length > 0) {
-      console.error('   Exemples:');
-      assignments.slice(0, 3).forEach((hw: any, i: number) => {
-        const subject = hw.subject?.name || 'N/A';
-        const date = hw.date ? new Date(hw.date).toLocaleDateString('fr-FR') : 'N/A';
-        const done = hw.done ? '✓' : '○';
-        console.error(`      ${i + 1}. ${done} ${subject} - ${date}`);
-      });
+    // Calculer le début de l'année scolaire (septembre de l'année en cours ou précédente)
+    const currentYear = today.getFullYear();
+    const currentMonth = today.getMonth(); // 0-11
+    
+    let schoolYearStart: Date;
+    let schoolYearEnd: Date;
+    
+    if (currentMonth >= 8) {
+      // On est entre septembre et décembre : année scolaire = septembre année N → juin année N+1
+      schoolYearStart = new Date(currentYear, 8, 1); // 1er septembre année en cours
+      schoolYearEnd = new Date(currentYear + 1, 5, 30); // 30 juin année suivante
+    } else {
+      // On est entre janvier et août : année scolaire = septembre année N-1 → juin année N
+      schoolYearStart = new Date(currentYear - 1, 8, 1); // 1er septembre année précédente
+      schoolYearEnd = new Date(currentYear, 5, 30); // 30 juin année en cours
     }
-    console.error();
     
-    // Récupérer les cours
-    console.error('📅 Récupération des cours...');
-    const timetable = await timetableFromIntervals(session, today, nextWeek);
-    const lessonsCount = timetable?.classes?.length || 0;
-    console.error(`   ✅ ${lessonsCount} cours récupérés`);
-    
-    if (lessonsCount > 0) {
-      console.error('   Exemples:');
-      timetable.classes.slice(0, 5).forEach((lesson: any, i: number) => {
-        const subject = lesson.subject?.name || 'N/A';
-        const start = lesson.start ? new Date(lesson.start).toLocaleString('fr-FR') : 'N/A';
-        const room = lesson.room || '';
-        console.error(`      ${i + 1}. ${subject} - ${start} ${room ? `(${room})` : ''}`);
-      });
-    }
-    console.error();
-    
-    // Récupérer sessionInformation une seule fois (nécessaire pour evaluations, gradebook, notebook)
+    // Récupérer sessionInformation pour obtenir la date de début de l'année scolaire
     let sessionInfo = null;
     try {
       sessionInfo = await sessionInformation(session);
@@ -87,56 +55,86 @@ async function qrcodeLoginAndSync(qrDataJson: string, pin: string) {
       console.error(`   ⚠️  Impossible de récupérer sessionInformation: ${e.message}`);
     }
     
+    // Convertir les dates en numéros de semaine pour utiliser assignmentsFromWeek
+    // translateToWeekNumber(date, startDay) - startDay est la date de début de l'année scolaire
+    // On utilise schoolYearStart comme startDay par défaut
+    const startDay = schoolYearStart;
+    const startWeek = translateToWeekNumber(schoolYearStart, startDay);
+    const endWeek = translateToWeekNumber(schoolYearEnd, startDay);
+    
+    const assignments = await assignmentsFromWeek(session, startWeek, endWeek);
+    
+    // Récupérer les cours
+    const timetable = await timetableFromIntervals(session, schoolYearStart, schoolYearEnd);
+    const lessonsCount = timetable?.classes?.length || 0;
+    
+    if (false) {
+      // Code de debug désactivé
+      timetable.classes.slice(0, 5).forEach((lesson: any, i: number) => {
+        const subject = lesson.subject?.name || 'N/A';
+        const start = lesson.start ? new Date(lesson.start).toLocaleString('fr-FR') : 'N/A';
+        const room = lesson.room || '';
+        console.error(`      ${i + 1}. ${subject} - ${start} ${room ? `(${room})` : ''}`);
+      });
+    }
+    
+    // sessionInfo a déjà été récupéré pour les devoirs, on le réutilise
+    
     // Récupérer les évaluations/notes
-    console.error('📊 Récupération des évaluations...');
     let evaluationsData = [];
     let gradebookData = null;
     if (sessionInfo) {
       try {
         evaluationsData = await evaluations(session, sessionInfo) || [];
-        console.error(`   ✅ ${evaluationsData.length} évaluations récupérées`);
       } catch (e: any) {
-        console.error(`   ⚠️  Erreur lors de la récupération des évaluations: ${e.message}`);
+        console.error(`❌ Erreur lors de la récupération des évaluations: ${e.message}`);
       }
-    } else {
-      console.error(`   ⚠️  SessionInformation non disponible`);
     }
-    console.error();
     
     // Récupérer le bulletin de notes
-    console.error('📚 Récupération du bulletin de notes...');
     if (sessionInfo) {
       try {
         gradebookData = await gradebook(session, sessionInfo);
-        console.error(`   ✅ Bulletin de notes récupéré`);
       } catch (e: any) {
-        console.error(`   ⚠️  Erreur lors de la récupération du bulletin: ${e.message}`);
+        console.error(`❌ Erreur lors de la récupération du bulletin: ${e.message}`);
       }
-    } else {
-      console.error(`   ⚠️  SessionInformation non disponible`);
     }
-    console.error();
     
     // Récupérer le carnet de correspondance
-    console.error('📔 Récupération du carnet de correspondance...');
     let notebookData = [];
-    if (sessionInfo) {
-      try {
-        const notebookResult = await notebook(session, sessionInfo);
-        if (Array.isArray(notebookResult)) {
-          notebookData = notebookResult;
-        } else if (notebookResult && typeof notebookResult === 'object') {
-          // Si c'est un objet, essayer d'extraire les messages
-          notebookData = (notebookResult as any).messages || (notebookResult as any).observations || [];
+    try {
+      // Récupérer l'onglet Notebook depuis la session
+      const tab = session.userResource.tabs.get(TabLocation.Notebook);
+      if (!tab) {
+        console.error(`❌ Impossible de récupérer l'onglet Notebook`);
+      } else {
+        // Sélectionner la période par défaut
+        const selectedPeriod = tab.defaultPeriod;
+        if (!selectedPeriod) {
+          console.error(`❌ Aucune période par défaut disponible`);
         }
-        console.error(`   ✅ ${notebookData.length} messages récupérés`);
-      } catch (e: any) {
-        console.error(`   ⚠️  Erreur lors de la récupération du carnet: ${e.message}`);
+          const notebookResult = await notebook(session, selectedPeriod);
+          
+          // Le notebook est un objet avec différentes propriétés (absences, delays, observations, etc.)
+          if (notebookResult) {
+            // Extraire toutes les données du notebook
+            notebookData = [
+              ...(notebookResult.absences || []),
+              ...(notebookResult.delays || []),
+              ...(notebookResult.observations || []),
+              ...(notebookResult.punishments || []),
+              ...(notebookResult.precautionaryMeasures || [])
+            ];
+          }
+        }
+        }
       }
-    } else {
-      console.error(`   ⚠️  SessionInformation non disponible`);
+    } catch (e: any) {
+      console.error(`❌ Erreur lors de la récupération du carnet: ${e.message}`);
     }
-    console.error();
+    
+    // Note: Les absences ne sont pas disponibles via l'API Pawnote.js standard
+    const absencesData: any[] = [];
     
     // Construire le résultat
     const result = {
@@ -160,23 +158,44 @@ async function qrcodeLoginAndSync(qrDataJson: string, pin: string) {
       data: {
         homework: assignments.length,
         lessons: lessonsCount,
-        assignments: assignments.map((hw: any) => ({
-          id: hw.id,
-          subject: hw.subject?.name || 'N/A',
-          description: hw.description || '',
-          date: hw.date ? new Date(hw.date).toISOString().split('T')[0] : null,
-          done: hw.done || false
-        })),
-        lessons_list: timetable?.classes?.map((lesson: any) => ({
-          id: lesson.id,
-          subject: lesson.subject?.name || 'N/A',
-          room: lesson.room || '',
-          start: lesson.start ? new Date(lesson.start).toISOString() : null,
-          end: lesson.end ? new Date(lesson.end).toISOString() : null,
-          teacher: lesson.teacher?.name || lesson.teacher || null,
-          group: lesson.group?.name || lesson.group || null,
-          raw: lesson
-        })) || [],
+        assignments: assignments.map((hw: any) => {
+          // Extraire la date depuis différents champs possibles
+          let dateValue = null;
+          if (hw.date) {
+            dateValue = hw.date;
+          } else if (hw.from) {
+            dateValue = hw.from;
+          } else if (hw.to) {
+            dateValue = hw.to;
+          } else if (hw.startDate) {
+            dateValue = hw.startDate;
+          }
+          
+          return {
+            id: hw.id,
+            subject: hw.subject?.name || 'N/A',
+            description: hw.description || '',
+            date: dateValue ? new Date(dateValue).toISOString().split('T')[0] : null,
+            done: hw.done || false,
+            raw: hw // Inclure l'objet brut pour debug
+          };
+        }),
+        lessons_list: timetable?.classes?.map((lesson: any) => {
+          // Extraire les dates depuis startDate/endDate si start/end ne sont pas disponibles
+          let startValue = lesson.start || lesson.startDate;
+          let endValue = lesson.end || lesson.endDate;
+          
+          return {
+            id: lesson.id,
+            subject: lesson.subject?.name || 'N/A',
+            room: lesson.room || lesson.classrooms?.[0] || '',
+            start: startValue ? new Date(startValue).toISOString() : null,
+            end: endValue ? new Date(endValue).toISOString() : null,
+            teacher: lesson.teacher?.name || lesson.teacherNames?.[0] || lesson.teacher || null,
+            group: lesson.group?.name || lesson.groupNames?.[0] || lesson.group || null,
+            raw: lesson
+          };
+        }) || [],
         evaluations: (evaluationsData as any[]).map((evaluation: any) => ({
           id: evaluation.id,
           name: evaluation.name || evaluation.subject?.name || 'N/A',
@@ -191,13 +210,106 @@ async function qrcodeLoginAndSync(qrDataJson: string, pin: string) {
           subjects: (gradebookData as any).subjects || gradebookData.subjects || [],
           raw: gradebookData
         } : null,
-        notebook: notebookData.map((msg: any) => ({
-          id: msg.id,
-          date: msg.date ? new Date(msg.date).toISOString().split('T')[0] : null,
-          author: msg.author?.name || msg.author || 'N/A',
-          content: msg.content || msg.text || '',
-          kind: msg.kind || msg.type || null,
-          raw: msg
+        notebook: notebookData.map((msg: any) => {
+          // Gérer les différents types d'entrées du notebook
+          let dateValue = null;
+          let authorValue = 'N/A';
+          let contentValue = '';
+          let kindValue = null;
+          
+          // Pour les absences
+          if (msg.startDate) {
+            dateValue = msg.startDate ? new Date(msg.startDate).toISOString().split('T')[0] : null;
+            contentValue = `Absence du ${msg.startDate ? new Date(msg.startDate).toLocaleDateString('fr-FR') : 'N/A'} au ${msg.endDate ? new Date(msg.endDate).toLocaleDateString('fr-FR') : 'N/A'}`;
+            if (msg.justified !== undefined) {
+              contentValue += ` (${msg.justified ? 'Justifiée' : 'Non justifiée'})`;
+            }
+            kindValue = 'Absence';
+          }
+          // Pour les retards
+          else if (msg.minutes !== undefined) {
+            dateValue = msg.date ? new Date(msg.date).toISOString().split('T')[0] : null;
+            contentValue = `Retard de ${msg.minutes} minutes`;
+            if (msg.justification) {
+              contentValue += ` - ${msg.justification}`;
+            }
+            if (msg.justified !== undefined) {
+              contentValue += ` (${msg.justified ? 'Justifié' : 'Non justifié'})`;
+            }
+            kindValue = 'Retard';
+          }
+          // Pour les observations
+          else if (msg.name) {
+            dateValue = msg.date ? new Date(msg.date).toISOString().split('T')[0] : null;
+            contentValue = msg.name;
+            if (msg.kind !== undefined) {
+              const kindMap: Record<number, string> = {
+                0: 'Problème de carnet',
+                1: 'Observation',
+                2: 'Encouragement'
+              };
+              kindValue = kindMap[msg.kind] || 'Observation';
+            } else {
+              kindValue = 'Observation';
+            }
+          }
+          // Pour les punitions (exclusions de cours, etc.)
+          else if (msg.giver || msg.title || msg.reasons) {
+            dateValue = msg.dateGiven ? new Date(msg.dateGiven).toISOString().split('T')[0] : (msg.date ? new Date(msg.date).toISOString().split('T')[0] : null);
+            if (msg.title) {
+              contentValue = msg.title;
+              if (msg.reasons && Array.isArray(msg.reasons) && msg.reasons.length > 0) {
+                contentValue += `: ${msg.reasons.join(', ')}`;
+              }
+              if (msg.circumstances) {
+                contentValue += ` - ${msg.circumstances}`;
+              }
+              if (msg.durationMinutes) {
+                contentValue += ` (${msg.durationMinutes} min)`;
+              }
+            } else if (msg.reason) {
+              contentValue = msg.reason;
+              if (msg.nature) {
+                contentValue = `${msg.nature}: ${contentValue}`;
+              }
+            } else {
+              contentValue = 'Punition';
+            }
+            authorValue = msg.giver || 'N/A';
+            kindValue = msg.exclusion ? 'Exclusion de cours' : 'Punition';
+          }
+          // Pour les mesures préventives
+          else if (msg.measure) {
+            dateValue = msg.date ? new Date(msg.date).toISOString().split('T')[0] : null;
+            contentValue = msg.measure;
+            kindValue = 'Mesure préventive';
+          }
+          // Format générique (fallback)
+          else {
+            dateValue = msg.date ? new Date(msg.date).toISOString().split('T')[0] : null;
+            authorValue = msg.author?.name || msg.author || 'N/A';
+            contentValue = msg.content || msg.text || msg.name || '';
+            kindValue = msg.kind || msg.type || null;
+          }
+          
+          return {
+            id: msg.id,
+            date: dateValue,
+            author: authorValue,
+            content: contentValue,
+            kind: kindValue,
+            raw: msg
+          };
+        }),
+        absences: absencesData.map((absence: any) => ({
+          id: absence.id,
+          date: absence.date ? new Date(absence.date).toISOString().split('T')[0] : null,
+          startDate: absence.startDate ? new Date(absence.startDate).toISOString() : null,
+          endDate: absence.endDate ? new Date(absence.endDate).toISOString() : null,
+          reason: absence.reason || absence.justification || absence.comment || '',
+          justified: absence.justified || false,
+          type: absence.type || 'absence',
+          raw: absence
         }))
       },
       new_token: {
@@ -209,16 +321,6 @@ async function qrcodeLoginAndSync(qrDataJson: string, pin: string) {
     };
     
     // Envoyer les messages de debug sur stderr pour ne pas polluer stdout
-    console.error('✅ Synchronisation complète réussie !');
-    console.error();
-    console.error('📊 Résumé:');
-    console.error(`   📚 Devoirs: ${result.data.homework}`);
-    console.error(`   📅 Cours: ${result.data.lessons}`);
-    console.error(`   📊 Évaluations: ${result.data.evaluations?.length || 0}`);
-    console.error(`   📚 Bulletin: ${result.data.gradebook ? 'Oui' : 'Non'}`);
-    console.error(`   📔 Carnet: ${result.data.notebook?.length || 0} messages`);
-    console.error();
-    
     // Envoyer uniquement le JSON sur stdout (pour le parsing PHP)
     console.log(JSON.stringify(result));
     

@@ -87,6 +87,12 @@ class Planning
     #[ORM\JoinColumn(nullable: false)]
     private ?Student $student = null;
 
+    #[ORM\ManyToOne]
+    #[ORM\JoinColumn(nullable: true)]
+    private ?Integration $integration = null;
+
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $referenceId = null;
 
     #[ORM\Column(type: 'json', nullable: true)]
     private ?array $metadata = [];
@@ -289,11 +295,54 @@ class Planning
     }
 
     /**
+     * Retourne le libellé traduit du type
+     */
+    public function getTypeLabel(): string
+    {
+        return match ($this->getType()) {
+            self::TYPE_HOMEWORK => 'Devoir',
+            self::TYPE_REVISION => 'Révision',
+            self::TYPE_TASK => 'Tâche',
+            self::TYPE_ASSESSMENT => 'Évaluation',
+            self::TYPE_COURSE => 'Cours',
+            self::TYPE_TRAINING => 'Entraînement',
+            self::TYPE_DETENTION => 'Retenue',
+            self::TYPE_ACTIVITY => 'Activité',
+            self::TYPE_EXAM => 'Examen',
+            self::TYPE_OBJECTIVE => 'Objectif',
+            self::TYPE_OTHER => 'Autre',
+            default => 'Autre',
+        };
+    }
+
+    /**
+     * Retourne le libellé traduit d'un type donné (méthode statique)
+     */
+    public static function getTypeLabelStatic(string $type): string
+    {
+        return match ($type) {
+            self::TYPE_HOMEWORK => 'Devoir',
+            self::TYPE_REVISION => 'Révision',
+            self::TYPE_TASK => 'Tâche',
+            self::TYPE_ASSESSMENT => 'Évaluation',
+            self::TYPE_COURSE => 'Cours',
+            self::TYPE_TRAINING => 'Entraînement',
+            self::TYPE_DETENTION => 'Retenue',
+            self::TYPE_ACTIVITY => 'Activité',
+            self::TYPE_EXAM => 'Examen',
+            self::TYPE_OBJECTIVE => 'Objectif',
+            self::TYPE_OTHER => 'Autre',
+            default => 'Autre',
+        };
+    }
+
+    /**
      * Retourne les données formatées pour le template de liste
      */
     public function toTemplateArray(): array
     {
         $student = $this->getStudent();
+        $metadata = $this->getMetadata() ?? [];
         
         return [
             'id' => $this->getId(),
@@ -304,9 +353,11 @@ class Planning
                 ? $student->getFirstName() . ' ' . $student->getLastName()
                 : 'N/A',
             'type' => $this->getType(),
+            'typeLabel' => $this->getTypeLabel(),
             'startDate' => $this->getStartDate()?->format('Y-m-d H:i:s'),
             'endDate' => $this->getEndDate()?->format('Y-m-d H:i:s'),
             'status' => $this->getMappedStatus(),
+            'backgroundColor' => $metadata['pronote_backgroundColor'] ?? null,
         ];
     }
 
@@ -426,6 +477,28 @@ class Planning
     public function setMaxOccurrences(?int $maxOccurrences): static
     {
         $this->maxOccurrences = $maxOccurrences;
+        return $this;
+    }
+
+    public function getIntegration(): ?Integration
+    {
+        return $this->integration;
+    }
+
+    public function setIntegration(?Integration $integration): static
+    {
+        $this->integration = $integration;
+        return $this;
+    }
+
+    public function getReferenceId(): ?string
+    {
+        return $this->referenceId;
+    }
+
+    public function setReferenceId(?string $referenceId): static
+    {
+        $this->referenceId = $referenceId;
         return $this;
     }
 

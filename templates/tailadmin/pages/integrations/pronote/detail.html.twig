@@ -174,31 +174,147 @@
                     </div>
                 {% endif %}
 
-                {% if integration.metadata.evaluations is defined and integration.metadata.evaluations|length > 0 %}
-                    <div>
-                        <h4 class="mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">Évaluations / Notes</h4>
-                        <pre class="rounded-lg bg-gray-50 p-4 text-xs text-gray-900 dark:bg-gray-800 dark:text-white/90 overflow-auto">{{ integration.metadata.evaluations|json_encode(constant('JSON_PRETTY_PRINT')) }}</pre>
-                    </div>
-                {% elseif integration.metadata.notes is defined and integration.metadata.notes|length > 0 %}
-                    <div>
-                        <h4 class="mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">Évaluations / Notes</h4>
-                        <pre class="rounded-lg bg-gray-50 p-4 text-xs text-gray-900 dark:bg-gray-800 dark:text-white/90 overflow-auto">{{ integration.metadata.notes|json_encode(constant('JSON_PRETTY_PRINT')) }}</pre>
-                    </div>
-                {% endif %}
+                <!-- Évaluations / Notes -->
+                <div>
+                    <h4 class="mb-3 text-sm font-medium text-gray-700 dark:text-gray-300">📊 Évaluations / Notes</h4>
+                    {% set evaluations = integration.metadata.evaluations ?? integration.metadata.notes ?? [] %}
+                    {% if evaluations|length > 0 %}
+                        <div class="space-y-3">
+                            {% for evaluation in evaluations %}
+                            <div class="rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800/50">
+                                <div class="flex items-start justify-between">
+                                    <div class="flex-1">
+                                        <h5 class="text-sm font-semibold text-gray-900 dark:text-white/90">
+                                            {{ evaluation.name ?? evaluation.subject ?? 'Évaluation' }}
+                                        </h5>
+                                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                                            {{ evaluation.subject ?? 'N/A' }}
+                                        </p>
+                                        {% if evaluation.date %}
+                                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                                            📅 {{ evaluation.date|date('d/m/Y') }}
+                                        </p>
+                                        {% endif %}
+                                    </div>
+                                    <div class="text-right">
+                                        {% if evaluation.average is not null %}
+                                        <div class="text-sm font-bold text-brand-600 dark:text-brand-400">
+                                            {{ evaluation.average }}/20
+                                        </div>
+                                        {% endif %}
+                                        {% if evaluation.coefficient %}
+                                        <div class="text-xs text-gray-500 dark:text-gray-400">
+                                            Coef. {{ evaluation.coefficient }}
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="rounded-lg border border-gray-200 bg-gray-50 p-4 text-sm text-gray-500 dark:border-gray-700 dark:bg-gray-800/50 dark:text-gray-400">
+                            Aucune évaluation disponible pour le moment
+                        </div>
+                    {% endif %}
+                </div>
 
-                {% if integration.metadata.gradebook ?? false %}
-                    <div>
-                        <h4 class="mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">Bulletin de notes</h4>
-                        <pre class="rounded-lg bg-gray-50 p-4 text-xs text-gray-900 dark:bg-gray-800 dark:text-white/90 overflow-auto">{{ integration.metadata.gradebook|json_encode(constant('JSON_PRETTY_PRINT')) }}</pre>
-                    </div>
-                {% endif %}
+                <!-- Bulletin de notes -->
+                <div>
+                    <h4 class="mb-3 text-sm font-medium text-gray-700 dark:text-gray-300">📚 Bulletin de notes</h4>
+                    {% if integration.metadata.gradebook is defined and integration.metadata.gradebook %}
+                        {% set gradebook = integration.metadata.gradebook %}
+                        {% if gradebook.periods is defined and gradebook.periods|length > 0 %}
+                            <div class="space-y-4">
+                                {% for period in gradebook.periods %}
+                                <div class="rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800/50">
+                                    <h5 class="mb-2 text-sm font-semibold text-gray-900 dark:text-white/90">
+                                        {{ period.name ?? 'Période' }}
+                                    </h5>
+                                    {% if period.average is not null %}
+                                    <p class="text-sm text-gray-700 dark:text-gray-300">
+                                        Moyenne générale : <span class="font-semibold">{{ period.average }}/20</span>
+                                    </p>
+                                    {% endif %}
+                                </div>
+                                {% endfor %}
+                            </div>
+                        {% elseif gradebook.subjects is defined and gradebook.subjects|length > 0 %}
+                            <div class="space-y-3">
+                                {% for subject in gradebook.subjects %}
+                                <div class="rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800/50">
+                                    <h5 class="text-sm font-semibold text-gray-900 dark:text-white/90">
+                                        {{ subject.name ?? 'Matière' }}
+                                    </h5>
+                                    {% if subject.average is not null %}
+                                    <p class="mt-1 text-sm text-gray-700 dark:text-gray-300">
+                                        Moyenne : <span class="font-semibold">{{ subject.average }}/20</span>
+                                    </p>
+                                    {% endif %}
+                                </div>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <div class="rounded-lg border border-gray-200 bg-gray-50 p-4 text-sm text-gray-500 dark:border-gray-700 dark:bg-gray-800/50 dark:text-gray-400">
+                                Données du bulletin disponibles mais format non reconnu
+                            </div>
+                        {% endif %}
+                    {% else %}
+                        <div class="rounded-lg border border-gray-200 bg-gray-50 p-4 text-sm text-gray-500 dark:border-gray-700 dark:bg-gray-800/50 dark:text-gray-400">
+                            Aucun bulletin de notes disponible pour le moment
+                        </div>
+                    {% endif %}
+                </div>
 
-                {% if (integration.metadata.notebook is defined and integration.metadata.notebook|length > 0) or (integration.metadata.carnet_correspondance is defined and integration.metadata.carnet_correspondance|length > 0) %}
-                    <div>
-                        <h4 class="mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">Carnet de correspondance</h4>
-                        <pre class="rounded-lg bg-gray-50 p-4 text-xs text-gray-900 dark:bg-gray-800 dark:text-white/90 overflow-auto">{{ (integration.metadata.notebook ?? integration.metadata.carnet_correspondance)|json_encode(constant('JSON_PRETTY_PRINT')) }}</pre>
-                    </div>
-                {% endif %}
+                <!-- Carnet de correspondance -->
+                <div>
+                    <h4 class="mb-3 text-sm font-medium text-gray-700 dark:text-gray-300">📔 Carnet de correspondance</h4>
+                    {% set notebook = integration.metadata.notebook ?? integration.metadata.carnet_correspondance ?? [] %}
+                    {% if notebook|length > 0 %}
+                        <div class="space-y-3">
+                            {% for message in notebook %}
+                            <div class="rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800/50">
+                                <div class="mb-2 flex items-start justify-between">
+                                    <div class="flex-1">
+                                        {% if message.kind %}
+                                        <span class="inline-flex items-center rounded-full bg-brand-100 px-2.5 py-0.5 text-xs font-medium text-brand-800 dark:bg-brand-900/30 dark:text-brand-300">
+                                            {{ message.kind }}
+                                        </span>
+                                        {% endif %}
+                                        {% if message.date %}
+                                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                                            📅 {{ message.date|date('d/m/Y') }}
+                                        </p>
+                                        {% endif %}
+                                        {% if message.author and message.author != 'N/A' %}
+                                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                                            👤 {{ message.author }}
+                                        </p>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                {% if message.content %}
+                                <div class="mt-2 text-sm text-gray-700 dark:text-gray-300">
+                                    {{ message.content|raw }}
+                                </div>
+                                {% elseif message.raw.reason %}
+                                <div class="mt-2 text-sm text-gray-700 dark:text-gray-300">
+                                    {{ message.raw.reason }}
+                                </div>
+                                {% elseif message.raw.name %}
+                                <div class="mt-2 text-sm text-gray-700 dark:text-gray-300">
+                                    {{ message.raw.name }}
+                                </div>
+                                {% endif %}
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="rounded-lg border border-gray-200 bg-gray-50 p-4 text-sm text-gray-500 dark:border-gray-700 dark:bg-gray-800/50 dark:text-gray-400">
+                            Aucun message dans le carnet de correspondance pour le moment
+                        </div>
+                    {% endif %}
+                </div>
             </div>
         {% else %}
             <p class="text-sm text-gray-400">Aucune métadonnée disponible</p>
