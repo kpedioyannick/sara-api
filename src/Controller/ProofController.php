@@ -98,6 +98,11 @@ class ProofController extends AbstractController
             return new JsonResponse(['success' => false, 'message' => 'Tâche non trouvée'], 404);
         }
 
+        // Vérifier que la tâche n'est pas terminée - on ne peut ajouter des preuves que si la tâche est "pending" ou "in_progress"
+        if ($task->getStatus() === Task::STATUS_COMPLETED) {
+            return new JsonResponse(['success' => false, 'message' => 'Impossible d\'ajouter une preuve à une tâche terminée'], 403);
+        }
+
         $data = json_decode($request->getContent(), true);
         
         $proof = new Proof();
@@ -137,9 +142,13 @@ class ProofController extends AbstractController
 
         $this->em->persist($proof);
         
-        // Mettre à jour le statut de la tâche à "completed" après soumission de la preuve
-        $task->setStatus('completed');
-        $task->setUpdatedAt(new \DateTimeImmutable());
+        // Mettre à jour le statut de la tâche selon son statut actuel
+        // Si la tâche est en "pending", elle passe à "in_progress" après soumission de la preuve
+        // Les autres changements de statut doivent être faits manuellement par l'utilisateur
+        if ($task->getStatus() === Task::STATUS_PENDING) {
+            $task->setStatus(Task::STATUS_IN_PROGRESS);
+            $task->setUpdatedAt(new \DateTimeImmutable());
+        }
         
         $this->em->flush();
 

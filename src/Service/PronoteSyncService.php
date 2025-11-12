@@ -142,12 +142,12 @@ class PronoteSyncService
         }
         
         // Vérifier si un nouveau QR code est nécessaire (même si le processus a échoué)
-        $needsQrCode = isset($data['needs_qr_code']) && $data['needs_qr_code'];
-        if ($needsQrCode) {
+            $needsQrCode = isset($data['needs_qr_code']) && $data['needs_qr_code'];
+            if ($needsQrCode) {
             $errorMsg = $data['error'] ?? 'Le token a expiré';
-            throw new \RuntimeException('Le token a expiré. Veuillez vous reconnecter via QR code: ' . $errorMsg);
-        }
-        
+                throw new \RuntimeException('Le token a expiré. Veuillez vous reconnecter via QR code: ' . $errorMsg);
+            }
+            
         // Si le processus a échoué mais qu'on a un JSON valide, vérifier le success
         if (!$process->isSuccessful() && !$data['success']) {
             $errorMsg = $data['error'] ?? ($errorOutput ?: 'Erreur inconnue');
@@ -235,7 +235,7 @@ class PronoteSyncService
 
         // Stocker les évaluations/notes dans metadata (format Pawnote.js: data.evaluations)
         // Toujours sauvegarder, même si vide, pour indiquer que la synchronisation a été effectuée
-        $metadata = $integration->getMetadata() ?? [];
+            $metadata = $integration->getMetadata() ?? [];
         if (isset($data['data']['evaluations'])) {
             // Sauvegarder même si vide (tableau vide)
             $results['notes'] = is_array($data['data']['evaluations']) ? $data['data']['evaluations'] : [];
@@ -301,8 +301,8 @@ class PronoteSyncService
             // Chercher un événement existant par reference_id et integration
             if ($pronoteId) {
                 $planning = $this->em->getRepository(Planning::class)->findOneBy([
-                    'student' => $student,
-                    'type' => Planning::TYPE_HOMEWORK,
+                'user' => $student,
+                'type' => Planning::TYPE_HOMEWORK,
                     'integration' => $integration,
                     'referenceId' => $pronoteId
                 ]);
@@ -311,7 +311,7 @@ class PronoteSyncService
             // Créer un nouvel événement si non trouvé
             if (!$planning) {
                 $planning = new Planning();
-                $planning->setStudent($student);
+                $planning->setUser($student);
                 $count++;
             } else {
                 $updated++;
@@ -436,8 +436,8 @@ class PronoteSyncService
             // Chercher un événement existant par reference_id et integration
             if ($pronoteId) {
                 $planning = $this->em->getRepository(Planning::class)->findOneBy([
-                    'student' => $student,
-                    'type' => Planning::TYPE_COURSE,
+                'user' => $student,
+                'type' => Planning::TYPE_COURSE,
                     'integration' => $integration,
                     'referenceId' => $pronoteId
                 ]);
@@ -446,7 +446,7 @@ class PronoteSyncService
             // Créer un nouvel événement si non trouvé
             if (!$planning) {
                 $planning = new Planning();
-                $planning->setStudent($student);
+                $planning->setUser($student);
                 $count++;
             } else {
                 $updated++;
@@ -539,7 +539,7 @@ class PronoteSyncService
         foreach ($absences as $absence) {
             $date = new \DateTimeImmutable($absence['date'] ?? 'now');
             $existing = $this->planningRepository->findOneBy([
-                'student' => $student,
+                'user' => $student,
                 'type' => Planning::TYPE_OTHER,
                 'startDate' => $date,
             ]);
@@ -549,7 +549,7 @@ class PronoteSyncService
             }
 
             $planning = new Planning();
-            $planning->setStudent($student);
+            $planning->setUser($student);
             $planning->setTitle('Absence');
             $planning->setDescription($absence['reason'] ?? '');
             $planning->setType(Planning::TYPE_OTHER);

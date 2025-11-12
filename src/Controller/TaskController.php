@@ -113,6 +113,7 @@ class TaskController extends AbstractController
             'requires_proof' => isset($data['requiresProof']) ? (bool)$data['requiresProof'] : true, // Par défaut, toutes les tâches nécessitent des preuves
             'proof_type' => $data['proofType'] ?? null,
             'due_date' => $data['dueDate'] ?? null,
+            'created_at' => $data['createdAt'] ?? null,
         ], $objective, $assignedTo, $assignedType);
 
         // Validation
@@ -201,10 +202,22 @@ class TaskController extends AbstractController
         if (isset($data['requiresProof'])) {
             $task->setRequiresProof((bool)$data['requiresProof']);
         }
-        if (isset($data['proofType'])) $task->setProofType($data['proofType']);
-        if (isset($data['dueDate'])) {
-            $task->setDueDate(new \DateTimeImmutable($data['dueDate']));
+        // Mettre à jour les dates si fournies
+        if (isset($data['createdAt']) && $data['createdAt']) {
+            try {
+                $task->setCreatedAt(new \DateTimeImmutable($data['createdAt']));
+            } catch (\Exception $e) {
+                // Ignorer les erreurs de format de date
+            }
         }
+        if (isset($data['dueDate']) && $data['dueDate']) {
+            try {
+                $task->setDueDate(new \DateTimeImmutable($data['dueDate']));
+            } catch (\Exception $e) {
+                // Ignorer les erreurs de format de date
+            }
+        }
+        if (isset($data['proofType'])) $task->setProofType($data['proofType']);
         
         // Mise à jour de l'assignation
         if (isset($data['assignedType'])) {
@@ -263,6 +276,35 @@ class TaskController extends AbstractController
         $task = $this->taskRepository->find($id);
         if (!$task || $task->getCoach() !== $coach) {
             return new JsonResponse(['success' => false, 'message' => 'Tâche non trouvée'], 404);
+        }
+
+        // Vérifier que l'objectif peut être modifié (pas encore validé par le coach)
+        $objective = $task->getObjective();
+        if (!$objective) {
+            return new JsonResponse(['success' => false, 'message' => 'Objectif non trouvé'], 404);
+        }
+
+        // Vérifier que l'objectif appartient au coach
+        if ($objective->getCoach() !== $coach) {
+            return new JsonResponse(['success' => false, 'message' => 'Vous n\'avez pas le droit de supprimer cette tâche'], 403);
+        }
+
+        // Vérifier si on peut modifier des tâches pour cet objectif (statut)
+        // La suppression n'est possible que si l'objectif n'est pas encore validé
+        if (!$objective->canModifyTasks()) {
+            return new JsonResponse([
+                'success' => false, 
+                'message' => 'Impossible de supprimer cette tâche. ' . $objective->getStatusMessage()
+            ], 403);
+        }
+
+        // Vérifier que la tâche n'est pas terminée
+        // Les tâches terminées ne peuvent pas être supprimées
+        if ($task->getStatus() === Task::STATUS_COMPLETED) {
+            return new JsonResponse([
+                'success' => false, 
+                'message' => 'Impossible de supprimer une tâche terminée.'
+            ], 403);
         }
 
         // Supprimer les événements Planning associés

@@ -111,7 +111,7 @@ async function fetchPronoteData(credentialsJson: string) {
         const selectedPeriod = tab.defaultPeriod;
         if (!selectedPeriod) {
           console.error(`❌ Aucune période par défaut disponible`);
-        }
+        } else {
           const notebookResult = await notebook(session, selectedPeriod);
           
           // Le notebook est un objet avec différentes propriétés (absences, delays, observations, etc.)

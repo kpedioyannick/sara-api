@@ -250,4 +250,34 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     {
         return $this instanceof \App\Entity\Specialist;
     }
+
+    /**
+     * @return Collection<int, Planning>
+     */
+    public function getPlannings(): Collection
+    {
+        return $this->plannings;
+    }
+
+    public function addPlanning(Planning $planning): static
+    {
+        if (!$this->plannings->contains($planning)) {
+            $this->plannings->add($planning);
+            $planning->setUser($this);
+        }
+
+        return $this;
+    }
+
+    public function removePlanning(Planning $planning): static
+    {
+        if ($this->plannings->removeElement($planning)) {
+            // set the owning side to null (unless already changed)
+            if ($planning->getUser() === $this) {
+                $planning->setUser(null);
+            }
+        }
+
+        return $this;
+    }
 }

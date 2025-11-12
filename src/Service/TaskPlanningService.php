@@ -87,7 +87,7 @@ class TaskPlanningService
         $planning->setEndDate($endDate);
         $planning->setType(Planning::TYPE_TASK);
         $planning->setStatus(Planning::STATUS_TO_DO);
-        $planning->setStudent($student);
+        $planning->setUser($student);
         $planning->setMetadata([
             'taskId' => $task->getId(),
             'objectiveId' => $task->getObjective()?->getId(),
@@ -129,7 +129,7 @@ class TaskPlanningService
             $planning->setEndDate($eventEndDate);
             $planning->setType(Planning::TYPE_TASK);
             $planning->setStatus(Planning::STATUS_TO_DO);
-            $planning->setStudent($student);
+            $planning->setUser($student);
             $planning->setMetadata([
                 'taskId' => $task->getId(),
                 'objectiveId' => $task->getObjective()?->getId(),
@@ -193,7 +193,7 @@ class TaskPlanningService
 
         $existingPlannings = $this->planningRepository->createQueryBuilder('p')
             ->where('p.type = :type')
-            ->andWhere('p.student = :student')
+            ->andWhere('p.user = :student')
             ->setParameter('type', Planning::TYPE_TASK)
             ->setParameter('student', $student)
             ->getQuery()

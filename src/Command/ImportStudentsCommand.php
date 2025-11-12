@@ -153,7 +153,7 @@ class ImportStudentsCommand extends Command
                         $objective->setTitle($objectiveData['title']);
                         $objective->setDescription($objectiveData['description']);
                         $objective->setCategory('comportement');
-                        $objective->setStatus('pending');
+                        $objective->setStatus(Objective::STATUS_MODIFICATION);
                         $objective->setProgress(0);
                         $objective->setStudent($student);
                         $objective->setCoach($coach);

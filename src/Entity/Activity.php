@@ -40,6 +40,9 @@ class Activity
     #[ORM\Column]
     private ?int $id = null;
 
+    #[ORM\Column(length: 255)]
+    private ?string $title = null;
+
     #[ORM\Column(type: 'text')]
     private ?string $description = null;
 
@@ -91,6 +94,17 @@ class Activity
     public function getId(): ?int
     {
         return $this->id;
+    }
+
+    public function getTitle(): ?string
+    {
+        return $this->title;
+    }
+
+    public function setTitle(string $title): static
+    {
+        $this->title = $title;
+        return $this;
     }
 
     public function getDescription(): ?string
@@ -262,6 +276,7 @@ class Activity
     {
         return [
             'id' => $this->getId(),
+            'title' => $this->getTitle(),
             'description' => $this->getDescription(),
             'duration' => $this->getDuration(),
             'ageRange' => $this->getAgeRange(),
@@ -330,6 +345,7 @@ class Activity
     public static function create(array $data, User $createdBy, ActivityCategory $category): self
     {
         $activity = new self();
+        $activity->setTitle($data['title'] ?? '');
         $activity->setDescription($data['description']);
         $activity->setDuration($data['duration']);
         $activity->setAgeRange($data['ageRange']);

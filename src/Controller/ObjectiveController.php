@@ -265,7 +265,7 @@ class ObjectiveController extends AbstractController
             $objective->setStudent($student);
             $objective->setDescription($data['description']);
             $objective->setCategory($data['category']);
-            $objective->setStatus('pending');
+            $objective->setStatus(Objective::STATUS_MODIFICATION);
             $objective->setProgress(0);
             
             // Utiliser le titre généré par OpenAI
@@ -275,6 +275,12 @@ class ObjectiveController extends AbstractController
                 // Fallback si pas de titre généré
                 $objective->setTitle('Objectif - ' . substr($data['description'], 0, 50));
             }
+
+            // Date limite par défaut : date de création + 3 semaines
+            // Note: createdAt sera défini dans le constructeur, on utilise la date actuelle
+            $createdAt = new \DateTimeImmutable();
+            $deadline = $createdAt->modify('+3 weeks');
+            $objective->setDeadline($deadline);
 
             // Validation
             $errors = $this->validator->validate($objective);
@@ -417,7 +423,7 @@ class ObjectiveController extends AbstractController
             'canModifyTasks' => $objective->canModifyTasks(),
             'progress' => $objective->getProgress(),
             'deadline' => $objective->getDeadline()?->format('Y-m-d'),
-            'createdAt' => $objective->getCreatedAt()?->format('d/m/Y H:i'),
+            'createdAt' => $objective->getCreatedAt()?->format('Y-m-d'),
             'updatedAt' => $objective->getUpdatedAt()?->format('d/m/Y H:i'),
             'student' => [
                 'id' => $objective->getStudent()->getId(),
@@ -539,6 +545,14 @@ class ObjectiveController extends AbstractController
             $objective->setStatus($data['status']);
         }
         if (isset($data['progress'])) $objective->setProgress($data['progress']);
+        // Mettre à jour les dates si fournies
+        if (isset($data['createdAt']) && $data['createdAt']) {
+            try {
+                $objective->setCreatedAt(new \DateTimeImmutable($data['createdAt']));
+            } catch (\Exception $e) {
+                // Ignorer les erreurs de format de date
+            }
+        }
         if (isset($data['deadline'])) {
             $objective->setDeadline(new \DateTimeImmutable($data['deadline']));
         }

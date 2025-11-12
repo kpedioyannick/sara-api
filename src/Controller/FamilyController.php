@@ -199,7 +199,50 @@ class FamilyController extends AbstractController
         }
 
         $data = json_decode($request->getContent(), true);
-        $family = new Family(); // L'identifiant est généré automatiquement dans le constructeur
+        
+        // Vérifier que les données du parent sont fournies et valides
+        if (!isset($data['parent']) || !is_array($data['parent'])) {
+            return new JsonResponse(['success' => false, 'message' => 'Les données du parent sont requises'], 400);
+        }
+        
+        $parentData = $data['parent'];
+        
+        // Vérifier les champs obligatoires
+        if (empty($parentData['email']) || empty($parentData['firstName']) || empty($parentData['lastName'])) {
+            return new JsonResponse(['success' => false, 'message' => 'Tous les champs du parent sont obligatoires'], 400);
+        }
+        
+        // Vérifier si un parent avec cet email existe déjà
+        $existingParent = $this->parentRepository->findOneBy(['email' => $parentData['email']]);
+        if ($existingParent) {
+            return new JsonResponse(['success' => false, 'message' => 'Un parent avec cet email existe déjà'], 400);
+        }
+
+        // Créer le parent d'abord pour valider avant de créer la famille
+        $parent = new ParentUser();
+        
+        $parent->setEmail($parentData['email']);
+        $parent->setFirstName($parentData['firstName']);
+        $parent->setLastName($parentData['lastName']);
+        
+        // Mot de passe par défaut
+        $defaultPassword = 'password123';
+        $hashedPassword = $this->passwordHasher->hashPassword($parent, $defaultPassword);
+        $parent->setPassword($hashedPassword);
+        $parent->setIsActive(true);
+
+        // Validation parent AVANT de créer la famille
+        $errors = $this->validator->validate($parent);
+        if (count($errors) > 0) {
+            $errorMessages = [];
+            foreach ($errors as $error) {
+                $errorMessages[] = $error->getMessage();
+            }
+            return new JsonResponse(['success' => false, 'message' => implode(', ', $errorMessages)], 400);
+        }
+
+        // Créer la famille seulement si le parent est valide
+        $family = new Family();
         $family->setCoach($coach);
 
         // Validation famille
@@ -212,51 +255,13 @@ class FamilyController extends AbstractController
             return new JsonResponse(['success' => false, 'message' => implode(', ', $errorMessages)], 400);
         }
 
+        // Lier le parent à la famille
+        $parent->setFamily($family);
+
+        // Persister et sauvegarder en une seule transaction
         $this->em->persist($family);
+        $this->em->persist($parent);
         $this->em->flush();
-
-        // Créer le parent si les données sont fournies
-        if (isset($data['parent']) && is_array($data['parent'])) {
-            $parentData = $data['parent'];
-            
-            // Vérifier si un parent avec cet email existe déjà
-            $existingParent = $this->parentRepository->findOneBy(['email' => $parentData['email'] ?? '']);
-            if ($existingParent) {
-                return new JsonResponse(['success' => false, 'message' => 'Un parent avec cet email existe déjà'], 400);
-            }
-
-            $parent = new ParentUser();
-            $parent->setFamily($family);
-            
-            if (isset($parentData['email'])) {
-                $parent->setEmail($parentData['email']);
-            }
-            if (isset($parentData['firstName'])) {
-                $parent->setFirstName($parentData['firstName']);
-            }
-            if (isset($parentData['lastName'])) {
-                $parent->setLastName($parentData['lastName']);
-            }
-            
-            // Mot de passe par défaut
-            $defaultPassword = 'password123';
-            $hashedPassword = $this->passwordHasher->hashPassword($parent, $defaultPassword);
-            $parent->setPassword($hashedPassword);
-            $parent->setIsActive(true);
-
-            // Validation parent
-            $errors = $this->validator->validate($parent);
-            if (count($errors) > 0) {
-                $errorMessages = [];
-                foreach ($errors as $error) {
-                    $errorMessages[] = $error->getMessage();
-                }
-                return new JsonResponse(['success' => false, 'message' => implode(', ', $errorMessages)], 400);
-            }
-
-            $this->em->persist($parent);
-            $this->em->flush();
-        }
 
         return new JsonResponse(['success' => true, 'id' => $family->getId(), 'message' => 'Famille créée avec succès']);
     }

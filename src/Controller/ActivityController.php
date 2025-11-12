@@ -134,6 +134,9 @@ class ActivityController extends AbstractController
             $data = json_decode($request->getContent(), true);
             
             // Validation des champs requis
+            if (empty($data['title'])) {
+                return new JsonResponse(['success' => false, 'message' => 'Le titre est requis'], 400);
+            }
             if (empty($data['description'])) {
                 return new JsonResponse(['success' => false, 'message' => 'La description est requise'], 400);
             }
@@ -158,6 +161,7 @@ class ActivityController extends AbstractController
 
             // Créer l'activité
             $activity = Activity::create([
+                'title' => $data['title'],
                 'description' => $data['description'],
                 'duration' => $data['duration'],
                 'ageRange' => $data['ageRange'],
@@ -256,6 +260,49 @@ class ActivityController extends AbstractController
         ]);
     }
 
+    #[Route('/admin/activities/{id}/edit', name: 'admin_activities_edit', requirements: ['id' => '\d+'])]
+    #[IsGranted('ROLE_USER')]
+    public function edit(int $id): Response
+    {
+        $user = $this->getUser();
+        if (!$user) {
+            throw $this->createAccessDeniedException('Vous devez être connecté');
+        }
+
+        $activity = $this->activityRepository->find($id);
+        
+        if (!$activity) {
+            throw $this->createNotFoundException('Activité non trouvée');
+        }
+
+        // Vérifier les permissions de modification
+        if (!$this->permissionService->canModifyActivity($user, $activity)) {
+            throw $this->createAccessDeniedException('Vous n\'avez pas le droit de modifier cette activité');
+        }
+
+        // Vérifier si on peut modifier cette activité (statut)
+        if (!$activity->canModify()) {
+            $this->addFlash('error', 'Impossible de modifier cette activité. ' . $activity->getStatusMessage());
+            return $this->redirectToRoute('admin_activities_detail', ['id' => $id]);
+        }
+
+        // Récupérer toutes les catégories pour le formulaire d'édition
+        $categories = $this->categoryRepository->findActiveOrdered();
+        $categoriesData = array_map(fn($cat) => $cat->toArray(), $categories);
+
+        return $this->render('tailadmin/pages/activities/edit.html.twig', [
+            'pageTitle' => 'Modifier l\'Activité | TailAdmin',
+            'pageName' => 'activities',
+            'activity' => $activity->toArray(),
+            'categories' => $categoriesData,
+            'breadcrumbs' => [
+                ['label' => 'Dashboard', 'url' => $this->generateUrl('admin_dashboard')],
+                ['label' => 'Activités', 'url' => $this->generateUrl('admin_activities_list')],
+                ['label' => 'Détail', 'url' => $this->generateUrl('admin_activities_detail', ['id' => $id])],
+            ],
+        ]);
+    }
+
     #[Route('/admin/activities/{id}/update', name: 'admin_activities_update', methods: ['POST'])]
     #[IsGranted('ROLE_USER')]
     public function update(int $id, Request $request): JsonResponse
@@ -295,6 +342,9 @@ class ActivityController extends AbstractController
             $data = json_decode($request->getContent(), true);
 
             // Mettre à jour les champs
+            if (isset($data['title'])) {
+                $activity->setTitle($data['title']);
+            }
             if (isset($data['description'])) {
                 $activity->setDescription($data['description']);
             }
@@ -348,10 +398,17 @@ class ActivityController extends AbstractController
 
             $this->em->flush();
 
-            return new JsonResponse([
-                'success' => true,
-                'message' => 'Activité mise à jour avec succès'
-            ]);
+            // Si c'est une requête AJAX, retourner JSON
+            if ($request->isXmlHttpRequest() || $request->headers->get('Content-Type') === 'application/json') {
+                return new JsonResponse([
+                    'success' => true,
+                    'message' => 'Activité mise à jour avec succès'
+                ]);
+            }
+
+            // Sinon, rediriger vers la page de détail
+            $this->addFlash('success', 'Activité mise à jour avec succès');
+            return $this->redirectToRoute('admin_activities_detail', ['id' => $id]);
         } catch (\Exception $e) {
             $this->logger->error('Erreur lors de la mise à jour d\'activité', [
                 'activity_id' => $id,

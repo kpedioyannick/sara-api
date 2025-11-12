@@ -60,23 +60,126 @@
       <div class="p-4 xl:p-6">
         <div class="flex items-start justify-between mb-4">
           <div class="flex-1">
-            <h3 class="text-2xl font-semibold text-gray-800 dark:text-white/90 mb-2">
-              {{ objective.title }}
-            </h3>
+            <div class="flex items-center justify-between mb-2">
+              <h3 class="text-2xl font-semibold text-gray-800 dark:text-white/90">
+                {{ objective.title }}
+              </h3>
+              {% if app.user.isCoach() %}
+              <button
+                @click="openObjectiveEdit()"
+                class="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-theme-xs transition-colors hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+              >
+                <svg class="fill-current" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                  <path d="M11.333 2.667a2.667 2.667 0 0 1 3.774 3.774l-8 8a2.667 2.667 0 0 1-1.886.78H2.667v-2.554a2.667 2.667 0 0 1 .78-1.886l8-8zm2.554 1.22L12.113 2.113a1.333 1.333 0 0 0-1.886 0L9.333 3.007l2.667 2.667 1.554-1.554a1.333 1.333 0 0 0 0-1.886z" fill=""/>
+                </svg>
+                Modifier
+              </button>
+              {% endif %}
+            </div>
             <div class="flex flex-wrap items-center gap-3 mb-4">
               <span class="inline-flex rounded-full bg-brand-50 px-3 py-1 text-sm font-medium text-brand-500 dark:bg-brand-500/15 dark:text-brand-400">
                 {{ objective.category }}
               </span>
-              <span class="inline-flex items-center gap-2 rounded-full px-3 py-1 text-sm font-medium
-                {% if objective.status == 'completed' %}bg-success-50 text-success-500 dark:bg-success-500/15 dark:text-success-400
-                {% elseif objective.status == 'in_action' %}bg-brand-50 text-brand-500 dark:bg-brand-500/15 dark:text-brand-400
-                {% elseif objective.status == 'validated' %}bg-blue-50 text-blue-500 dark:bg-blue-500/15 dark:text-blue-400
-                {% elseif objective.status == 'pending_validation' %}bg-warning-50 text-warning-500 dark:bg-warning-500/15 dark:text-warning-400
-                {% elseif objective.status == 'modification' %}bg-gray-100 text-gray-700 dark:bg-white/[0.03] dark:text-white/80
-                {% elseif objective.status == 'paused' %}bg-gray-100 text-gray-700 dark:bg-white/[0.03] dark:text-white/80
-                {% else %}bg-gray-100 text-gray-700 dark:bg-white/[0.03] dark:text-white/80{% endif %}">
-                {{ objective.statusLabel|default(objective.status) }}
-              </span>
+              <div class="inline-flex items-center gap-2" x-data="{ 
+                statusEditMode: false, 
+                currentStatus: '{{ objective.status }}', 
+                isUpdating: false,
+                async updateStatus() {
+                  if (this.isUpdating) return;
+                  this.isUpdating = true;
+                  
+                  try {
+                    const response = await fetch('/admin/objectives/{{ objective.id }}/update', {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                      },
+                      body: JSON.stringify({
+                        status: this.currentStatus,
+                      }),
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                      if (window.showToast) {
+                        window.showToast('Statut mis à jour avec succès', 'success');
+                      }
+                      this.statusEditMode = false;
+                      setTimeout(() => {
+                        window.location.reload();
+                      }, 500);
+                    } else {
+                      if (window.showToast) {
+                        window.showToast(result.message || 'Erreur lors de la mise à jour du statut', 'error');
+                      }
+                      this.isUpdating = false;
+                    }
+                  } catch (error) {
+                    console.error('Erreur:', error);
+                    if (window.showToast) {
+                      window.showToast('Une erreur est survenue', 'error');
+                    }
+                    this.isUpdating = false;
+                  }
+                }
+              }">
+                <template x-if="!statusEditMode">
+                  <span class="inline-flex items-center gap-2 rounded-full px-3 py-1 text-sm font-medium
+                    {% if objective.status == 'completed' %}bg-success-50 text-success-500 dark:bg-success-500/15 dark:text-success-400
+                    {% elseif objective.status == 'in_action' %}bg-brand-50 text-brand-500 dark:bg-brand-500/15 dark:text-brand-400
+                    {% elseif objective.status == 'validated' %}bg-blue-50 text-blue-500 dark:bg-blue-500/15 dark:text-blue-400
+                    {% elseif objective.status == 'pending_validation' %}bg-warning-50 text-warning-500 dark:bg-warning-500/15 dark:text-warning-400
+                    {% elseif objective.status == 'modification' %}bg-gray-100 text-gray-700 dark:bg-white/[0.03] dark:text-white/80
+                    {% elseif objective.status == 'paused' %}bg-gray-100 text-gray-700 dark:bg-white/[0.03] dark:text-white/80
+                    {% else %}bg-gray-100 text-gray-700 dark:bg-white/[0.03] dark:text-white/80{% endif %}">
+                    <span>{{ objective.statusLabel|default('Statut inconnu') }}</span>
+                    {% if app.user.isCoach() %}
+                    <button
+                      @click="statusEditMode = true"
+                      class="ml-1 rounded p-0.5 hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
+                      title="Modifier le statut"
+                    >
+                      <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                      </svg>
+                    </button>
+                    {% endif %}
+                  </span>
+                </template>
+                <template x-if="statusEditMode">
+                  <div class="inline-flex items-center gap-2">
+                    <select
+                      x-model="currentStatus"
+                      :disabled="isUpdating"
+                      class="rounded-lg border border-gray-200 bg-white px-3 py-1 text-sm font-medium text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90 disabled:opacity-50"
+                    >
+                      <option value="modification">En cours de Modification</option>
+                      <option value="pending_validation">Attente de Validation par Coach</option>
+                      <option value="validated">Validé par le coach</option>
+                      <option value="in_action">En Action</option>
+                      <option value="completed">Terminé</option>
+                      <option value="paused">En pause</option>
+                    </select>
+                    <button
+                      @click="updateStatus()"
+                      :disabled="isUpdating || currentStatus === '{{ objective.status }}'"
+                      class="rounded-lg bg-brand-500 px-3 py-1 text-xs font-medium text-white hover:bg-brand-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <span x-show="!isUpdating">✓</span>
+                      <span x-show="isUpdating">...</span>
+                    </button>
+                    <button
+                      @click="statusEditMode = false; currentStatus = '{{ objective.status }}'"
+                      :disabled="isUpdating"
+                      class="rounded-lg border border-gray-200 bg-white px-3 py-1 text-xs font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700 disabled:opacity-50"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                </template>
+              </div>
             </div>
             
             <!-- Message de statut -->
@@ -99,7 +202,7 @@
           </a>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
           <div class="flex items-center gap-3">
             <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-brand-50 dark:bg-brand-500/15">
               <svg class="fill-current text-brand-500 dark:text-brand-400" width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -111,6 +214,19 @@
               <p class="text-base font-medium text-gray-800 dark:text-white/90">{{ objective.student.firstName }} {{ objective.student.lastName }}</p>
             </div>
           </div>
+          {% if objective.createdAt %}
+          <div class="flex items-center gap-3">
+            <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-50 dark:bg-blue-500/15">
+              <svg class="fill-current text-blue-500 dark:text-blue-400" width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path fill-rule="evenodd" clip-rule="evenodd" d="M5.33329 1.0835C5.74751 1.0835 6.08329 1.41928 6.08329 1.8335V2.25016L9.91663 2.25016V1.8335C9.91663 1.41928 10.2524 1.0835 10.6666 1.0835C11.0808 1.0835 11.4166 1.41928 11.4166 1.8335V2.25016L12.3333 2.25016C13.2998 2.25016 14.0833 3.03366 14.0833 4.00016V12.6668C14.0833 13.6333 13.2998 14.4168 12.3333 14.4168L3.66663 14.4168C2.70013 14.4168 1.91663 13.6333 1.91663 12.6668V4.00016C1.91663 3.03366 2.70013 2.25016 3.66663 2.25016L4.58329 2.25016V1.8335C4.58329 1.41928 4.91908 1.0835 5.33329 1.0835ZM12.5833 6.75016L3.41663 6.75016L3.41663 12.6668C3.41663 12.8049 3.52855 12.9168 3.66663 12.9168L12.3333 12.9168C12.4714 12.9168 12.5833 12.8049 12.5833 12.6668L12.5833 6.75016Z" fill=""/>
+              </svg>
+            </div>
+            <div>
+              <p class="text-sm text-gray-500 dark:text-gray-400">Date de début</p>
+              <p class="text-base font-medium text-gray-800 dark:text-white/90">{{ objective.createdAt|date('d/m/Y') }}</p>
+            </div>
+          </div>
+          {% endif %}
           {% if objective.deadline %}
           <div class="flex items-center gap-3">
             <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-warning-50 dark:bg-warning-500/15">
@@ -119,7 +235,7 @@
               </svg>
             </div>
             <div>
-              <p class="text-sm text-gray-500 dark:text-gray-400">Échéance</p>
+              <p class="text-sm text-gray-500 dark:text-gray-400">Date de fin</p>
               <p class="text-base font-medium text-gray-800 dark:text-white/90">{{ objective.deadline|date('d/m/Y') }}</p>
             </div>
           </div>
@@ -233,7 +349,7 @@
 
                 <label
                   for="taskCheckbox{{ task.id }}"
-                  class="w-full cursor-pointer"
+                  class="w-full {% if task.status != 'completed' %}cursor-pointer{% else %}cursor-not-allowed opacity-75{% endif %}"
                   @click.stop
                 >
                   <div class="relative flex items-start">
@@ -242,14 +358,15 @@
                       id="taskCheckbox{{ task.id }}"
                       class="sr-only taskCheckbox"
                       data-task-id="{{ task.id }}"
-                      {% if task.status == 'completed' %}checked{% endif %}
+                      {% if task.status == 'completed' %}checked disabled{% endif %}
                       data-task-id="{{ task.id }}"
                       data-task-title="{{ task.title|escape }}"
-                      @change.stop="openProofModalFromCheckbox($event)"
+                      data-task-status="{{ task.status }}"
+                      {% if task.status != 'completed' %}@change.stop="openProofModalFromCheckbox($event)"{% endif %}
                       @click.stop
                     />
                     <div
-                      class="flex items-center justify-center w-full h-5 mr-3 border border-gray-300 rounded-md box max-w-5 dark:border-gray-700"
+                      class="flex items-center justify-center w-full h-5 mr-3 border border-gray-300 rounded-md box max-w-5 dark:border-gray-700 {% if task.status == 'completed' %}opacity-50{% endif %}"
                     >
                       <span class="opacity-0">
                         <svg
@@ -318,6 +435,8 @@
                     data-task-student-id="{{ task.student ? task.student.id : '' }}"
                     data-task-parent-id="{{ task.parent ? task.parent.id : '' }}"
                     data-task-specialist-id="{{ task.specialist ? task.specialist.id : '' }}"
+                    data-task-created-at="{{ task.createdAt|default('') }}"
+                    data-task-due-date="{{ task.dueDate|default('') }}"
                     @click="openTaskConfig($event)"
                     {% if not objective.canModifyTasks %}disabled{% endif %}
                     class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-theme-xs font-medium {% if objective.canModifyTasks %}bg-gray-50 text-gray-500 hover:bg-gray-100 dark:bg-white/[0.02] dark:text-gray-400 dark:hover:bg-white/[0.03]{% else %}bg-gray-200 text-gray-400 cursor-not-allowed dark:bg-gray-800 dark:text-gray-600{% endif %}"
@@ -328,15 +447,30 @@
                     </svg>
                     Configurer
                   </button>
+                  {% if objective.canModifyTasks and task.status != 'completed' %}
+                  <button
+                    data-task-id="{{ task.id }}"
+                    data-task-status="{{ task.status }}"
+                    @click="deleteTask({{ task.id }}, '{{ task.status }}')"
+                    class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-theme-xs font-medium bg-red-50 text-red-500 hover:bg-red-100 dark:bg-red-500/15 dark:text-red-400 dark:hover:bg-red-500/25"
+                    title="Supprimer la tâche"
+                  >
+                    <svg class="fill-current" width="14" height="14" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M5.33333 2.66667V1.33333C5.33333 0.979711 5.47381 0.640573 5.72386 0.390524C5.97391 0.140476 6.31305 0 6.66667 0H9.33333C9.68696 0 10.0261 0.140476 10.2761 0.390524C10.5262 0.640573 10.6667 0.979711 10.6667 1.33333V2.66667H14.6667C15.0333 2.66667 15.3333 2.96667 15.3333 3.33333C15.3333 3.7 15.0333 4 14.6667 4H13.3333V14C13.3333 14.7072 12.7472 15.3333 12 15.3333H4C3.25281 15.3333 2.66667 14.7072 2.66667 14V4H1.33333C0.966667 4 0.666667 3.7 0.666667 3.33333C0.666667 2.96667 0.966667 2.66667 1.33333 2.66667H5.33333ZM6.66667 1.33333V2.66667H9.33333V1.33333H6.66667Z" fill="currentColor"/>
+                    </svg>
+                    Supprimer
+                  </button>
+                  {% endif %}
                 </div>
 
                 <div
                   class="flex items-center justify-between w-full gap-5 xl:w-auto xl:justify-normal"
                 >
                   <div class="flex items-center gap-3">
-                    {% if task.dueDate %}
+                    {% if task.createdAt %}
                     <span
                       class="flex items-center gap-1 text-sm text-gray-500 cursor-pointer dark:text-gray-400"
+                      title="Date de début"
                     >
                       <svg
                         class="fill-current"
@@ -353,7 +487,30 @@
                           fill=""
                         />
                       </svg>
-                      {{ task.dueDate|date('d/m/Y') }}
+                      Début: {{ task.createdAt|date('d/m/Y') }}
+                    </span>
+                    {% endif %}
+                    {% if task.dueDate %}
+                    <span
+                      class="flex items-center gap-1 text-sm text-gray-500 cursor-pointer dark:text-gray-400"
+                      title="Date de fin"
+                    >
+                      <svg
+                        class="fill-current"
+                        width="16"
+                        height="16"
+                        viewBox="0 0 16 16"
+                        fill="none"
+                        xmlns="http://www.w3.org/2000/svg"
+                      >
+                        <path
+                          fill-rule="evenodd"
+                          clip-rule="evenodd"
+                          d="M5.33329 1.0835C5.74751 1.0835 6.08329 1.41928 6.08329 1.8335V2.25016L9.91663 2.25016V1.8335C9.91663 1.41928 10.2524 1.0835 10.6666 1.0835C11.0808 1.0835 11.4166 1.41928 11.4166 1.8335V2.25016L12.3333 2.25016C13.2998 2.25016 14.0833 3.03366 14.0833 4.00016V12.6668C14.0833 13.6333 13.2998 14.4168 12.3333 14.4168L3.66663 14.4168C2.70013 14.4168 1.91663 13.6333 1.91663 12.6668V4.00016C1.91663 3.03366 2.70013 2.25016 3.66663 2.25016L4.58329 2.25016V1.8335C4.58329 1.41928 4.91908 1.0835 5.33329 1.0835ZM5.33329 3.75016L3.66663 3.75016C3.52855 3.75016 3.41663 3.86209 3.41663 4.00016V5.25016L12.5833 5.25016V4.00016C12.5833 3.86209 12.4714 3.75016 12.3333 3.75016L10.6666 3.75016L5.33329 3.75016ZM12.5833 6.75016L3.41663 6.75016L3.41663 12.6668C3.41663 12.8049 3.52855 12.9168 3.66663 12.9168L12.3333 12.9168C12.4714 12.9168 12.5833 12.8049 12.5833 12.6668L12.5833 6.75016Z"
+                          fill=""
+                        />
+                      </svg>
+                      Fin: {{ task.dueDate|date('d/m/Y') }}
                     </span>
                     {% endif %}
                   </div>
@@ -425,7 +582,9 @@
                       checked
                       data-task-id="{{ task.id }}"
                       data-task-title="{{ task.title|escape }}"
-                      @change.stop="openProofModalFromCheckbox($event)"
+                      data-task-status="{{ task.status }}"
+                      {% if task.status != 'completed' %}@change.stop="openProofModalFromCheckbox($event)"{% endif %}
+                      {% if task.status == 'completed' %}disabled{% endif %}
                       @click.stop
                     />
                     <div
@@ -498,6 +657,8 @@
                     data-task-student-id="{{ task.student ? task.student.id : '' }}"
                     data-task-parent-id="{{ task.parent ? task.parent.id : '' }}"
                     data-task-specialist-id="{{ task.specialist ? task.specialist.id : '' }}"
+                    data-task-created-at="{{ task.createdAt|default('') }}"
+                    data-task-due-date="{{ task.dueDate|default('') }}"
                     @click="openTaskConfig($event)"
                     {% if not objective.canModifyTasks %}disabled{% endif %}
                     class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-theme-xs font-medium {% if objective.canModifyTasks %}bg-gray-50 text-gray-500 hover:bg-gray-100 dark:bg-white/[0.02] dark:text-gray-400 dark:hover:bg-white/[0.03]{% else %}bg-gray-200 text-gray-400 cursor-not-allowed dark:bg-gray-800 dark:text-gray-600{% endif %}"
@@ -508,15 +669,30 @@
                     </svg>
                     Configurer
                   </button>
+                  {% if objective.canModifyTasks and task.status != 'completed' %}
+                  <button
+                    data-task-id="{{ task.id }}"
+                    data-task-status="{{ task.status }}"
+                    @click="deleteTask({{ task.id }}, '{{ task.status }}')"
+                    class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-theme-xs font-medium bg-red-50 text-red-500 hover:bg-red-100 dark:bg-red-500/15 dark:text-red-400 dark:hover:bg-red-500/25"
+                    title="Supprimer la tâche"
+                  >
+                    <svg class="fill-current" width="14" height="14" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M5.33333 2.66667V1.33333C5.33333 0.979711 5.47381 0.640573 5.72386 0.390524C5.97391 0.140476 6.31305 0 6.66667 0H9.33333C9.68696 0 10.0261 0.140476 10.2761 0.390524C10.5262 0.640573 10.6667 0.979711 10.6667 1.33333V2.66667H14.6667C15.0333 2.66667 15.3333 2.96667 15.3333 3.33333C15.3333 3.7 15.0333 4 14.6667 4H13.3333V14C13.3333 14.7072 12.7472 15.3333 12 15.3333H4C3.25281 15.3333 2.66667 14.7072 2.66667 14V4H1.33333C0.966667 4 0.666667 3.7 0.666667 3.33333C0.666667 2.96667 0.966667 2.66667 1.33333 2.66667H5.33333ZM6.66667 1.33333V2.66667H9.33333V1.33333H6.66667Z" fill="currentColor"/>
+                    </svg>
+                    Supprimer
+                  </button>
+                  {% endif %}
                 </div>
 
                 <div
                   class="flex items-center justify-between w-full gap-5 xl:w-auto xl:justify-normal"
                 >
                   <div class="flex items-center gap-3">
-                    {% if task.dueDate %}
+                    {% if task.createdAt %}
                     <span
                       class="flex items-center gap-1 text-sm text-gray-500 cursor-pointer dark:text-gray-400"
+                      title="Date de début"
                     >
                       <svg
                         class="fill-current"
@@ -533,7 +709,30 @@
                           fill=""
                         />
                       </svg>
-                      {{ task.dueDate|date('d/m/Y') }}
+                      Début: {{ task.createdAt|date('d/m/Y') }}
+                    </span>
+                    {% endif %}
+                    {% if task.dueDate %}
+                    <span
+                      class="flex items-center gap-1 text-sm text-gray-500 cursor-pointer dark:text-gray-400"
+                      title="Date de fin"
+                    >
+                      <svg
+                        class="fill-current"
+                        width="16"
+                        height="16"
+                        viewBox="0 0 16 16"
+                        fill="none"
+                        xmlns="http://www.w3.org/2000/svg"
+                      >
+                        <path
+                          fill-rule="evenodd"
+                          clip-rule="evenodd"
+                          d="M5.33329 1.0835C5.74751 1.0835 6.08329 1.41928 6.08329 1.8335V2.25016L9.91663 2.25016V1.8335C9.91663 1.41928 10.2524 1.0835 10.6666 1.0835C11.0808 1.0835 11.4166 1.41928 11.4166 1.8335V2.25016L12.3333 2.25016C13.2998 2.25016 14.0833 3.03366 14.0833 4.00016V12.6668C14.0833 13.6333 13.2998 14.4168 12.3333 14.4168L3.66663 14.4168C2.70013 14.4168 1.91663 13.6333 1.91663 12.6668V4.00016C1.91663 3.03366 2.70013 2.25016 3.66663 2.25016L4.58329 2.25016V1.8335C4.58329 1.41928 4.91908 1.0835 5.33329 1.0835ZM5.33329 3.75016L3.66663 3.75016C3.52855 3.75016 3.41663 3.86209 3.41663 4.00016V5.25016L12.5833 5.25016V4.00016C12.5833 3.86209 12.4714 3.75016 12.3333 3.75016L10.6666 3.75016L5.33329 3.75016ZM12.5833 6.75016L3.41663 6.75016L3.41663 12.6668C3.41663 12.8049 3.52855 12.9168 3.66663 12.9168L12.3333 12.9168C12.4714 12.9168 12.5833 12.8049 12.5833 12.6668L12.5833 6.75016Z"
+                          fill=""
+                        />
+                      </svg>
+                      Fin: {{ task.dueDate|date('d/m/Y') }}
                     </span>
                     {% endif %}
                   </div>
@@ -605,7 +804,9 @@
                       checked
                       data-task-id="{{ task.id }}"
                       data-task-title="{{ task.title|escape }}"
-                      @change.stop="openProofModalFromCheckbox($event)"
+                      data-task-status="{{ task.status }}"
+                      {% if task.status != 'completed' %}@change.stop="openProofModalFromCheckbox($event)"{% endif %}
+                      {% if task.status == 'completed' %}disabled{% endif %}
                       @click.stop
                     />
                     <div
@@ -665,15 +866,52 @@
                       Aucun Historique
                     {% endif %}
                   </button>
+                  <button
+                    data-task-id="{{ task.id }}"
+                    data-task-status="{{ task.status }}"
+                    data-task-frequency="{{ task.frequency|default('none') }}"
+                    data-task-requires-proof="{{ task.requiresProof ? 'true' : 'false' }}"
+                    data-task-title="{{ task.title|e('html_attr') }}"
+                    data-task-description="{{ task.description|e('html_attr') }}"
+                    data-task-assigned-type="{{ task.assignedType|default('coach') }}"
+                    data-task-student-id="{{ task.student ? task.student.id : '' }}"
+                    data-task-parent-id="{{ task.parent ? task.parent.id : '' }}"
+                    data-task-specialist-id="{{ task.specialist ? task.specialist.id : '' }}"
+                    data-task-created-at="{{ task.createdAt|default('') }}"
+                    data-task-due-date="{{ task.dueDate|default('') }}"
+                    @click="openTaskConfig($event)"
+                    class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-theme-xs font-medium bg-gray-50 text-gray-500 hover:bg-gray-100 dark:bg-white/[0.02] dark:text-gray-400 dark:hover:bg-white/[0.03]"
+                    title="Configurer la tâche"
+                  >
+                    <svg class="fill-current" width="14" height="14" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M11.334 2.666a2.667 2.667 0 0 1 3.771 3.772l-8 8a2.667 2.667 0 0 1-1.886.781l-2.89.111a.667.667 0 0 1-.687-.687l.111-2.89a2.667 2.667 0 0 1 .78-1.886l8-8Zm2.39 2.39a1.333 1.333 0 0 0-1.886-1.886L10.667 4.61l1.886 1.886 1.171-1.44Z" fill=""/>
+                    </svg>
+                    Configurer
+                  </button>
+                  {% if objective.canModifyTasks and task.status != 'completed' %}
+                  <button
+                    data-task-id="{{ task.id }}"
+                    data-task-status="{{ task.status }}"
+                    @click="deleteTask({{ task.id }}, '{{ task.status }}')"
+                    class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-theme-xs font-medium bg-red-50 text-red-500 hover:bg-red-100 dark:bg-red-500/15 dark:text-red-400 dark:hover:bg-red-500/25"
+                    title="Supprimer la tâche"
+                  >
+                    <svg class="fill-current" width="14" height="14" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M5.33333 2.66667V1.33333C5.33333 0.979711 5.47381 0.640573 5.72386 0.390524C5.97391 0.140476 6.31305 0 6.66667 0H9.33333C9.68696 0 10.0261 0.140476 10.2761 0.390524C10.5262 0.640573 10.6667 0.979711 10.6667 1.33333V2.66667H14.6667C15.0333 2.66667 15.3333 2.96667 15.3333 3.33333C15.3333 3.7 15.0333 4 14.6667 4H13.3333V14C13.3333 14.7072 12.7472 15.3333 12 15.3333H4C3.25281 15.3333 2.66667 14.7072 2.66667 14V4H1.33333C0.966667 4 0.666667 3.7 0.666667 3.33333C0.666667 2.96667 0.966667 2.66667 1.33333 2.66667H5.33333ZM6.66667 1.33333V2.66667H9.33333V1.33333H6.66667Z" fill="currentColor"/>
+                    </svg>
+                    Supprimer
+                  </button>
+                  {% endif %}
                 </div>
 
                 <div
                   class="flex items-center justify-between w-full gap-5 xl:w-auto xl:justify-normal"
                 >
                   <div class="flex items-center gap-3">
-                    {% if task.dueDate %}
+                    {% if task.createdAt %}
                     <span
                       class="flex items-center gap-1 text-sm text-gray-500 cursor-pointer dark:text-gray-400"
+                      title="Date de début"
                     >
                       <svg
                         class="fill-current"
@@ -690,7 +928,30 @@
                           fill=""
                         />
                       </svg>
-                      {{ task.dueDate|date('d/m/Y') }}
+                      Début: {{ task.createdAt|date('d/m/Y') }}
+                    </span>
+                    {% endif %}
+                    {% if task.dueDate %}
+                    <span
+                      class="flex items-center gap-1 text-sm text-gray-500 cursor-pointer dark:text-gray-400"
+                      title="Date de fin"
+                    >
+                      <svg
+                        class="fill-current"
+                        width="16"
+                        height="16"
+                        viewBox="0 0 16 16"
+                        fill="none"
+                        xmlns="http://www.w3.org/2000/svg"
+                      >
+                        <path
+                          fill-rule="evenodd"
+                          clip-rule="evenodd"
+                          d="M5.33329 1.0835C5.74751 1.0835 6.08329 1.41928 6.08329 1.8335V2.25016L9.91663 2.25016V1.8335C9.91663 1.41928 10.2524 1.0835 10.6666 1.0835C11.0808 1.0835 11.4166 1.41928 11.4166 1.8335V2.25016L12.3333 2.25016C13.2998 2.25016 14.0833 3.03366 14.0833 4.00016V12.6668C14.0833 13.6333 13.2998 14.4168 12.3333 14.4168L3.66663 14.4168C2.70013 14.4168 1.91663 13.6333 1.91663 12.6668V4.00016C1.91663 3.03366 2.70013 2.25016 3.66663 2.25016L4.58329 2.25016V1.8335C4.58329 1.41928 4.91908 1.0835 5.33329 1.0835ZM5.33329 3.75016L3.66663 3.75016C3.52855 3.75016 3.41663 3.86209 3.41663 4.00016V5.25016L12.5833 5.25016V4.00016C12.5833 3.86209 12.4714 3.75016 12.3333 3.75016L10.6666 3.75016L5.33329 3.75016ZM12.5833 6.75016L3.41663 6.75016L3.41663 12.6668C3.41663 12.8049 3.52855 12.9168 3.66663 12.9168L12.3333 12.9168C12.4714 12.9168 12.5833 12.8049 12.5833 12.6668L12.5833 6.75016Z"
+                          fill=""
+                        />
+                      </svg>
+                      Fin: {{ task.dueDate|date('d/m/Y') }}
                     </span>
                     {% endif %}
                   </div>
@@ -873,7 +1134,12 @@
 
         <!-- Content -->
         <div class="flex-1 overflow-y-auto p-6">
-          <form @submit.prevent="submitProof()" class="space-y-4">
+          <div x-show="currentTaskStatus === 'completed'" class="mb-4 rounded-lg bg-red-50 border border-red-200 p-4 dark:bg-red-500/15 dark:border-red-500/30">
+            <p class="text-sm text-red-600 dark:text-red-400">
+              ⚠️ Impossible d'ajouter une preuve à une tâche terminée. Veuillez modifier le statut de la tâche pour pouvoir ajouter des preuves.
+            </p>
+          </div>
+          <form @submit.prevent="submitProof()" class="space-y-4" x-bind:class="{ 'opacity-50 pointer-events-none': currentTaskStatus === 'completed' }">
             <!-- Description -->
             <div>
               <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -1147,10 +1413,36 @@
               x-model="taskConfig.status"
               class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
             >
-              <option value="pending">En attente</option>
+              <option value="pending">À faire</option>
               <option value="in_progress">En cours</option>
               <option value="completed">Terminé</option>
             </select>
+          </div>
+
+          <!-- Dates -->
+          <div class="grid grid-cols-2 gap-4">
+            <!-- Date de début -->
+            <div>
+              <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Date de début
+              </label>
+              <input
+                type="date"
+                x-model="taskConfig.createdAt"
+                class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+              />
+            </div>
+            <!-- Date de fin -->
+            <div>
+              <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Date de fin
+              </label>
+              <input
+                type="date"
+                x-model="taskConfig.dueDate"
+                class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+              />
+            </div>
           </div>
 
           <!-- Affectation -->
@@ -1324,7 +1616,172 @@
         </div>
       </div>
     </template>
-</main>
+
+    <!-- Right Sheet Overlay - Modification Objectif -->
+    <div
+      x-show="objectiveEditSheetOpen"
+      @click="closeObjectiveEditSheet()"
+      x-transition:enter="transition-opacity ease-out duration-300"
+      x-transition:enter-start="opacity-0"
+      x-transition:enter-end="opacity-100"
+      x-transition:leave="transition-opacity ease-in duration-200"
+      x-transition:leave-start="opacity-100"
+      x-transition:leave-end="opacity-0"
+      class="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm"
+      style="display: none;"
+    ></div>
+
+    <!-- Right Sheet Panel - Modification Objectif -->
+    <div
+      x-show="objectiveEditSheetOpen"
+      @click.away="closeObjectiveEditSheet()"
+      x-transition:enter="transition-transform ease-out duration-300"
+      x-transition:enter-start="translate-x-full"
+      x-transition:enter-end="translate-x-0"
+      x-transition:leave="transition-transform ease-in duration-200"
+      x-transition:leave-start="translate-x-0"
+      x-transition:leave-end="translate-x-full"
+      class="fixed right-0 top-0 z-50 h-full w-full max-w-md overflow-y-auto bg-white shadow-2xl dark:bg-gray-900"
+      style="display: none;"
+    >
+      <div class="flex h-full flex-col">
+        <!-- Header -->
+        <div class="sticky top-0 z-10 border-b border-gray-200 bg-white px-6 py-4 dark:border-gray-800 dark:bg-gray-900">
+          <div class="flex items-center justify-between">
+            <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">
+              Modifier Objectif
+            </h3>
+            <button
+              @click="closeObjectiveEditSheet()"
+              class="rounded-lg p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-300"
+            >
+              <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Content -->
+        <div class="flex-1 p-6">
+          <form @submit.prevent="saveObjective()" class="space-y-6">
+            <div>
+              <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Titre *</label>
+              <input
+                type="text"
+                x-model="objectiveFormData.title"
+                required
+                class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+              />
+            </div>
+            <div>
+              <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Description *</label>
+              <textarea
+                x-model="objectiveFormData.description"
+                required
+                rows="4"
+                class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+              ></textarea>
+            </div>
+            <div>
+              <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Catégorie *</label>
+              <select
+                x-model="objectiveFormData.category"
+                required
+                class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+              >
+                <option value="">Sélectionner...</option>
+                <option value="academic">Académique</option>
+                <option value="Comportement">Comportement</option>
+                <option value="Autonomie">Autonomie</option>
+                <option value="Social">Social</option>
+                <option value="Émotionnel">Émotionnel</option>
+              </select>
+            </div>
+            {% if app.user.isCoach() %}
+            <div>
+              <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Statut *</label>
+              <select
+                x-model="objectiveFormData.status"
+                required
+                class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+              >
+                <option value="modification">En cours de Modification</option>
+                <option value="pending_validation">Attente de Validation par Coach</option>
+                <option value="validated">Validé par le coach</option>
+                <option value="in_action">En Action</option>
+                <option value="completed">Terminé</option>
+                <option value="paused">En pause</option>
+              </select>
+            </div>
+            {% endif %}
+            <div>
+              <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Progression (%)</label>
+              <input
+                type="number"
+                x-model="objectiveFormData.progress"
+                min="0"
+                max="100"
+                class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+              />
+            </div>
+            <!-- Dates -->
+            <div class="grid grid-cols-2 gap-4">
+              <!-- Date de début -->
+              <div>
+                <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Date de début</label>
+                <input
+                  type="date"
+                  x-model="objectiveFormData.createdAt"
+                  class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+                />
+              </div>
+              <!-- Date de fin -->
+              <div>
+                <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Date de fin</label>
+                <input
+                  type="date"
+                  x-model="objectiveFormData.deadline"
+                  class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+                />
+              </div>
+            </div>
+            <div>
+              <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Élève *</label>
+              <select
+                x-model="objectiveFormData.studentId"
+                required
+                class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+              >
+                <option value="">Sélectionner un élève...</option>
+                <template x-for="student in studentsData" :key="student.id">
+                  <option :value="student.id" x-text="student.firstName + ' ' + student.lastName"></option>
+                </template>
+              </select>
+            </div>
+          </form>
+        </div>
+
+        <!-- Footer -->
+        <div class="sticky bottom-0 border-t border-gray-200 bg-white px-6 py-4 dark:border-gray-800 dark:bg-gray-900">
+          <div class="flex gap-3">
+            <button
+              @click="closeObjectiveEditSheet()"
+              class="flex-1 rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+            >
+              Annuler
+            </button>
+            <button
+              @click="saveObjective()"
+              class="flex-1 rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white shadow-theme-xs hover:bg-brand-600"
+            >
+              Enregistrer
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
 <!-- ===== Main Content End ===== -->
 
 <style>
@@ -1337,12 +1794,24 @@ function taskManager() {
     proofSheetOpen: false,
     rightSheetOpen: false,
     configSheetOpen: false,
+    objectiveEditSheetOpen: false,
     imageModalOpen: false,
     enlargedImageUrl: null,
     enlargedImageAlt: '',
     currentTaskId: null,
     currentTaskTitle: '',
+    currentTaskStatus: null,
     currentTaskProofs: [],
+    objectiveFormData: {
+      title: '',
+      description: '',
+      category: '',
+      status: 'modification',
+      progress: 0,
+      createdAt: '',
+      deadline: '',
+      studentId: '',
+    },
     proofSubmitting: false,
     proofFormData: {
       type: 'photo',
@@ -1380,6 +1849,7 @@ function taskManager() {
     },
     objectiveId: {{ objective.id }},
     objective: null,
+    studentsData: [],
     
     init() {
       const studentsJson = this.$el.getAttribute('data-students');
@@ -1389,6 +1859,7 @@ function taskManager() {
       
       if (studentsJson) {
         this.students = JSON.parse(studentsJson);
+        this.studentsData = JSON.parse(studentsJson);
       }
       if (parentsJson) {
         this.parents = JSON.parse(parentsJson);
@@ -1398,6 +1869,56 @@ function taskManager() {
       }
       if (objectiveJson) {
         this.objective = JSON.parse(objectiveJson);
+      }
+    },
+    openObjectiveEdit() {
+      // Remplir le formulaire avec les données de l'objectif actuel
+      this.objectiveFormData = {
+        title: this.objective?.title || '',
+        description: this.objective?.description || '',
+        category: this.objective?.category || '',
+        status: this.objective?.status || 'modification',
+        progress: this.objective?.progress || 0,
+        createdAt: this.objective?.createdAt || '',
+        deadline: this.objective?.deadline || '',
+        studentId: this.objective?.student?.id || '',
+      };
+      this.objectiveEditSheetOpen = true;
+    },
+    closeObjectiveEditSheet() {
+      this.objectiveEditSheetOpen = false;
+    },
+    async saveObjective() {
+      try {
+        const response = await fetch(`/admin/objectives/${this.objectiveId}/update`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest',
+          },
+          body: JSON.stringify(this.objectiveFormData),
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+          if (window.showToast) {
+            window.showToast('Objectif mis à jour avec succès', 'success');
+          }
+          this.closeObjectiveEditSheet();
+          setTimeout(() => {
+            window.location.reload();
+          }, 500);
+        } else {
+          if (window.showToast) {
+            window.showToast(result.message || 'Erreur lors de la mise à jour', 'error');
+          }
+        }
+      } catch (error) {
+        console.error('Erreur:', error);
+        if (window.showToast) {
+          window.showToast('Une erreur est survenue', 'error');
+        }
       }
     },
     
@@ -1412,6 +1933,21 @@ function taskManager() {
       const checkbox = event.target;
       const isChecked = checkbox.checked;
       
+      // Récupérer le statut de la tâche depuis la checkbox
+      const taskStatus = checkbox.getAttribute('data-task-status');
+      
+      // Vérifier que la tâche n'est pas terminée - on ne peut ajouter des preuves que si la tâche est "pending" ou "in_progress"
+      if (taskStatus === 'completed') {
+        if (window.showToast) {
+          window.showToast('Impossible d\'ajouter une preuve à une tâche terminée', 'error');
+        }
+        // Remettre la checkbox dans son état précédent
+        if (checkbox) {
+          checkbox.checked = false;
+        }
+        return;
+      }
+      
       // Fermer les autres rightSheets s'ils sont ouverts
       this.rightSheetOpen = false;
       this.configSheetOpen = false;
@@ -1421,6 +1957,7 @@ function taskManager() {
         console.log('Ouverture du rightSheet de preuve');
         this.currentTaskId = taskId;
         this.currentTaskTitle = taskTitle;
+        this.currentTaskStatus = taskStatus;
         this.proofSheetOpen = true;
         // Réinitialiser le formulaire
         this.proofFormData = {
@@ -1446,6 +1983,20 @@ function taskManager() {
       const checkbox = event.target;
       const taskId = parseInt(checkbox.getAttribute('data-task-id'));
       const taskTitle = checkbox.getAttribute('data-task-title') || 'Tâche #' + taskId;
+      const taskStatus = checkbox.getAttribute('data-task-status');
+      
+      // Vérifier que la tâche n'est pas terminée - on ne peut ajouter des preuves que si la tâche est "pending" ou "in_progress"
+      if (taskStatus === 'completed') {
+        if (window.showToast) {
+          window.showToast('Impossible d\'ajouter une preuve à une tâche terminée', 'error');
+        }
+        // Remettre la checkbox dans son état précédent
+        checkbox.checked = false;
+        return;
+      }
+      
+      // Stocker le statut avant d'ouvrir le modal
+      checkbox.setAttribute('data-task-status', taskStatus);
       this.openProofModal(event, taskId, taskTitle);
     },
     
@@ -1486,6 +2037,15 @@ function taskManager() {
     
     async submitProof() {
       if (!this.currentTaskId) return;
+      
+      // Vérifier que la tâche n'est pas terminée - double sécurité
+      if (this.currentTaskStatus === 'completed') {
+        if (window.showToast) {
+          window.showToast('Impossible d\'ajouter une preuve à une tâche terminée', 'error');
+        }
+        this.proofSheetOpen = false;
+        return;
+      }
       
       this.proofSubmitting = true;
       
@@ -1690,8 +2250,10 @@ function taskManager() {
       const taskStudentId = button.getAttribute('data-task-student-id') || '';
       const taskParentId = button.getAttribute('data-task-parent-id') || '';
       const taskSpecialistId = button.getAttribute('data-task-specialist-id') || '';
+      const taskCreatedAt = button.getAttribute('data-task-created-at') || '';
+      const taskDueDate = button.getAttribute('data-task-due-date') || '';
       
-      console.log('Données de la tâche:', { taskId, taskStatus, taskFrequency, taskRequiresProof, taskTitle, taskDescription, taskAssignedType });
+      console.log('Données de la tâche:', { taskId, taskStatus, taskFrequency, taskRequiresProof, taskTitle, taskDescription, taskAssignedType, taskCreatedAt, taskDueDate });
       
       this.currentTaskId = taskId;
       this.configTaskTitle = taskTitle || 'Tâche #' + taskId;
@@ -1706,6 +2268,8 @@ function taskManager() {
         studentId: taskStudentId,
         parentId: taskParentId,
         specialistId: taskSpecialistId,
+        createdAt: taskCreatedAt ? taskCreatedAt.split(' ')[0] : '', // Format YYYY-MM-DD pour input date
+        dueDate: taskDueDate ? taskDueDate.split(' ')[0] : '', // Format YYYY-MM-DD pour input date
       };
       
       console.log('Ouverture du configSheet - avant:', { configSheetOpen: this.configSheetOpen, taskConfig: this.taskConfig });
@@ -1750,6 +2314,8 @@ function taskManager() {
         studentId: '',
         parentId: '',
         specialistId: '',
+        createdAt: '',
+        dueDate: '',
       };
       
       this.configSheetOpen = true;
@@ -1830,6 +2396,8 @@ function taskManager() {
         studentId: '',
         parentId: '',
         specialistId: '',
+        createdAt: '',
+        dueDate: '',
       };
     },
     
@@ -1864,6 +2432,14 @@ function taskManager() {
           frequency: this.taskConfig.frequency,
           assignedType: this.taskConfig.assignedType,
         };
+        
+        // Ajouter les dates si elles sont définies
+        if (this.taskConfig.createdAt) {
+          dataToSend.createdAt = this.taskConfig.createdAt;
+        }
+        if (this.taskConfig.dueDate) {
+          dataToSend.dueDate = this.taskConfig.dueDate;
+        }
         
         // Ajouter l'ID selon le type d'affectation
         if (this.taskConfig.assignedType === 'student' && this.taskConfig.studentId) {
@@ -2017,6 +2593,63 @@ function taskManager() {
         }
       } finally {
         this.commentSubmitting = false;
+      }
+    },
+    
+    async deleteTask(taskId, taskStatus = null) {
+      // Vérifier que l'objectif peut être modifié avant de permettre la suppression
+      const canModify = this.objective?.canModifyTasks !== false;
+      
+      if (!canModify) {
+        if (window.showToast) {
+          window.showToast('Impossible de supprimer cette tâche. L\'objectif est validé par le coach.', 'error');
+        }
+        return;
+      }
+      
+      // Vérifier que la tâche n'est pas terminée
+      // Les tâches terminées ne peuvent pas être supprimées
+      if (taskStatus === 'completed') {
+        if (window.showToast) {
+          window.showToast('Impossible de supprimer une tâche terminée.', 'error');
+        }
+        return;
+      }
+      
+      if (!confirm('Êtes-vous sûr de vouloir supprimer cette tâche ?')) {
+        return;
+      }
+      
+      try {
+        const response = await fetch(`/admin/tasks/${taskId}/delete`, {
+          method: 'DELETE',
+          headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+          },
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+          if (window.showToast) {
+            window.showToast(result.message || 'Tâche supprimée avec succès', 'success');
+          }
+          
+          // Recharger la page pour mettre à jour l'affichage
+          setTimeout(() => {
+            window.location.reload();
+          }, 500);
+        } else {
+          const errorMessage = result.message || 'Erreur lors de la suppression de la tâche';
+          if (window.showToast) {
+            window.showToast(errorMessage, 'error');
+          }
+        }
+      } catch (error) {
+        console.error('Erreur lors de la suppression de la tâche:', error);
+        if (window.showToast) {
+          window.showToast('Une erreur est survenue', 'error');
+        }
       }
     },
     

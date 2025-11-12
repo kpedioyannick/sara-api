@@ -88,7 +88,7 @@
                         </div>
 
                         <div class="mb-3">
-                            <p class="text-sm text-gray-600 dark:text-gray-400 line-clamp-3" x-text="activity.description"></p>
+                            <h4 class="text-base font-semibold text-gray-800 dark:text-white/90 mb-2" x-text="activity.title || 'Sans titre'"></h4>
                         </div>
 
                         <div class="mb-4 space-y-2">
@@ -173,6 +173,20 @@
             <!-- Content -->
             <div class="flex-1 overflow-y-auto p-6">
                 <form @submit.prevent="saveActivity()" class="space-y-4">
+                <!-- Titre -->
+                <div>
+                    <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                        Titre <span class="text-error-500">*</span>
+                    </label>
+                    <input
+                        type="text"
+                        x-model="activityForm.title"
+                        required
+                        class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+                        placeholder="Titre de l'activité"
+                    />
+                </div>
+
                 <!-- Description -->
                 <div>
                     <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -362,6 +376,7 @@ function activityManager() {
         
         // Formulaire
         activityForm: {
+            title: '',
             description: '',
             duration: '',
             ageRange: '',
@@ -384,7 +399,8 @@ function activityManager() {
             if (this.searchQuery) {
                 const query = this.searchQuery.toLowerCase();
                 filtered = filtered.filter(a => 
-                    a.description.toLowerCase().includes(query) ||
+                    (a.title || '').toLowerCase().includes(query) ||
+                    (a.description || '').toLowerCase().includes(query) ||
                     (a.category?.name || '').toLowerCase().includes(query)
                 );
             }
@@ -417,6 +433,7 @@ function activityManager() {
         openCreate() {
             this.editingActivity = null;
             this.activityForm = {
+                title: '',
                 description: '',
                 duration: '',
                 ageRange: '',

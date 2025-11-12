@@ -74,46 +74,68 @@ class PlanningController extends AbstractController
         $profileType = $request->query->get('profileType'); // 'parent', 'specialist', 'student', ou null
         $selectedIds = $request->query->get('selectedIds', ''); // IDs séparés par des virgules
         
-        // Récupérer les événements selon le rôle de l'utilisateur
-        $allEvents = [];
-        $students = [];
-
-        if ($user->isCoach()) {
-            $coach = $this->getCurrentCoach($this->coachRepository, $this->security);
-            if (!$coach) {
-                throw $this->createNotFoundException('Aucun coach trouvé');
-            }
-            // Récupérer toutes les familles du coach
-            $families = $this->familyRepository->findByCoachWithSearch($coach);
-            // Récupérer tous les événements de toutes les familles pour la semaine
-            foreach ($families as $family) {
-                $events = $this->planningRepository->findByFamilyAndWeek($family, $weekStart);
-                $allEvents = array_merge($allEvents, $events);
-            }
-            $students = $this->studentRepository->findByCoach($coach);
-        } else {
-            // Pour les autres rôles, utiliser PermissionService
-            $accessibleStudents = $this->permissionService->getAccessibleStudents($user);
-            foreach ($accessibleStudents as $student) {
-                // Vérifier les permissions pour voir le planning de cet étudiant
-                if ($this->permissionService->canViewStudentPlanning($user, $student)) {
-                    // Utiliser findByStudentAndWeek pour récupérer directement les événements de l'étudiant
-                    $studentEvents = $this->planningRepository->findByStudentAndWeek($student, $weekStart);
-                    $allEvents = array_merge($allEvents, $studentEvents);
+        // Appliquer un filtre par défaut selon le rôle de l'utilisateur si aucun filtre n'est spécifié
+        // Par défaut, afficher le planning de l'utilisateur connecté
+        if (!$profileType && !$selectedIds && !$studentId) {
+            // Récupérer le planning de l'utilisateur connecté
+            $userEvents = $this->planningRepository->findByUserAndWeek($user, $weekStart);
+            $allEvents = $userEvents;
+            $students = [];
+            
+            // Récupérer les élèves pour les filtres (selon le rôle)
+            if ($user->isCoach()) {
+                $coach = $this->getCurrentCoach($this->coachRepository, $this->security);
+                if ($coach) {
+                    $students = $this->studentRepository->findByCoach($coach);
                 }
+            } else {
+                $students = $this->permissionService->getAccessibleStudents($user);
             }
-            $students = $accessibleStudents;
+        } else {
+            // Récupérer les événements selon le rôle de l'utilisateur et les filtres
+            $allEvents = [];
+            $students = [];
+
+            if ($user->isCoach()) {
+                $coach = $this->getCurrentCoach($this->coachRepository, $this->security);
+                if (!$coach) {
+                    throw $this->createNotFoundException('Aucun coach trouvé');
+                }
+                // Récupérer toutes les familles du coach
+                $families = $this->familyRepository->findByCoachWithSearch($coach);
+                // Récupérer tous les événements de toutes les familles pour la semaine
+                foreach ($families as $family) {
+                    $events = $this->planningRepository->findByFamilyAndWeek($family, $weekStart);
+                    $allEvents = array_merge($allEvents, $events);
+                }
+                $students = $this->studentRepository->findByCoach($coach);
+            } else {
+                // Pour les autres rôles, utiliser PermissionService
+                $accessibleStudents = $this->permissionService->getAccessibleStudents($user);
+                foreach ($accessibleStudents as $student) {
+                    // Vérifier les permissions pour voir le planning de cet étudiant
+                    if ($this->permissionService->canViewStudentPlanning($user, $student)) {
+                        // Utiliser findByStudentAndWeek pour récupérer directement les événements de l'étudiant
+                        $studentEvents = $this->planningRepository->findByStudentAndWeek($student, $weekStart);
+                        $allEvents = array_merge($allEvents, $studentEvents);
+                    }
+                }
+                $students = $accessibleStudents;
+            }
         }
         
         // Filtrer par élève si spécifié (ancien système)
         if ($studentId) {
             $allEvents = array_filter($allEvents, function($event) use ($studentId, $user) {
-                $student = $event->getStudent();
-                if (!$student || $student->getId() != (int)$studentId) {
+                $eventUser = $event->getUser();
+                if (!$eventUser || $eventUser->getId() != (int)$studentId) {
                     return false;
                 }
-                // Vérifier les permissions pour cet étudiant
-                return $this->permissionService->canViewStudentPlanning($user, $student);
+                // Si c'est un étudiant, vérifier les permissions
+                if ($eventUser->isStudent()) {
+                    return $this->permissionService->canViewStudentPlanning($user, $eventUser);
+                }
+                return true;
             });
         }
         
@@ -124,37 +146,48 @@ class PlanningController extends AbstractController
                 $filteredEvents = [];
                 foreach ($allEvents as $event) {
                     $shouldInclude = false;
-                    $eventStudent = $event->getStudent();
+                    $eventUser = $event->getUser();
                     
-                    if (!$eventStudent) {
-                        continue; // Ignorer les événements sans élève
+                    if (!$eventUser) {
+                        continue; // Ignorer les événements sans utilisateur
                     }
                     
                     if ($profileType === 'parent') {
                         // Filtrer par parent (planning des enfants du parent)
-                        if ($eventStudent->getFamily() && $eventStudent->getFamily()->getParent()) {
-                            if (in_array($eventStudent->getFamily()->getParent()->getId(), $ids)) {
+                        if ($eventUser->isStudent() && $eventUser->getFamily() && $eventUser->getFamily()->getParent()) {
+                            if (in_array($eventUser->getFamily()->getParent()->getId(), $ids)) {
                                 $shouldInclude = true;
                             }
                         }
                     } elseif ($profileType === 'specialist') {
                         // Filtrer par spécialiste (planning des élèves assignés au spécialiste)
-                        foreach ($eventStudent->getSpecialists() as $specialist) {
-                            if (in_array($specialist->getId(), $ids)) {
-                                $shouldInclude = true;
-                                break;
+                        if ($eventUser->isStudent()) {
+                            foreach ($eventUser->getSpecialists() as $specialist) {
+                                if (in_array($specialist->getId(), $ids)) {
+                                    $shouldInclude = true;
+                                    break;
+                                }
                             }
                         }
                     } elseif ($profileType === 'student') {
                         // Filtrer par élève
-                        if (in_array($eventStudent->getId(), $ids)) {
+                        if ($eventUser->isStudent() && in_array($eventUser->getId(), $ids)) {
                             $shouldInclude = true;
                         }
                     }
                     
                     // Vérifier les permissions avant d'inclure l'événement
-                    if ($shouldInclude && $this->permissionService->canViewStudentPlanning($user, $eventStudent)) {
-                        $filteredEvents[] = $event;
+                    if ($shouldInclude) {
+                        if ($eventUser->isStudent()) {
+                            if ($this->permissionService->canViewStudentPlanning($user, $eventUser)) {
+                                $filteredEvents[] = $event;
+                            }
+                        } else {
+                            // Pour les autres utilisateurs (coach, parent, specialist), inclure si c'est leur propre planning
+                            if ($eventUser->getId() === $user->getId()) {
+                                $filteredEvents[] = $event;
+                            }
+                        }
                     }
                 }
                 $allEvents = $filteredEvents;
@@ -221,9 +254,16 @@ class PlanningController extends AbstractController
         $parentsData = [];
         $specialistsData = [];
         
+        $coachData = null;
         if ($user->isCoach()) {
             $coach = $this->getCurrentCoach($this->coachRepository, $this->security);
             if ($coach) {
+                $coachData = [
+                    'id' => $coach->getId(),
+                    'firstName' => $coach->getFirstName(),
+                    'lastName' => $coach->getLastName(),
+                    'email' => $coach->getEmail(),
+                ];
                 $families = $this->familyRepository->findByCoachWithSearch($coach);
                 foreach ($families as $family) {
                     $parent = $family->getParent();
@@ -265,6 +305,7 @@ class PlanningController extends AbstractController
             'students' => $studentsData,
             'parents' => $parentsData,
             'specialists' => $specialistsData,
+            'coach' => $coachData,
             'profileType' => $profileType,
             'selectedIds' => $selectedIds,
             'breadcrumbs' => [
@@ -305,16 +346,19 @@ class PlanningController extends AbstractController
         if (isset($data['endDate'])) {
             $planning->setEndDate(new \DateTimeImmutable($data['endDate']));
         }
-        if (isset($data['studentId'])) {
-            $student = $this->studentRepository->find($data['studentId']);
-            if ($student) {
-                // Vérifier les permissions pour voir le planning de cet étudiant
-                if (!$this->permissionService->canViewStudentPlanning($coach, $student)) {
-                    return new JsonResponse(['success' => false, 'message' => 'Vous n\'avez pas accès au planning de cet élève'], 403);
+        // Par défaut, associer le planning à l'utilisateur connecté
+        if (!isset($data['userId'])) {
+            $planning->setUser($coach);
+        } else {
+            $targetUser = $this->em->getRepository(\App\Entity\User::class)->find($data['userId']);
+            if ($targetUser) {
+                // Si c'est un étudiant, vérifier les permissions
+                if ($targetUser->isStudent() && !$this->permissionService->canViewStudentPlanning($coach, $targetUser)) {
+                    return new JsonResponse(['success' => false, 'message' => 'Vous n\'avez pas accès au planning de cet utilisateur'], 403);
                 }
-                $planning->setStudent($student);
+                $planning->setUser($targetUser);
             } else {
-                return new JsonResponse(['success' => false, 'message' => 'Élève non trouvé'], 400);
+                return new JsonResponse(['success' => false, 'message' => 'Utilisateur non trouvé'], 400);
             }
         }
 
@@ -358,10 +402,16 @@ class PlanningController extends AbstractController
             return new JsonResponse(['success' => false, 'message' => 'Événement non trouvé'], 404);
         }
 
-        // Vérifier les permissions pour voir le planning de l'étudiant
-        $student = $planning->getStudent();
-        if ($student && !$this->permissionService->canViewStudentPlanning($coach, $student)) {
-            return new JsonResponse(['success' => false, 'message' => 'Vous n\'avez pas accès au planning de cet élève'], 403);
+        // Vérifier les permissions pour voir le planning de l'utilisateur
+        $planningUser = $planning->getUser();
+        if ($planningUser) {
+            if ($planningUser->isStudent() && !$this->permissionService->canViewStudentPlanning($coach, $planningUser)) {
+                return new JsonResponse(['success' => false, 'message' => 'Vous n\'avez pas accès au planning de cet utilisateur'], 403);
+            }
+            // Pour les autres utilisateurs, seul le propriétaire peut modifier
+            if (!$planningUser->isStudent() && $planningUser->getId() !== $coach->getId()) {
+                return new JsonResponse(['success' => false, 'message' => 'Vous ne pouvez modifier que votre propre planning'], 403);
+            }
         }
 
         $data = json_decode($request->getContent(), true);
@@ -415,10 +465,16 @@ class PlanningController extends AbstractController
             return new JsonResponse(['success' => false, 'message' => 'Événement non trouvé'], 404);
         }
 
-        // Vérifier les permissions pour voir le planning de l'étudiant
-        $student = $planning->getStudent();
-        if ($student && !$this->permissionService->canViewStudentPlanning($coach, $student)) {
-            return new JsonResponse(['success' => false, 'message' => 'Vous n\'avez pas accès au planning de cet élève'], 403);
+        // Vérifier les permissions pour voir le planning de l'utilisateur
+        $planningUser = $planning->getUser();
+        if ($planningUser) {
+            if ($planningUser->isStudent() && !$this->permissionService->canViewStudentPlanning($coach, $planningUser)) {
+                return new JsonResponse(['success' => false, 'message' => 'Vous n\'avez pas accès au planning de cet utilisateur'], 403);
+            }
+            // Pour les autres utilisateurs, seul le propriétaire peut modifier
+            if (!$planningUser->isStudent() && $planningUser->getId() !== $coach->getId()) {
+                return new JsonResponse(['success' => false, 'message' => 'Vous ne pouvez modifier que votre propre planning'], 403);
+            }
         }
 
         $this->em->remove($planning);

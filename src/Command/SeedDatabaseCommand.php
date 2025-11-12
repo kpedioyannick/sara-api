@@ -363,7 +363,7 @@ class SeedDatabaseCommand extends Command
                 $planning->setStatus($eventData['status']);
                 $planning->setStartDate($eventData['date']);
                 $planning->setEndDate($eventData['date']->modify('+' . $eventData['duration'] . ' hours'));
-                $planning->setStudent($eventData['student']);
+                $planning->setUser($eventData['student']);
                 $this->em->persist($planning);
             }
             

@@ -32,8 +32,6 @@ class Student extends User
     #[ORM\OneToMany(targetEntity: Request::class, mappedBy: 'student', fetch: 'EXTRA_LAZY')]
     private Collection $requests;
 
-    #[ORM\OneToMany(targetEntity: Planning::class, mappedBy: 'student', fetch: 'EXTRA_LAZY')]
-    private Collection $plannings;
 
     #[ORM\ManyToMany(targetEntity: Specialist::class, mappedBy: 'students')]
     private Collection $specialists;
@@ -46,7 +44,6 @@ class Student extends User
         parent::__construct();
         $this->objectives = new ArrayCollection();
         $this->requests = new ArrayCollection();
-        $this->plannings = new ArrayCollection();
         $this->specialists = new ArrayCollection();
         $this->availabilities = new ArrayCollection();
         $this->setRoles(['ROLE_STUDENT']);
@@ -167,32 +164,6 @@ class Student extends User
         return $this;
     }
 
-    /**
-     * @return Collection<int, Planning>
-     */
-    public function getPlannings(): Collection
-    {
-        return $this->plannings;
-    }
-
-    public function addPlanning(Planning $planning): static
-    {
-        if (!$this->plannings->contains($planning)) {
-            $this->plannings->add($planning);
-            $planning->setStudent($this);
-        }
-        return $this;
-    }
-
-    public function removePlanning(Planning $planning): static
-    {
-        if ($this->plannings->removeElement($planning)) {
-            if ($planning->getStudent() === $this) {
-                $planning->setStudent(null);
-            }
-        }
-        return $this;
-    }
 
     /**
      * @return Collection<int, Specialist>
@@ -267,7 +238,7 @@ class Student extends User
             'family' => $this->family ? $this->family->toArray() : null,
             'objectivesCount' => $this->getObjectives()->count(),
             'requestsCount' => $this->getRequests()->count(),
-            'planningsCount' => $this->getPlannings()->count(),
+            'planningsCount' => 0, // Utiliser PlanningRepository pour obtenir le vrai count si nécessaire
             'availabilitiesCount' => $this->getAvailabilities()->count()
         ];
     }
@@ -311,7 +282,7 @@ class Student extends User
         return [
             'totalObjectives' => $this->getObjectives()->count(),
             'totalRequests' => $this->getRequests()->count(),
-            'totalPlannings' => $this->getPlannings()->count(),
+            'totalPlannings' => 0, // Utiliser PlanningRepository pour obtenir le vrai count si nécessaire
             'totalAvailabilities' => $this->getAvailabilities()->count(),
             'currentPoints' => $this->getPoints()
         ];

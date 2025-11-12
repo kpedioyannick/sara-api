@@ -266,6 +266,38 @@
                             class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
                         />
                     </div>
+                    
+                    <!-- Section changement de mot de passe (uniquement en mode édition) -->
+                    <div x-show="isEdit" class="mt-6 border-t border-gray-200 pt-6 dark:border-gray-800">
+                        <h4 class="mb-4 text-sm font-semibold text-gray-800 dark:text-white/90">Changer le mot de passe</h4>
+                        <div class="space-y-4">
+                            <div>
+                                <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Nouveau mot de passe</label>
+                                <input
+                                    type="password"
+                                    x-model="passwordForm.newPassword"
+                                    placeholder="Laisser vide pour ne pas changer"
+                                    class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+                                />
+                            </div>
+                            <div>
+                                <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Confirmation du nouveau mot de passe</label>
+                                <input
+                                    type="password"
+                                    x-model="passwordForm.passwordConfirmation"
+                                    placeholder="Laisser vide pour ne pas changer"
+                                    class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+                                />
+                            </div>
+                            <button
+                                type="button"
+                                @click="changePassword()"
+                                class="w-full rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white shadow-theme-xs hover:bg-brand-600"
+                            >
+                                Changer le mot de passe
+                            </button>
+                        </div>
+                    </div>
                     <div>
                         <label class="mb-2 flex items-center gap-2">
                             <input
@@ -314,6 +346,10 @@ function specialistManager() {
             passwordConfirmation: '',
             isActive: true,
         },
+        passwordForm: {
+            newPassword: '',
+            passwordConfirmation: '',
+        },
         specialistsData: [],
         init() {
             const specialistsJson = this.$el.getAttribute('data-specialists');
@@ -347,8 +383,61 @@ function specialistManager() {
                     specializations: specialist.specializations ? [...specialist.specializations] : [],
                     isActive: specialist.isActive !== undefined ? specialist.isActive : true,
                 };
+                this.passwordForm = {
+                    newPassword: '',
+                    passwordConfirmation: '',
+                };
                 this.rightSheetOpen = true;
             }
+        },
+        changePassword() {
+            // Vérifier que les deux champs sont remplis
+            if (!this.passwordForm.newPassword || !this.passwordForm.passwordConfirmation) {
+                this.showMessage('Veuillez remplir tous les champs', 'error');
+                return;
+            }
+            
+            // Vérifier que le mot de passe a au moins 6 caractères
+            if (this.passwordForm.newPassword.length < 6) {
+                this.showMessage('Le mot de passe doit contenir au moins 6 caractères', 'error');
+                return;
+            }
+            
+            // Vérifier que les mots de passe correspondent
+            if (this.passwordForm.newPassword !== this.passwordForm.passwordConfirmation) {
+                this.showMessage('Les mots de passe ne correspondent pas', 'error');
+                return;
+            }
+            
+            const data = {
+                password: this.passwordForm.newPassword,
+                passwordConfirmation: this.passwordForm.passwordConfirmation,
+            };
+            
+            fetch(`/admin/specialists/${this.currentId}/change-password`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                body: JSON.stringify(data),
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    this.showMessage(data.message || 'Mot de passe changé avec succès', 'success');
+                    // Réinitialiser le formulaire de mot de passe
+                    this.passwordForm = {
+                        newPassword: '',
+                        passwordConfirmation: '',
+                    };
+                } else {
+                    this.showMessage(data.message || 'Erreur lors du changement de mot de passe', 'error');
+                }
+            })
+            .catch(error => {
+                this.showMessage('Erreur de connexion', 'error');
+            });
         },
         openDelete(id) {
             if (confirm('Êtes-vous sûr de vouloir supprimer ce spécialiste ?')) {
@@ -442,6 +531,10 @@ function specialistManager() {
             this.rightSheetOpen = false;
             this.isEdit = false;
             this.currentId = null;
+            this.passwordForm = {
+                newPassword: '',
+                passwordConfirmation: '',
+            };
         }
     };
 }

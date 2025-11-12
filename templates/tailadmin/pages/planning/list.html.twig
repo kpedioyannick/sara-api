@@ -10,6 +10,7 @@
     data-students='{{ students|json_encode|e('html_attr') }}'
     data-parents='{{ parents|json_encode|e('html_attr') }}'
     data-specialists='{{ specialists|json_encode|e('html_attr') }}'
+    data-coach='{{ coach|json_encode|e('html_attr') }}'
     class="p-4 mx-auto max-w-(--breakpoint-2xl) md:p-6"
 >
     {% include 'tailadmin/components/breadcrumb.html.twig' %}
@@ -36,7 +37,7 @@
                     :class="profileType === '' ? 'bg-brand-500 text-white' : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'"
                     class="rounded-lg px-4 py-2 text-sm font-medium transition-colors hover:bg-brand-600 hover:text-white dark:hover:bg-gray-700"
                 >
-                    Tous
+                    Mon planning
                 </button>
                 {% if app.user.isCoach() %}
                 <button
@@ -166,7 +167,7 @@
                         {% if day.events|length > 0 %}
                             {% for event in day.events %}
                             <div 
-                                @click="openView({{ event.id }}, '{{ event.title|e('js') }}', '{{ event.description|e('js') }}', '{{ event.startDate }}', '{{ event.endDate }}', {{ event.studentId }}, '{{ event.type }}', '{{ event.status }}')"
+                                @click="openView({{ event.id }}, '{{ event.title|e('js') }}', '{{ event.description|e('js') }}', '{{ event.startDate }}', '{{ event.endDate }}', {{ event.userId }}, '{{ event.type }}', '{{ event.status }}')"
                                 class="group cursor-pointer rounded-lg border p-3 transition-all hover:shadow-theme-xs {% if event.backgroundColor %}border-opacity-30{% else %}border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/50{% endif %}"
                                 {% if event.backgroundColor %}style="background-color: {{ event.backgroundColor }}; border-color: {{ event.backgroundColor }};"{% endif %}
                             >
@@ -176,7 +177,7 @@
                                             {{ event.title }}
                                         </h4>
                                         <p class="mt-1 text-xs {% if event.backgroundColor %}text-white/90{% else %}text-gray-500 dark:text-gray-400{% endif %}">
-                                            {{ event.studentName }}
+                                            {{ event.userName }}
                                         </p>
                                     </div>
                                     {% if event.status == 'completed' %}
@@ -209,7 +210,7 @@
                                     </span>
                                     <div class="flex gap-1" @click.stop>
                                         <button
-                                            @click="openEdit({{ event.id }}, '{{ event.title|e('js') }}', '{{ event.startDate }}', '{{ event.endDate }}', {{ event.studentId }}, '{{ event.type }}', '{{ event.status }}')"
+                                            @click="openEdit({{ event.id }}, '{{ event.title|e('js') }}', '{{ event.startDate }}', '{{ event.endDate }}', {{ event.userId }}, '{{ event.type }}', '{{ event.status }}')"
                                             class="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-700"
                                             title="Modifier"
                                         >
@@ -231,15 +232,37 @@
                             </div>
                             {% endfor %}
                         {% else %}
-                            <div class="flex h-full min-h-[150px] items-center justify-center text-center">
+                            <div class="flex h-full min-h-[150px] flex-col items-center justify-center text-center">
                                 <div class="text-gray-400 dark:text-gray-500">
                                     <svg class="mx-auto h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                                     </svg>
                                     <p class="mt-2 text-sm">Aucun événement</p>
                                 </div>
+                                <button
+                                    @click="openCreateWithDate('{{ day.date }}')"
+                                    class="mt-4 flex items-center gap-2 rounded-lg border border-brand-500 bg-white px-3 py-1.5 text-xs font-medium text-brand-600 transition-colors hover:bg-brand-50 dark:border-brand-400 dark:bg-gray-800 dark:text-brand-400 dark:hover:bg-gray-700"
+                                >
+                                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                                    </svg>
+                                    Ajouter un événement
+                                </button>
                             </div>
                         {% endif %}
+                        
+                        <!-- Bouton pour ajouter un événement (même s'il y a déjà des événements) -->
+                        <div class="mt-2 border-t border-gray-100 pt-2 dark:border-gray-800">
+                            <button
+                                @click="openCreateWithDate('{{ day.date }}')"
+                                class="w-full flex items-center justify-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+                            >
+                                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                                </svg>
+                                Ajouter un événement
+                            </button>
+                        </div>
                     </div>
                 </div>
                 {% endfor %}
@@ -453,15 +476,42 @@
                         </select>
                     </div>
                     <div>
+                        <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Pour *</label>
+                        <select
+                            x-model="formData.userType"
+                            @change="formData.userId = ''"
+                            required
+                            class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+                        >
+                            <option value="">Sélectionner un type...</option>
+                            <option value="coach">Moi (Coach)</option>
+                            <option value="student">Élève</option>
+                            <option value="specialist">Spécialiste</option>
+                        </select>
+                    </div>
+                    <div x-show="formData.userType === 'student'">
                         <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Élève *</label>
                         <select
-                            x-model="formData.studentId"
-                            required
+                            x-model="formData.userId"
+                            :required="formData.userType === 'student'"
                             class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
                         >
                             <option value="">Sélectionner un élève...</option>
                             <template x-for="student in studentsData" :key="student.id">
                                 <option :value="student.id" x-text="student.firstName + ' ' + student.lastName"></option>
+                            </template>
+                        </select>
+                    </div>
+                    <div x-show="formData.userType === 'specialist'">
+                        <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Spécialiste *</label>
+                        <select
+                            x-model="formData.userId"
+                            :required="formData.userType === 'specialist'"
+                            class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+                        >
+                            <option value="">Sélectionner un spécialiste...</option>
+                            <template x-for="specialist in specialistsData" :key="specialist.id">
+                                <option :value="specialist.id" x-text="specialist.firstName + ' ' + specialist.lastName"></option>
                             </template>
                         </select>
                     </div>
@@ -510,7 +560,7 @@
                         Fermer
                     </button>
                     <button
-                        @click="openEdit(viewData.id, viewData.title, viewData.startDate, viewData.endDate, viewData.studentId, viewData.type, viewData.status)"
+                        @click="openEdit(viewData.id, viewData.title, viewData.startDate, viewData.endDate, viewData.userId, viewData.type, viewData.status)"
                         class="flex-1 rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white shadow-theme-xs hover:bg-brand-600"
                     >
                         Modifier
@@ -550,8 +600,8 @@ function planningManager() {
             description: '',
             type: '',
             status: '',
-            studentId: '',
-            studentName: '',
+            userId: '',
+            userName: '',
             date: '',
             startTime: '',
             endTime: '',
@@ -563,7 +613,8 @@ function planningManager() {
             description: '',
             type: '',
             status: 'scheduled',
-            studentId: '',
+            userType: '',
+            userId: '',
             date: '',
             startTime: '',
             endTime: '',
@@ -571,12 +622,22 @@ function planningManager() {
             endDate: '',
         },
         studentsData: [],
+        specialistsData: [],
+        coachData: null,
         students: [],
         init() {
             const studentsJson = this.$el.getAttribute('data-students');
             if (studentsJson) {
                 this.studentsData = JSON.parse(studentsJson);
                 this.students = JSON.parse(studentsJson);
+            }
+            const specialistsJson = this.$el.getAttribute('data-specialists');
+            if (specialistsJson) {
+                this.specialistsData = JSON.parse(specialistsJson);
+            }
+            const coachJson = this.$el.getAttribute('data-coach');
+            if (coachJson) {
+                this.coachData = JSON.parse(coachJson);
             }
         },
         getPlanningUrl(weekOffset) {
@@ -591,19 +652,20 @@ function planningManager() {
             const queryString = params.toString();
             return '/admin/planning' + (queryString ? '?' + queryString : '');
         },
-        openCreate() {
+        openCreate(date = null) {
             this.isEdit = false;
             this.isView = false;
             this.currentId = null;
             this.showCustomTitle = false;
-            const today = new Date().toISOString().split('T')[0];
+            const selectedDate = date || new Date().toISOString().split('T')[0];
             this.formData = {
                 title: '',
                 description: '',
                 type: '',
                 status: 'scheduled',
-                studentId: '',
-                date: today,
+                userType: '',
+                userId: '',
+                date: selectedDate,
                 startTime: '09:00',
                 endTime: '10:00',
                 startDate: '',
@@ -612,17 +674,31 @@ function planningManager() {
             this.updateDateTime();
             this.rightSheetOpen = true;
         },
-        openView(id, title, description, startDate, endDate, studentId, type, status) {
+        openCreateWithDate(dateString) {
+            // Convertir la date du format "YYYY-MM-DD" si nécessaire
+            let date = dateString;
+            if (dateString && !dateString.match(/^\d{4}-\d{2}-\d{2}$/)) {
+                // Si la date est dans un autre format, essayer de la convertir
+                const dateObj = new Date(dateString);
+                if (!isNaN(dateObj.getTime())) {
+                    date = dateObj.toISOString().split('T')[0];
+                } else {
+                    date = new Date().toISOString().split('T')[0];
+                }
+            }
+            this.openCreate(date);
+        },
+        openView(id, title, description, startDate, endDate, userId, type, status) {
             this.isView = true;
             this.isEdit = false;
             this.currentId = id;
             
-            // Trouver le nom de l'élève
-            let studentName = 'N/A';
-            if (studentId && this.studentsData) {
-                const student = this.studentsData.find(s => s.id == studentId);
-                if (student) {
-                    studentName = student.firstName + ' ' + student.lastName;
+            // Trouver le nom de l'utilisateur
+            let userName = 'N/A';
+            if (userId && this.studentsData) {
+                const user = this.studentsData.find(s => s.id == userId);
+                if (user) {
+                    userName = user.firstName + ' ' + user.lastName;
                 }
             }
             
@@ -670,8 +746,8 @@ function planningManager() {
                 description: description || 'Aucune description',
                 type: typeMap[type] || type || 'N/A',
                 status: statusMap[status] || status || 'N/A',
-                studentId: studentId || '',
-                studentName: studentName,
+                userId: userId || '',
+                userName: userName,
                 date: date || 'N/A',
                 startTime: startTime || 'N/A',
                 endTime: endTime || 'N/A',
@@ -680,7 +756,7 @@ function planningManager() {
             };
             this.rightSheetOpen = true;
         },
-        openEdit(id, title, startDate, endDate, studentId, type, status) {
+        openEdit(id, title, startDate, endDate, userId, type, status) {
             this.isEdit = true;
             this.isView = false;
             this.currentId = id;
@@ -702,12 +778,25 @@ function planningManager() {
                 endTime = end.toTimeString().slice(0, 5);
             }
             
+            // Déterminer le type d'utilisateur selon l'ID
+            let userType = '';
+            if (userId) {
+                if (this.coachData && userId == this.coachData.id) {
+                    userType = 'coach';
+                } else if (this.studentsData.find(s => s.id == userId)) {
+                    userType = 'student';
+                } else if (this.specialistsData.find(s => s.id == userId)) {
+                    userType = 'specialist';
+                }
+            }
+            
             this.formData = {
                 title: title || '',
                 description: '',
                 type: type || '',
                 status: status || 'scheduled',
-                studentId: studentId || '',
+                userType: userType,
+                userId: userId || '',
                 date: date || new Date().toISOString().split('T')[0],
                 startTime: startTime,
                 endTime: endTime,
@@ -761,12 +850,18 @@ function planningManager() {
                 : '/admin/planning/create';
             
             // Préparer les données pour l'API
+            // Déterminer le userId selon le type sélectionné
+            let userId = this.formData.userId;
+            if (this.formData.userType === 'coach' && this.coachData) {
+                userId = this.coachData.id;
+            }
+            
             const data = {
                 title: this.formData.title,
                 description: this.formData.description || '',
                 type: this.formData.type,
                 status: this.formData.status,
-                studentId: this.formData.studentId,
+                userId: userId,
                 startDate: this.formData.startDate,
                 endDate: this.formData.endDate,
             };
@@ -813,8 +908,8 @@ function planningManager() {
                 description: '',
                 type: '',
                 status: '',
-                studentId: '',
-                studentName: '',
+                userId: '',
+                userName: '',
                 date: '',
                 startTime: '',
                 endTime: '',
@@ -959,7 +1054,7 @@ function filterManager() {
             this.profileType = type;
             this.selectedIds = [];
             
-            // Si on clique sur "Tous", réinitialiser complètement et appliquer les filtres
+            // Si on clique sur "Mon planning", réinitialiser complètement et appliquer les filtres
             if (type === '') {
                 // Détruire l'instance Choices.js si elle existe
                 if (this.choicesInstance) {

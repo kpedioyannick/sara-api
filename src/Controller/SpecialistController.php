@@ -149,5 +149,39 @@ class SpecialistController extends AbstractController
 
         return new JsonResponse(['success' => true, 'message' => 'Spécialiste supprimé avec succès']);
     }
+
+    #[Route('/admin/specialists/{id}/change-password', name: 'admin_specialists_change_password', methods: ['POST'])]
+    #[IsGranted('ROLE_COACH')]
+    public function changePassword(int $id, Request $request): JsonResponse
+    {
+        $specialist = $this->specialistRepository->find($id);
+        if (!$specialist) {
+            return new JsonResponse(['success' => false, 'message' => 'Spécialiste non trouvé'], 404);
+        }
+
+        $data = json_decode($request->getContent(), true);
+        
+        // Vérifier que le mot de passe et la confirmation sont fournis
+        if (!isset($data['password']) || empty($data['password'])) {
+            return new JsonResponse(['success' => false, 'message' => 'Le mot de passe est requis'], 400);
+        }
+        
+        if (!isset($data['passwordConfirmation']) || $data['password'] !== $data['passwordConfirmation']) {
+            return new JsonResponse(['success' => false, 'message' => 'Les mots de passe ne correspondent pas'], 400);
+        }
+        
+        if (strlen($data['password']) < 6) {
+            return new JsonResponse(['success' => false, 'message' => 'Le mot de passe doit contenir au moins 6 caractères'], 400);
+        }
+        
+        // Hasher et mettre à jour le mot de passe
+        $hashedPassword = $this->passwordHasher->hashPassword($specialist, $data['password']);
+        $specialist->setPassword($hashedPassword);
+        $specialist->setUpdatedAt(new \DateTimeImmutable());
+
+        $this->em->flush();
+
+        return new JsonResponse(['success' => true, 'message' => 'Mot de passe changé avec succès']);
+    }
 }
 

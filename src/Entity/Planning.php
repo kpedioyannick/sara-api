@@ -83,11 +83,11 @@ class Planning
     #[ORM\Column]
     private ?\DateTimeImmutable $updatedAt = null;
 
-    #[ORM\ManyToOne(inversedBy: 'plannings')]
-    #[ORM\JoinColumn(nullable: false)]
-    private ?Student $student = null;
-
     #[ORM\ManyToOne]
+    #[ORM\JoinColumn(nullable: true)]
+    private ?User $user = null;
+
+    #[ORM\ManyToOne(inversedBy: 'plannings')]
     #[ORM\JoinColumn(nullable: true)]
     private ?Integration $integration = null;
 
@@ -201,14 +201,14 @@ class Planning
         return $this;
     }
 
-    public function getStudent(): ?Student
+    public function getUser(): ?User
     {
-        return $this->student;
+        return $this->user;
     }
 
-    public function setStudent(?Student $student): static
+    public function setUser(?User $user): static
     {
-        $this->student = $student;
+        $this->user = $user;
         return $this;
     }
 
@@ -223,7 +223,7 @@ class Planning
             'date' => $this->getDate()?->format('Y-m-d H:i:s'),
             'type' => $this->getType(),
             'status' => $this->getStatus(),
-            'student' => $this->getStudent()?->toSimpleArray(),
+            'user' => $this->getUser()?->toSimpleArray(),
             'recurrence' => $this->getRecurrence(),
             'recurrenceInterval' => $this->getRecurrenceInterval(),
             'recurrenceEnd' => $this->getRecurrenceEnd()?->format('Y-m-d H:i:s'),
@@ -250,11 +250,11 @@ class Planning
             'date' => $this->getDate()?->format('Y-m-d H:i:s'),
             'type' => $this->getType(),
             'status' => $this->getStatus(),
-            'student' => $this->getStudent() ? [
-                'id' => $this->getStudent()->getId(),
-                'firstName' => $this->getStudent()->getFirstName(),
-                'lastName' => $this->getStudent()->getLastName(),
-                'pseudo' => $this->getStudent()->getPseudo(),
+            'user' => $this->getUser() ? [
+                'id' => $this->getUser()->getId(),
+                'firstName' => $this->getUser()->getFirstName(),
+                'lastName' => $this->getUser()->getLastName(),
+                'email' => $this->getUser()->getEmail(),
             ] : null,
             'createdAt' => $this->getCreatedAt()?->format('Y-m-d H:i:s'),
         ];
@@ -341,16 +341,16 @@ class Planning
      */
     public function toTemplateArray(): array
     {
-        $student = $this->getStudent();
+        $user = $this->getUser();
         $metadata = $this->getMetadata() ?? [];
         
         return [
             'id' => $this->getId(),
             'title' => $this->getTitle(),
             'description' => $this->getDescription(),
-            'studentId' => $student?->getId(),
-            'studentName' => $student 
-                ? $student->getFirstName() . ' ' . $student->getLastName()
+            'userId' => $user?->getId(),
+            'userName' => $user 
+                ? $user->getFirstName() . ' ' . $user->getLastName()
                 : 'N/A',
             'type' => $this->getType(),
             'typeLabel' => $this->getTypeLabel(),
@@ -403,7 +403,7 @@ class Planning
     }
 
 
-    public static function create(array $data, Student $student): self
+    public static function create(array $data, User $user): self
     {
         $planning = new self();
         $planning->setTitle($data['title']);
@@ -419,7 +419,7 @@ class Planning
             }
         }
         
-        $planning->setStudent($student);
+        $planning->setUser($user);
         $planning->setType($data['type'] ?? 'session');
         $planning->setStatus($data['status'] ?? 'scheduled');
         
@@ -431,9 +431,9 @@ class Planning
         return $planning;
     }
 
-    public static function createForCoach(array $data, Student $student): self
+    public static function createForCoach(array $data, User $user): self
     {
-        return self::create($data, $student);
+        return self::create($data, $user);
     }
 
     public function getRecurrence(): ?string

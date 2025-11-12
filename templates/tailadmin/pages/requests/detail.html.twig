@@ -135,7 +135,7 @@
                 class="flex-1 space-y-4 overflow-y-auto p-6"
             >
                 {% for message in messages %}
-                    <div class="flex {% if message.isFromMe %}justify-end{% else %}justify-start{% endif %} gap-2" data-message-id="{{ message.id }}">
+                    <div class="flex {% if message.isFromMe %}justify-end{% else %}justify-start{% endif %} gap-2" data-message-id="{{ message.id }}" data-message-type="{{ message.type|default('text') }}">
                         <!-- Checkbox pour sélection -->
                         <div class="flex items-start pt-6" x-show="aiAssistMode">
                             <input
@@ -155,7 +155,7 @@
                             <div
                                 class="rounded-lg px-4 py-2 {% if message.isFromMe %}bg-brand-600{% else %}bg-gray-100 dark:bg-gray-700{% endif %}"
                             >
-                                {% if message.type == 'image' and message.filePath %}
+                                {% if message.type|default('') == 'image' and message.filePath %}
                                     <img 
                                         src="{{ message.filePath }}" 
                                         alt="Image" 
@@ -166,13 +166,29 @@
                                     {% if message.content %}
                                         <p class="text-sm mt-2 {% if message.isFromMe %}text-black{% else %}!text-gray-950 dark:!text-gray-100{% endif %}">{{ message.content }}</p>
                                     {% endif %}
-                                {% elseif message.type == 'audio' and message.filePath %}
-                                    <audio controls class="w-full max-w-xs">
-                                        <source src="{{ message.filePath }}" type="audio/mpeg">
-                                        <source src="{{ message.filePath }}" type="audio/wav">
-                                        <source src="{{ message.filePath }}" type="audio/ogg">
-                                        Votre navigateur ne supporte pas l'élément audio.
-                                    </audio>
+                                {% elseif message.type|default('') == 'audio' %}
+                                    {% if message.filePath %}
+                                        <div class="flex items-center gap-2">
+                                            <audio 
+                                                controls 
+                                                class="w-full max-w-xs" 
+                                                style="min-width: 250px; height: 40px;"
+                                                preload="metadata"
+                                                data-audio-id="{{ message.id }}"
+                                                onloadedmetadata="if (this.duration && !isNaN(this.duration) && this.duration > 0) { this.style.display = 'block'; }"
+                                                oncanplay="if (this.duration && !isNaN(this.duration) && this.duration > 0) { this.style.display = 'block'; }"
+                                            >
+                                                <source src="{{ message.filePath }}" type="audio/webm">
+                                                <source src="{{ message.filePath }}" type="audio/mpeg">
+                                                <source src="{{ message.filePath }}" type="audio/wav">
+                                                <source src="{{ message.filePath }}" type="audio/ogg">
+                                                <source src="{{ message.filePath }}" type="audio/mp3">
+                                                Votre navigateur ne supporte pas l'élément audio.
+                                            </audio>
+                                        </div>
+                                    {% else %}
+                                        <p class="text-sm text-red-500">⚠️ Fichier audio non disponible</p>
+                                    {% endif %}
                                     {% if message.content %}
                                         <p class="text-sm mt-2 {% if message.isFromMe %}text-black{% else %}!text-gray-950 dark:!text-gray-100{% endif %}">{{ message.content }}</p>
                                     {% endif %}
@@ -272,15 +288,15 @@
 
             <!-- Message Input -->
             <div class="border-t border-gray-200 p-4 dark:border-gray-800">
-                <form @submit.prevent="sendMessage()" class="flex gap-2 items-end">
-                    <!-- Boutons d'upload -->
-                    <div class="flex gap-2">
+                <form @submit.prevent="sendMessage()" class="space-y-2">
+                    <!-- Boutons d'upload - Ligne séparée sur mobile -->
+                    <div class="flex flex-wrap gap-2 justify-center sm:justify-start">
                         <!-- Bouton Assistance IA -->
                         <button
                             type="button"
                             @click="toggleAIAssist()"
                             :class="aiAssistMode ? 'bg-brand-500 text-white' : 'border border-gray-300 bg-white text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700'"
-                            class="rounded-lg p-2 transition-colors"
+                            class="rounded-lg p-2 transition-colors flex-shrink-0"
                             title="Assistance IA"
                         >
                             <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -288,7 +304,7 @@
                             </svg>
                         </button>
                         <!-- Upload Image -->
-                        <label class="cursor-pointer rounded-lg border border-gray-300 bg-white p-2 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:hover:bg-gray-700">
+                        <label class="cursor-pointer rounded-lg border border-gray-300 bg-white p-2 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:hover:bg-gray-700 flex-shrink-0" title="Envoyer une image">
                             <input
                                 type="file"
                                 accept="image/*"
@@ -300,7 +316,7 @@
                             </svg>
                         </label>
                         <!-- Prendre une photo -->
-                        <label class="cursor-pointer rounded-lg border border-gray-300 bg-white p-2 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:hover:bg-gray-700">
+                        <label class="cursor-pointer rounded-lg border border-gray-300 bg-white p-2 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:hover:bg-gray-700 flex-shrink-0" title="Prendre une photo">
                             <input
                                 type="file"
                                 accept="image/*"
@@ -309,12 +325,12 @@
                                 class="hidden"
                             />
                             <svg class="h-5 w-5 text-gray-600 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A 2 0 0 1 10.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
                             </svg>
                         </label>
                         <!-- Upload Audio -->
-                        <label class="cursor-pointer rounded-lg border border-gray-300 bg-white p-2 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:hover:bg-gray-700">
+                        <label class="cursor-pointer rounded-lg border border-gray-300 bg-white p-2 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:hover:bg-gray-700 flex-shrink-0" title="Envoyer un fichier audio">
                             <input
                                 type="file"
                                 accept="audio/*"
@@ -322,56 +338,111 @@
                                 class="hidden"
                             />
                             <svg class="h-5 w-5 text-gray-600 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
                             </svg>
                         </label>
+                        <!-- Enregistrer Audio -->
+                        <button
+                            type="button"
+                            @click="toggleAudioRecording()"
+                            :class="isRecording ? 'bg-error-500 text-white hover:bg-error-600' : 'border border-gray-300 bg-white text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700'"
+                            class="rounded-lg p-2 transition-colors flex-shrink-0"
+                            :title="isRecording ? 'Arrêter l\'enregistrement' : 'Enregistrer un audio'"
+                        >
+                            <svg x-show="!isRecording" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                            </svg>
+                            <svg x-show="isRecording" class="h-5 w-5 animate-pulse" fill="currentColor" viewBox="0 0 24 24">
+                                <circle cx="12" cy="12" r="10" />
+                            </svg>
+                        </button>
                     </div>
-                    <input
-                        type="text"
-                        x-model="messageContent"
-                        placeholder="Tapez votre message..."
-                        class="flex-1 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-                    />
-                    <button
-                        type="submit"
-                        :disabled="sending || uploading"
-                        class="rounded-lg bg-brand-500 px-6 py-2 text-sm font-medium text-white hover:bg-brand-600 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 disabled:opacity-50"
-                    >
-                        <span x-show="!sending && !uploading">Envoyer</span>
-                        <span x-show="sending || uploading">Envoi...</span>
-                    </button>
+                    <!-- Input et bouton Envoyer -->
+                    <div class="flex gap-2 items-end">
+                        <input
+                            type="text"
+                            x-model="messageContent"
+                            placeholder="Tapez votre message..."
+                            class="flex-1 min-w-0 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                        />
+                        <button
+                            type="submit"
+                            :disabled="sending || uploading"
+                            class="rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 disabled:opacity-50 flex-shrink-0 sm:px-6"
+                        >
+                            <span x-show="!sending && !uploading" class="hidden sm:inline">Envoyer</span>
+                            <span x-show="!sending && !uploading" class="sm:hidden">→</span>
+                            <span x-show="sending || uploading">...</span>
+                        </button>
+                    </div>
                 </form>
+            </div>
+            
+            <!-- Modal pour agrandir les images -->
+            <div
+                x-show="imageModalOpen"
+                @click.away="closeImageModal()"
+                @keydown.escape.window="closeImageModal()"
+                class="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm"
+                style="display: none;"
+                x-cloak
+            >
+                <div class="relative max-w-7xl max-h-[90vh] p-4">
+                    <button
+                        @click="closeImageModal()"
+                        class="absolute top-4 right-4 rounded-full bg-white/90 p-2 text-gray-800 hover:bg-white transition-colors"
+                    >
+                        <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                    <img 
+                        :src="imageModalSrc" 
+                        alt="Image agrandie" 
+                        class="max-w-full max-h-[90vh] rounded-lg shadow-2xl cursor-pointer"
+                        @click="closeImageModal()"
+                    />
+                </div>
+            </div>
+            
+            <!-- Modal pour prévisualiser l'audio enregistré -->
+            <div
+                x-show="recordedAudioUrl"
+                @click.away="cancelRecordedAudio()"
+                @keydown.escape.window="cancelRecordedAudio()"
+                class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
+                style="display: none;"
+                x-cloak
+            >
+                <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-6 max-w-md w-full mx-4">
+                    <h3 class="text-lg font-semibold text-gray-800 dark:text-white mb-4">Prévisualiser l'enregistrement</h3>
+                    <div class="mb-4">
+                        <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                            Durée: <span x-text="formatTime(recordingTime)"></span>
+                        </p>
+                        <audio :src="recordedAudioUrl" controls class="w-full"></audio>
+                    </div>
+                    <div class="flex gap-3">
+                        <button
+                            @click="cancelRecordedAudio()"
+                            class="flex-1 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"
+                        >
+                            Annuler
+                        </button>
+                        <button
+                            @click="sendRecordedAudio()"
+                            :disabled="uploading"
+                            class="flex-1 rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            <span x-show="!uploading">Envoyer</span>
+                            <span x-show="uploading">Envoi...</span>
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
     <!-- ====== Chat Section End ====== -->
-    
-    <!-- Modal pour agrandir les images -->
-    <div
-        x-show="imageModalOpen"
-        @click.away="closeImageModal()"
-        @keydown.escape.window="closeImageModal()"
-        class="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm"
-        style="display: none;"
-        x-cloak
-    >
-        <div class="relative max-w-7xl max-h-[90vh] p-4">
-            <button
-                @click="closeImageModal()"
-                class="absolute top-4 right-4 rounded-full bg-white/90 p-2 text-gray-800 hover:bg-white transition-colors"
-            >
-                <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-            </button>
-            <img 
-                :src="imageModalSrc" 
-                alt="Image agrandie" 
-                class="max-w-full max-h-[90vh] rounded-lg shadow-2xl cursor-pointer"
-                @click="closeImageModal()"
-            />
-        </div>
-    </div>
 </div>
 
 <script>
@@ -382,8 +453,18 @@ function requestChatManager(requestId) {
         messagesContainer: null,
         sending: false,
         uploading: false,
+        pendingFile: null,
         imageModalOpen: false,
         imageModalSrc: '',
+        // Enregistrement audio
+        isRecording: false,
+        mediaRecorder: null,
+        audioStream: null,
+        audioChunks: [],
+        recordedAudioBlob: null,
+        recordedAudioUrl: null,
+        recordingTime: 0,
+        recordingInterval: null,
         // Assistance IA
         aiAssistMode: false,
         selectedMessageIds: [],
@@ -392,8 +473,38 @@ function requestChatManager(requestId) {
         aiGenerating: false,
         
         init() {
+            // S'assurer que toutes les propriétés sont bien initialisées
+            if (this.uploading === undefined) {
+                this.uploading = false;
+            }
+            if (this.sending === undefined) {
+                this.sending = false;
+            }
+            if (this.pendingFile === undefined) {
+                this.pendingFile = null;
+            }
+            if (this.imageModalOpen === undefined) {
+                this.imageModalOpen = false;
+            }
+            if (this.imageModalSrc === undefined) {
+                this.imageModalSrc = '';
+            }
+            if (this.recordedAudioUrl === undefined) {
+                this.recordedAudioUrl = null;
+            }
+            if (this.recordingTime === undefined) {
+                this.recordingTime = 0;
+            }
+            
             this.messagesContainer = document.getElementById('messages-container');
             this.scrollToBottom();
+            
+            // Nettoyer l'enregistrement si l'utilisateur quitte la page
+            window.addEventListener('beforeunload', () => {
+                if (this.isRecording) {
+                    this.stopAudioRecording();
+                }
+            });
         },
         
         scrollToBottom() {
@@ -572,6 +683,184 @@ function requestChatManager(requestId) {
             }
         },
         
+        async toggleAudioRecording() {
+            if (this.isRecording) {
+                this.stopAudioRecording();
+            } else {
+                await this.startAudioRecording();
+            }
+        },
+        
+        async startAudioRecording() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                this.audioStream = stream;
+                
+                this.mediaRecorder = new MediaRecorder(stream);
+                this.audioChunks = [];
+                this.recordingTime = 0;
+                
+                this.mediaRecorder.ondataavailable = (event) => {
+                    if (event.data.size > 0) {
+                        this.audioChunks.push(event.data);
+                    }
+                };
+                
+                this.mediaRecorder.onstop = () => {
+                    const audioBlob = new Blob(this.audioChunks, { type: 'audio/webm' });
+                    this.recordedAudioBlob = audioBlob;
+                    this.recordedAudioUrl = URL.createObjectURL(audioBlob);
+                    
+                    // Arrêter tous les tracks du stream
+                    if (this.audioStream) {
+                        this.audioStream.getTracks().forEach(track => track.stop());
+                        this.audioStream = null;
+                    }
+                    
+                    // Afficher un modal pour prévisualiser et envoyer
+                    this.showAudioPreview();
+                };
+                
+                this.mediaRecorder.onerror = (event) => {
+                    console.error('Erreur lors de l\'enregistrement:', event);
+                    if (window.showToast) {
+                        window.showToast('Erreur lors de l\'enregistrement', 'error');
+                    }
+                    this.stopAudioRecording();
+                };
+                
+                this.mediaRecorder.start();
+                this.isRecording = true;
+                
+                // Démarrer le compteur de temps
+                this.recordingInterval = setInterval(() => {
+                    this.recordingTime++;
+                }, 1000);
+                
+                if (window.showToast) {
+                    window.showToast('Enregistrement démarré', 'info');
+                }
+            } catch (error) {
+                console.error('Erreur lors du démarrage de l\'enregistrement:', error);
+                if (window.showToast) {
+                    window.showToast('Impossible d\'accéder au microphone. Vérifiez les permissions.', 'error');
+                }
+                this.isRecording = false;
+            }
+        },
+        
+        stopAudioRecording() {
+            if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') {
+                this.mediaRecorder.stop();
+            }
+            this.isRecording = false;
+            
+            // Arrêter le stream si toujours actif
+            if (this.audioStream) {
+                this.audioStream.getTracks().forEach(track => track.stop());
+                this.audioStream = null;
+            }
+            
+            if (this.recordingInterval) {
+                clearInterval(this.recordingInterval);
+                this.recordingInterval = null;
+            }
+        },
+        
+        showAudioPreview() {
+            // Le modal sera affiché automatiquement grâce à x-show="recordedAudioUrl"
+            // Pas besoin de confirm(), le modal s'affiche
+        },
+        
+        cancelRecordedAudio() {
+            // Nettoyer
+            if (this.recordedAudioUrl) {
+                URL.revokeObjectURL(this.recordedAudioUrl);
+            }
+            this.recordedAudioBlob = null;
+            this.recordedAudioUrl = null;
+            this.recordingTime = 0;
+        },
+        
+        formatTime(seconds) {
+            const mins = Math.floor(seconds / 60);
+            const secs = seconds % 60;
+            return `${mins}:${secs.toString().padStart(2, '0')}`;
+        },
+        
+        async sendRecordedAudio() {
+            if (!this.recordedAudioBlob) return;
+            
+            this.uploading = true;
+            
+            try {
+                // Convertir le blob en File avec le bon MIME type
+                const audioFile = new File([this.recordedAudioBlob], `recording-${Date.now()}.webm`, {
+                    type: 'audio/webm'
+                });
+                
+                // Vérifier que le fichier est valide
+                if (!audioFile || audioFile.size === 0) {
+                    if (window.showToast) {
+                        window.showToast('Erreur: Fichier audio invalide', 'error');
+                    }
+                    this.uploading = false;
+                    return;
+                }
+                
+                const formData = new FormData();
+                formData.append('file', audioFile, audioFile.name);
+                formData.append('content', this.messageContent || '');
+                
+                const response = await fetch('{{ path('admin_requests_messages_create', {id: requestId}) }}', {
+                    method: 'POST',
+                    body: formData,
+                });
+                
+                // Vérifier si la réponse est OK avant de parser le JSON
+                if (!response.ok) {
+                    let errorMessage = 'Erreur lors de l\'envoi de l\'audio';
+                    try {
+                        const errorData = await response.json();
+                        errorMessage = errorData.message || errorMessage;
+                    } catch (e) {
+                        errorMessage = `Erreur ${response.status}: ${response.statusText}`;
+                    }
+                    if (window.showToast) {
+                        window.showToast(errorMessage, 'error');
+                    }
+                    this.uploading = false;
+                    return;
+                }
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Nettoyer
+                    if (this.recordedAudioUrl) {
+                        URL.revokeObjectURL(this.recordedAudioUrl);
+                    }
+                    this.recordedAudioBlob = null;
+                    this.recordedAudioUrl = null;
+                    this.recordingTime = 0;
+                    this.messageContent = '';
+                    
+                    window.location.reload();
+                } else {
+                    if (window.showToast) {
+                        window.showToast('Erreur: ' + (data.message || 'Erreur inconnue'), 'error');
+                    }
+                }
+            } catch (error) {
+                console.error('Error sending recorded audio:', error);
+                if (window.showToast) {
+                    window.showToast('Erreur lors de l\'envoi de l\'audio: ' + error.message, 'error');
+                }
+            } finally {
+                this.uploading = false;
+            }
+        },
+        
         openImageModal(imageSrc) {
             this.imageModalSrc = imageSrc;
             this.imageModalOpen = true;
@@ -650,6 +939,40 @@ function requestChatManager(requestId) {
         },
     };
 }
+
+// Script pour forcer le chargement de la durée des fichiers audio
+document.addEventListener('DOMContentLoaded', function() {
+    const audioElements = document.querySelectorAll('audio[data-audio-id]');
+    audioElements.forEach(function(audio) {
+        // Forcer le chargement des métadonnées
+        audio.load();
+        
+        // Attendre que les métadonnées soient chargées
+        audio.addEventListener('loadedmetadata', function() {
+            if (this.duration && !isNaN(this.duration) && this.duration > 0) {
+                console.log('Durée audio chargée:', this.duration, 'secondes pour audio ID:', this.dataset.audioId);
+            }
+        });
+        
+        // Si les métadonnées ne se chargent pas, essayer de charger un peu du fichier
+        audio.addEventListener('canplay', function() {
+            if (this.duration && !isNaN(this.duration) && this.duration > 0) {
+                console.log('Durée audio disponible:', this.duration, 'secondes pour audio ID:', this.dataset.audioId);
+            } else {
+                // Si la durée n'est toujours pas disponible, essayer de jouer un peu
+                const playPromise = this.play();
+                if (playPromise !== undefined) {
+                    playPromise.then(function() {
+                        audio.pause();
+                        audio.currentTime = 0;
+                    }).catch(function(error) {
+                        console.error('Erreur lors du chargement de la durée audio:', error);
+                    });
+                }
+            }
+        });
+    });
+});
 </script>
 {% endblock %}
 

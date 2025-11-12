@@ -35,17 +35,35 @@ class PlanningRepository extends ServiceEntityRepository
     }
 
     /**
-     * Récupère les événements d'un élève pour une semaine donnée
+     * Récupère les événements d'un élève pour une semaine donnée (pour compatibilité)
+     * @deprecated Utiliser findByUserAndWeek à la place
      */
     public function findByStudentAndWeek($student, \DateTimeImmutable $weekStart): array
     {
+        return $this->findByUserAndWeek($student, $weekStart);
+    }
+
+    /**
+     * Récupère les événements d'une famille pour une semaine donnée
+     * Récupère les plannings de tous les utilisateurs (étudiants) de la famille
+     */
+    public function findByFamilyAndWeek($family, \DateTimeImmutable $weekStart): array
+    {
         $weekEnd = $weekStart->modify('+6 days')->setTime(23, 59, 59);
         
+        // Récupérer tous les étudiants de la famille
+        $students = $family->getStudents()->toArray();
+        $studentIds = array_map(fn($s) => $s->getId(), $students);
+        
+        if (empty($studentIds)) {
+            return [];
+        }
+        
         return $this->createQueryBuilder('p')
-            ->where('p.student = :student')
+            ->where('p.user IN (:users)')
             ->andWhere('p.startDate >= :weekStart')
             ->andWhere('p.startDate <= :weekEnd')
-            ->setParameter('student', $student)
+            ->setParameter('users', $studentIds)
             ->setParameter('weekStart', $weekStart)
             ->setParameter('weekEnd', $weekEnd)
             ->orderBy('p.startDate', 'ASC')
@@ -54,18 +72,17 @@ class PlanningRepository extends ServiceEntityRepository
     }
 
     /**
-     * Récupère les événements d'une famille pour une semaine donnée
+     * Récupère les événements d'un utilisateur pour une semaine donnée
      */
-    public function findByFamilyAndWeek($family, \DateTimeImmutable $weekStart): array
+    public function findByUserAndWeek($user, \DateTimeImmutable $weekStart): array
     {
         $weekEnd = $weekStart->modify('+6 days')->setTime(23, 59, 59);
         
         return $this->createQueryBuilder('p')
-            ->join('p.student', 's')
-            ->where('s.family = :family')
+            ->where('p.user = :user')
             ->andWhere('p.startDate >= :weekStart')
             ->andWhere('p.startDate <= :weekEnd')
-            ->setParameter('family', $family)
+            ->setParameter('user', $user)
             ->setParameter('weekStart', $weekStart)
             ->setParameter('weekEnd', $weekEnd)
             ->orderBy('p.startDate', 'ASC')

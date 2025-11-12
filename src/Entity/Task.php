@@ -410,6 +410,7 @@ class Task
                 'id' => $this->getSpecialist()->getId(),
             ] : null,
             'dueDate' => $this->getDueDate()?->format('Y-m-d'),
+            'createdAt' => $this->getCreatedAt()?->format('Y-m-d'),
         ];
     }
 
@@ -445,8 +446,24 @@ class Task
             }
         }
         
+        // Gérer la date de création
+        if (isset($data['created_at']) && $data['created_at']) {
+            try {
+                $task->setCreatedAt(new \DateTimeImmutable($data['created_at']));
+            } catch (\Exception $e) {
+                // En cas d'erreur, utiliser la date actuelle (définie dans le constructeur)
+            }
+        }
+        // Si createdAt n'a pas été défini, il sera défini automatiquement dans le constructeur
+        
+        // Gérer la date de fin
         if (isset($data['due_date'])) {
             $task->setDueDate(new \DateTimeImmutable($data['due_date']));
+        } else {
+            // Date limite par défaut : date de création + 3 semaines
+            $createdAt = $task->getCreatedAt() ?? new \DateTimeImmutable();
+            $dueDate = $createdAt->modify('+3 weeks');
+            $task->setDueDate($dueDate);
         }
         
         return $task;

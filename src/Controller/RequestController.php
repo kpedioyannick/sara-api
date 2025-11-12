@@ -379,24 +379,27 @@ class RequestController extends AbstractController
             $coach = $user;
         }
 
-        // Récupérer les messages de la requête
-        $messages = $requestEntity->getMessages()->toArray();
-        
-        // Trier les messages par date de création (du plus récent au plus ancien)
-        usort($messages, function($a, $b) {
-            return $b->getCreatedAt() <=> $a->getCreatedAt();
-        });
+        // Récupérer les messages de la requête via une requête explicite (car fetch: 'EXTRA_LAZY')
+        $messages = $this->messageRepository->createQueryBuilder('m')
+            ->where('m.request = :request')
+            ->setParameter('request', $requestEntity)
+            ->orderBy('m.createdAt', 'ASC')
+            ->getQuery()
+            ->getResult();
 
         // Préparer les données des messages pour le template
         $messagesData = [];
         foreach ($messages as $message) {
             $sender = $message->getSender();
             $content = $message->getContent();
+            $messageType = $message->getType() ?? 'text';
+            $filePath = $message->getFilePath() ? $this->fileStorageService->generateSecureUrl($message->getFilePath()) : null;
+            
             $messagesData[] = [
                 'id' => $message->getId(),
-                'content' => $content ?: '', // S'assurer que content n'est jamais null
-                'type' => $message->getType() ?? 'text',
-                'filePath' => $message->getFilePath() ? $this->fileStorageService->generateSecureUrl($message->getFilePath()) : null,
+                'content' => $content ?: '',
+                'type' => $messageType,
+                'filePath' => $filePath,
                 'isFromMe' => $sender === $coach,
                 'sender' => [
                     'id' => $sender->getId(),
@@ -483,14 +486,21 @@ class RequestController extends AbstractController
 
             // Déterminer le type de fichier
             $mimeType = $file->getMimeType();
-            if (str_starts_with($mimeType, 'image/')) {
+            $originalName = $file->getClientOriginalName();
+            $extension = strtolower(pathinfo($originalName, PATHINFO_EXTENSION));
+            
+            // Vérifier d'abord par extension si le MIME type n'est pas fiable
+            if (str_starts_with($mimeType, 'image/') || in_array($extension, ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'])) {
                 $messageType = 'image';
                 $filePath = $this->fileStorageService->uploadFile($file, 'messages/images');
-            } elseif (str_starts_with($mimeType, 'audio/')) {
+            } elseif (str_starts_with($mimeType, 'audio/') || in_array($extension, ['mp3', 'wav', 'ogg', 'webm', 'm4a', 'aac'])) {
                 $messageType = 'audio';
                 $filePath = $this->fileStorageService->uploadFile($file, 'messages/audio');
             } else {
-                return new JsonResponse(['success' => false, 'message' => 'Type de fichier non supporté'], 400);
+                return new JsonResponse([
+                    'success' => false, 
+                    'message' => 'Type de fichier non supporté. MIME type: ' . $mimeType . ', Extension: ' . $extension
+                ], 400);
             }
         } else {
             // Message texte classique (JSON) ou fichier base64
@@ -568,6 +578,9 @@ class RequestController extends AbstractController
 
         $this->em->persist($message);
         $this->em->flush();
+        
+        // Rafraîchir la requête pour que la relation soit à jour
+        $this->em->refresh($requestEntity);
 
         // Publier le message via Mercure pour le temps réel (avec gestion d'erreur)
         try {

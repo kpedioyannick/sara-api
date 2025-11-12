@@ -121,17 +121,21 @@
                     <div class="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] sm:p-6">
                         <div class="mb-4 flex items-center justify-between">
                             <span class="text-theme-xs font-medium text-gray-500 dark:text-gray-400">{{ objective.category }}</span>
-                            {% if objective.status == 'termine' %}
+                            {% if objective.status == 'completed' %}
                             <span class="inline-flex items-center rounded-full bg-success-100 px-2.5 py-0.5 text-xs font-medium text-success-600 dark:bg-success-900/30 dark:text-success-400">
-                                Terminé
+                                {{ objective.statusLabel|default('Terminé') }}
                             </span>
-                            {% elseif objective.status == 'en_cours' %}
+                            {% elseif objective.status == 'in_action' %}
                             <span class="inline-flex items-center rounded-full bg-brand-100 px-2.5 py-0.5 text-xs font-medium text-brand-600 dark:bg-brand-900/30 dark:text-brand-400">
-                                En cours
+                                {{ objective.statusLabel|default('En Action') }}
+                            </span>
+                            {% elseif objective.status == 'pending_validation' %}
+                            <span class="inline-flex items-center rounded-full bg-yellow-100 px-2.5 py-0.5 text-xs font-medium text-yellow-600 dark:bg-yellow-900/30 dark:text-yellow-400">
+                                {{ objective.statusLabel|default('En attente de validation') }}
                             </span>
                             {% else %}
                             <span class="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-600 dark:bg-gray-800 dark:text-gray-400">
-                                {{ objective.status }}
+                                {{ objective.statusLabel|default(objective.status) }}
                             </span>
                             {% endif %}
                         </div>
@@ -225,15 +229,6 @@
                                 </svg>
                                 Détails
                             </a>
-                            <button
-                                @click="openEdit({{ objective.id }})"
-                                class="inline-flex items-center justify-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-theme-xs transition-colors hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
-                            >
-                                <svg class="fill-current" width="16" height="16" viewBox="0 0 16 16" fill="none">
-                                    <path d="M11.333 2.667a2.667 2.667 0 0 1 3.774 3.774l-8 8a2.667 2.667 0 0 1-1.886.78H2.667v-2.554a2.667 2.667 0 0 1 .78-1.886l8-8zm2.554 1.22L12.113 2.113a1.333 1.333 0 0 0-1.886 0L9.333 3.007l2.667 2.667 1.554-1.554a1.333 1.333 0 0 0 0-1.886z" fill=""/>
-                                </svg>
-                                Modifier
-                            </button>
                             <button
                                 @click="openDelete({{ objective.id }})"
                                 class="inline-flex items-center justify-center gap-2 rounded-lg border border-red-200 bg-white px-4 py-2.5 text-sm font-medium text-red-600 shadow-theme-xs transition-colors hover:bg-red-50 dark:border-red-800 dark:bg-gray-800 dark:text-red-400 dark:hover:bg-red-900/20"
@@ -390,9 +385,12 @@
                                     required
                                     class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
                                 >
-                                    <option value="pending">En attente</option>
-                                    <option value="en_cours">En cours</option>
-                                    <option value="termine">Terminé</option>
+                                    <option value="modification">En cours de Modification</option>
+                                    <option value="pending_validation">Attente de Validation par Coach</option>
+                                    <option value="validated">Validé par le coach</option>
+                                    <option value="in_action">En Action</option>
+                                    <option value="completed">Terminé</option>
+                                    <option value="paused">En pause</option>
                                 </select>
                             </div>
                             <div>
@@ -466,7 +464,9 @@
                                         </button>
                                         <button
                                             @click="openTaskDelete(task.id)"
-                                            class="rounded p-1 text-red-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20"
+                                            :disabled="!canModifyCurrentObjective()"
+                                            class="rounded p-1 text-red-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+                                            :title="canModifyCurrentObjective() ? 'Supprimer la tâche' : 'Impossible de supprimer : l\'objectif est validé'"
                                         >
                                             <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -841,11 +841,12 @@ function objectiveManager() {
         rightSheetOpen: false,
         isEdit: false,
         currentId: null,
+        currentObjective: null,
         formData: {
             title: '',
             description: '',
             category: '',
-            status: 'pending',
+            status: 'modification',
             progress: 0,
             deadline: '',
             studentId: '',
@@ -910,11 +911,12 @@ function objectiveManager() {
         openCreate() {
             this.isEdit = false;
             this.currentId = null;
+            this.currentObjective = null;
             this.formData = {
                 title: '',
                 description: '',
                 category: '',
-                status: 'pending',
+                status: 'modification',
                 progress: 0,
                 deadline: '',
                 studentId: '',
@@ -926,11 +928,12 @@ function objectiveManager() {
             if (objective) {
                 this.isEdit = true;
                 this.currentId = id;
+                this.currentObjective = objective; // Stocker l'objectif actuel pour vérifier canModifyTasks
                 this.formData = {
                     title: objective.title || '',
                     description: objective.description || '',
                     category: objective.category || '',
-                    status: objective.status || 'pending',
+                    status: objective.status || 'modification',
                     progress: objective.progress || 0,
                     deadline: objective.deadline ? objective.deadline.split(' ')[0] : '',
                     studentId: objective.student?.id || '',
@@ -940,13 +943,19 @@ function objectiveManager() {
                 this.rightSheetOpen = true;
             }
         },
+        canModifyCurrentObjective() {
+            if (!this.currentObjective) return false;
+            // Vérifier si l'objectif peut être modifié (statut modification ou pending_validation)
+            const status = this.currentObjective.status;
+            return status === 'modification' || status === 'pending_validation';
+        },
         openTaskCreate() {
             this.taskEditMode = false;
             this.currentTaskId = null;
             this.taskFormData = {
                 title: '',
                 description: '',
-                status: 'pending',
+                status: 'modification',
                 frequency: 'daily',
                 requiresProof: true, // Toutes les tâches nécessitent des preuves par défaut
                 proofType: '',
@@ -977,6 +986,12 @@ function objectiveManager() {
             this.taskSheetOpen = true;
         },
         openTaskDelete(taskId) {
+            // Vérifier que l'objectif peut être modifié avant de permettre la suppression
+            if (!this.canModifyCurrentObjective()) {
+                this.showMessage('Impossible de supprimer cette tâche. L\'objectif est validé par le coach.', 'error');
+                return;
+            }
+            
             if (confirm('Êtes-vous sûr de vouloir supprimer cette tâche ?')) {
                 fetch(`/admin/tasks/${taskId}`, {
                     method: 'DELETE',
@@ -1405,6 +1420,7 @@ function objectiveManager() {
             this.rightSheetOpen = false;
             this.isEdit = false;
             this.currentId = null;
+            this.currentObjective = null;
             this.currentTasks = [];
             this.currentComments = [];
         }

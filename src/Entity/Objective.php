@@ -324,6 +324,7 @@ class Objective
             'description' => $this->getDescription(),
             'category' => $this->getCategory(),
             'status' => $this->getStatus(),
+            'statusLabel' => $this->getStatusLabel(),
             'progress' => $this->getProgress(),
             'deadline' => $this->getDeadline()?->format('Y-m-d'),
             'tasksCount' => $this->getTasks()->count(),
