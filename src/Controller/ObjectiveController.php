@@ -7,6 +7,7 @@ use App\Entity\Comment;
 use App\Entity\Objective;
 use App\Entity\Student;
 use App\Form\ObjectiveType as ObjectiveFormType;
+use App\Repository\ActivityRepository;
 use App\Repository\CommentRepository;
 use App\Repository\CoachRepository;
 use App\Repository\FamilyRepository;
@@ -47,7 +48,8 @@ class ObjectiveController extends AbstractController
         private readonly TaskRepository $taskRepository,
         private readonly LoggerInterface $logger,
         private readonly PermissionService $permissionService,
-        private readonly NotificationService $notificationService
+        private readonly NotificationService $notificationService,
+        private readonly ActivityRepository $activityRepository
     ) {
     }
 
@@ -583,6 +585,43 @@ class ObjectiveController extends AbstractController
         // Vérifier si l'utilisateur peut utiliser l'IA
         $canUseAI = $this->permissionService->canUseAI($currentUser);
 
+        // Récupérer toutes les activités pour le sélecteur
+        $activities = $this->activityRepository->findAll();
+        
+        // Catégories considérées comme "scolaires" (à adapter selon vos besoins)
+        $schoolCategories = [
+            'scolaire', 'school', 'école', 'education', 'apprentissage', 
+            'cours', 'devoir', 'mathématiques', 'français', 'lecture', 
+            'écriture', 'orthographe', 'grammaire', 'calcul', 'géométrie'
+        ];
+        
+        $regularActivities = [];
+        $schoolActivities = [];
+        
+        foreach ($activities as $activity) {
+            $activityData = [
+                'id' => $activity->getId(),
+                'title' => $activity->getTitle(),
+            ];
+            
+            $categoryName = mb_strtolower($activity->getCategory()?->getName() ?? '');
+            $isSchool = false;
+            
+            // Vérifier si la catégorie contient un mot-clé scolaire
+            foreach ($schoolCategories as $keyword) {
+                if (str_contains($categoryName, $keyword)) {
+                    $isSchool = true;
+                    break;
+                }
+            }
+            
+            if ($isSchool) {
+                $schoolActivities[] = $activityData;
+            } else {
+                $regularActivities[] = $activityData;
+            }
+        }
+
         return $this->render('tailadmin/pages/objectives/detail.html.twig', [
             'pageTitle' => 'Détail de l\'Objectif | TailAdmin',
             'pageName' => 'objectives-detail',
@@ -594,6 +633,8 @@ class ObjectiveController extends AbstractController
             'students' => $studentsData,
             'parents' => $parentsData,
             'specialists' => $specialistsData,
+            'regularActivities' => $regularActivities,
+            'schoolActivities' => $schoolActivities,
             'breadcrumbs' => [
                 ['label' => 'Dashboard', 'url' => $this->generateUrl('admin_dashboard')],
                 ['label' => 'Objectifs', 'url' => $this->generateUrl('admin_objectives_list')],

@@ -313,12 +313,31 @@
                     <div class="space-y-2">
                         <template x-for="(objective, index) in activityForm.objectives" :key="index">
                             <div class="flex gap-2">
-                                <input
-                                    type="text"
+                                <select
                                     x-model="activityForm.objectives[index]"
                                     class="flex-1 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
-                                    placeholder="Objectif"
-                                />
+                                >
+                                    <option value="">Sélectionner un objectif...</option>
+                                    <option value="Gestion du stress">Gestion du stress</option>
+                                    <option value="Confiance en soi">Confiance en soi</option>
+                                    <option value="Concentration">Concentration</option>
+                                    <option value="Motivation">Motivation</option>
+                                    <option value="Organisation">Organisation</option>
+                                    <option value="Autonomie">Autonomie</option>
+                                    <option value="Communication">Communication</option>
+                                    <option value="Créativité">Créativité</option>
+                                    <option value="Mémoire">Mémoire</option>
+                                    <option value="Résolution de problèmes">Résolution de problèmes</option>
+                                    <option value="custom">+ Autre objectif personnalisé</option>
+                                </select>
+                                <template x-if="activityForm.objectives[index] === 'custom'">
+                                    <input
+                                        type="text"
+                                        x-model="activityForm.objectives[index]"
+                                        class="flex-1 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+                                        placeholder="Entrez un objectif personnalisé"
+                                    />
+                                </template>
                                 <button
                                     type="button"
                                     @click="removeObjective(index)"
@@ -338,8 +357,8 @@
                     </div>
                 </div>
 
-                <!-- Points travaillés -->
-                <div>
+                {# Points travaillés - Masqué dans cette version #}
+                {# <div>
                     <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
                         Points travaillés
                     </label>
@@ -369,7 +388,7 @@
                             + Ajouter un point travaillé
                         </button>
                     </div>
-                </div>
+                </div> #}
 
                 </form>
             </div>

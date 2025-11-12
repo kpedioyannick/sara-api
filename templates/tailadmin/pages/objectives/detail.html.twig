@@ -8,6 +8,8 @@
   data-parents='{{ parents|json_encode|e('html_attr') }}'
   data-specialists='{{ specialists|json_encode|e('html_attr') }}'
   data-objective='{{ objective|json_encode|e('html_attr') }}'
+  data-regular-activities='{{ regularActivities|json_encode|e('html_attr') }}'
+  data-school-activities='{{ schoolActivities|json_encode|e('html_attr') }}'
 >
   <div class="p-4 mx-auto max-w-(--breakpoint-2xl) md:p-6">
     <!-- Breadcrumb Start -->
@@ -527,6 +529,7 @@
                           data-task-student-id="{{ task.student ? task.student.id : '' }}"
                           data-task-parent-id="{{ task.parent ? task.parent.id : '' }}"
                           data-task-specialist-id="{{ task.specialist ? task.specialist.id : '' }}"
+                          data-task-activity-id="{{ task.activity ? task.activity.id : '' }}"
                           data-task-created-at="{{ task.createdAt|default('') }}"
                           data-task-due-date="{{ task.dueDate|default('') }}"
                           @click="openTaskConfig($event); open{{ task.id }} = false"
@@ -809,6 +812,7 @@
                           data-task-student-id="{{ task.student ? task.student.id : '' }}"
                           data-task-parent-id="{{ task.parent ? task.parent.id : '' }}"
                           data-task-specialist-id="{{ task.specialist ? task.specialist.id : '' }}"
+                          data-task-activity-id="{{ task.activity ? task.activity.id : '' }}"
                           data-task-created-at="{{ task.createdAt|default('') }}"
                           data-task-due-date="{{ task.dueDate|default('') }}"
                           @click="openTaskConfig($event); open{{ task.id }} = false"
@@ -1696,6 +1700,47 @@
             </p>
           </div>
 
+          <!-- Activité liée -->
+          <div class="space-y-4">
+            <!-- Activité normale -->
+            <div>
+              <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Activité liée (optionnel)
+              </label>
+              <select
+                id="regular-activity-select"
+                x-ref="regularActivitySelect"
+                class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+              >
+                <option value="">Aucune activité</option>
+                <template x-for="activity in regularActivities" :key="activity.id">
+                  <option :value="activity.id" x-text="activity.title"></option>
+                </template>
+              </select>
+            </div>
+            
+            <!-- Activité scolaire -->
+            <div>
+              <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Activité scolaire liée (optionnel)
+              </label>
+              <select
+                id="school-activity-select"
+                x-ref="schoolActivitySelect"
+                class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+              >
+                <option value="">Aucune activité scolaire</option>
+                <template x-for="activity in schoolActivities" :key="activity.id">
+                  <option :value="activity.id" x-text="activity.title"></option>
+                </template>
+              </select>
+            </div>
+            
+            <p class="text-xs text-gray-500 dark:text-gray-400">
+              Vous pouvez lier cette tâche à une activité normale ou à une activité scolaire, mais pas aux deux en même temps.
+            </p>
+          </div>
+
           <!-- Footer -->
           <div class="flex gap-3 pt-4 border-t border-gray-200 dark:border-gray-800">
             <button
@@ -1982,6 +2027,10 @@ function taskManager() {
     students: [],
     parents: [],
     specialists: [],
+    regularActivities: [],
+    schoolActivities: [],
+    regularActivityChoicesInstance: null,
+    schoolActivityChoicesInstance: null,
     taskConfig: {
       isNew: false,
       title: '',
@@ -2011,6 +2060,8 @@ function taskManager() {
       const parentsJson = this.$el.getAttribute('data-parents');
       const specialistsJson = this.$el.getAttribute('data-specialists');
       const objectiveJson = this.$el.getAttribute('data-objective');
+      const regularActivitiesJson = this.$el.getAttribute('data-regular-activities');
+      const schoolActivitiesJson = this.$el.getAttribute('data-school-activities');
       
       if (studentsJson) {
         this.students = JSON.parse(studentsJson);
@@ -2025,6 +2076,127 @@ function taskManager() {
       if (objectiveJson) {
         this.objective = JSON.parse(objectiveJson);
       }
+      if (regularActivitiesJson) {
+        this.regularActivities = JSON.parse(regularActivitiesJson);
+      }
+      if (schoolActivitiesJson) {
+        this.schoolActivities = JSON.parse(schoolActivitiesJson);
+      }
+    },
+    initActivityChoices() {
+      // Charger Choices.js si pas déjà chargé
+      if (typeof Choices === 'undefined') {
+        const script = document.createElement('script');
+        script.src = 'https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js';
+        const link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.href = 'https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css';
+        document.head.appendChild(link);
+        script.onload = () => {
+          this.$nextTick(() => {
+            this.initActivityChoices();
+          });
+        };
+        document.head.appendChild(script);
+        return;
+      }
+      
+      // Attendre que le sheet soit visible dans le DOM
+      this.$nextTick(() => {
+        // Détruire les instances existantes si elles existent
+        if (this.regularActivityChoicesInstance) {
+          try {
+            this.regularActivityChoicesInstance.destroy();
+          } catch (e) {
+            console.warn('Erreur lors de la destruction de ChoiceJS (activités):', e);
+          }
+          this.regularActivityChoicesInstance = null;
+        }
+        
+        if (this.schoolActivityChoicesInstance) {
+          try {
+            this.schoolActivityChoicesInstance.destroy();
+          } catch (e) {
+            console.warn('Erreur lors de la destruction de ChoiceJS (activités scolaires):', e);
+          }
+          this.schoolActivityChoicesInstance = null;
+        }
+        
+        // Initialiser ChoiceJS sur le select des activités normales
+        const regularActivitySelect = document.getElementById('regular-activity-select');
+        if (regularActivitySelect && this.regularActivities && this.regularActivities.length > 0) {
+          try {
+            this.regularActivityChoicesInstance = new Choices(regularActivitySelect, {
+              searchEnabled: true,
+              searchChoices: true,
+              searchFields: ['label', 'value'],
+              placeholder: true,
+              placeholderValue: 'Sélectionner une activité',
+              shouldSort: false,
+              itemSelectText: '',
+            });
+            
+            // Synchroniser avec Alpine.js
+            this.regularActivityChoicesInstance.passedElement.element.addEventListener('change', () => {
+              const value = this.regularActivityChoicesInstance.getValue(true);
+              this.taskConfig.activityId = value || '';
+              // Réinitialiser l'autre select si une valeur est sélectionnée
+              if (value && this.schoolActivityChoicesInstance) {
+                this.schoolActivityChoicesInstance.setChoiceByValue('');
+              }
+            });
+          } catch (e) {
+            console.error('Erreur lors de l\'initialisation de ChoiceJS (activités):', e);
+          }
+        }
+        
+        // Initialiser ChoiceJS sur le select des activités scolaires
+        const schoolActivitySelect = document.getElementById('school-activity-select');
+        if (schoolActivitySelect && this.schoolActivities && this.schoolActivities.length > 0) {
+          try {
+            this.schoolActivityChoicesInstance = new Choices(schoolActivitySelect, {
+              searchEnabled: true,
+              searchChoices: true,
+              searchFields: ['label', 'value'],
+              placeholder: true,
+              placeholderValue: 'Sélectionner une activité scolaire',
+              shouldSort: false,
+              itemSelectText: '',
+            });
+            
+            // Synchroniser avec Alpine.js
+            this.schoolActivityChoicesInstance.passedElement.element.addEventListener('change', () => {
+              const value = this.schoolActivityChoicesInstance.getValue(true);
+              this.taskConfig.activityId = value || '';
+              // Réinitialiser l'autre select si une valeur est sélectionnée
+              if (value && this.regularActivityChoicesInstance) {
+                this.regularActivityChoicesInstance.setChoiceByValue('');
+              }
+            });
+          } catch (e) {
+            console.error('Erreur lors de l\'initialisation de ChoiceJS (activités scolaires):', e);
+          }
+        }
+        
+        // Mettre à jour les valeurs si elles sont déjà définies
+        if (this.taskConfig.activityId) {
+          setTimeout(() => {
+            try {
+              // Vérifier si c'est une activité normale ou scolaire
+              const isRegular = this.regularActivities.some(a => a.id == this.taskConfig.activityId);
+              const isSchool = this.schoolActivities.some(a => a.id == this.taskConfig.activityId);
+              
+              if (isRegular && this.regularActivityChoicesInstance) {
+                this.regularActivityChoicesInstance.setChoiceByValue(String(this.taskConfig.activityId));
+              } else if (isSchool && this.schoolActivityChoicesInstance) {
+                this.schoolActivityChoicesInstance.setChoiceByValue(String(this.taskConfig.activityId));
+              }
+            } catch (e) {
+              console.warn('Erreur lors de la mise à jour initiale de ChoiceJS:', e);
+            }
+          }, 50);
+        }
+      });
     },
     openObjectiveEdit() {
       // Remplir le formulaire avec les données de l'objectif actuel
@@ -2467,8 +2639,9 @@ function taskManager() {
       const taskSpecialistId = button.getAttribute('data-task-specialist-id') || '';
       const taskCreatedAt = button.getAttribute('data-task-created-at') || '';
       const taskDueDate = button.getAttribute('data-task-due-date') || '';
+      const taskActivityId = button.getAttribute('data-task-activity-id') || '';
       
-      console.log('Données de la tâche:', { taskId, taskStatus, taskFrequency, taskRequiresProof, taskTitle, taskDescription, taskAssignedType, taskCreatedAt, taskDueDate });
+      console.log('Données de la tâche:', { taskId, taskStatus, taskFrequency, taskRequiresProof, taskTitle, taskDescription, taskAssignedType, taskCreatedAt, taskDueDate, taskActivityId });
       
       this.currentTaskId = taskId;
       this.configTaskTitle = taskTitle || 'Tâche #' + taskId;
@@ -2483,6 +2656,7 @@ function taskManager() {
         studentId: taskStudentId,
         parentId: taskParentId,
         specialistId: taskSpecialistId,
+        activityId: taskActivityId,
         createdAt: taskCreatedAt ? taskCreatedAt.split(' ')[0] : '', // Format YYYY-MM-DD pour input date
         dueDate: taskDueDate ? taskDueDate.split(' ')[0] : '', // Format YYYY-MM-DD pour input date
       };
@@ -2490,6 +2664,30 @@ function taskManager() {
       console.log('Ouverture du configSheet - avant:', { configSheetOpen: this.configSheetOpen, taskConfig: this.taskConfig });
       this.configSheetOpen = true;
       console.log('Ouverture du configSheet - après:', { configSheetOpen: this.configSheetOpen });
+      
+      // Initialiser ChoiceJS après l'ouverture du sheet
+      setTimeout(() => {
+        this.initActivityChoices();
+        
+        // Mettre à jour ChoiceJS avec la valeur sélectionnée après initialisation
+        if (taskActivityId) {
+          setTimeout(() => {
+            try {
+              // Vérifier si c'est une activité normale ou scolaire
+              const isRegular = this.regularActivities.some(a => a.id == taskActivityId);
+              const isSchool = this.schoolActivities.some(a => a.id == taskActivityId);
+              
+              if (isRegular && this.regularActivityChoicesInstance) {
+                this.regularActivityChoicesInstance.setChoiceByValue(String(taskActivityId));
+              } else if (isSchool && this.schoolActivityChoicesInstance) {
+                this.schoolActivityChoicesInstance.setChoiceByValue(String(taskActivityId));
+              }
+            } catch (e) {
+              console.warn('Erreur lors de la mise à jour de ChoiceJS:', e);
+            }
+          }, 100);
+        }
+      }, 200);
       
       // Forcer le re-render
       setTimeout(() => {
@@ -2529,11 +2727,17 @@ function taskManager() {
         studentId: '',
         parentId: '',
         specialistId: '',
+        activityId: '',
         createdAt: '',
         dueDate: '',
       };
       
       this.configSheetOpen = true;
+      
+      // Initialiser ChoiceJS après l'ouverture du sheet
+      setTimeout(() => {
+        this.initActivityChoices();
+      }, 200);
     },
     
     onAssignedTypeChange() {
@@ -2698,6 +2902,25 @@ function taskManager() {
     },
     
     closeConfigSheet() {
+      // Détruire ChoiceJS avant de fermer
+      if (this.regularActivityChoicesInstance) {
+        try {
+          this.regularActivityChoicesInstance.destroy();
+          this.regularActivityChoicesInstance = null;
+        } catch (e) {
+          console.warn('Erreur lors de la destruction de ChoiceJS (activités):', e);
+        }
+      }
+      
+      if (this.schoolActivityChoicesInstance) {
+        try {
+          this.schoolActivityChoicesInstance.destroy();
+          this.schoolActivityChoicesInstance = null;
+        } catch (e) {
+          console.warn('Erreur lors de la destruction de ChoiceJS (activités scolaires):', e);
+        }
+      }
+      
       this.configSheetOpen = false;
       this.currentTaskId = null;
       this.configTaskTitle = '';
@@ -2764,6 +2987,11 @@ function taskManager() {
           dataToSend.parentId = parseInt(this.taskConfig.parentId);
         } else if (this.taskConfig.assignedType === 'specialist' && this.taskConfig.specialistId) {
           dataToSend.specialistId = parseInt(this.taskConfig.specialistId);
+        }
+        
+        // Ajouter l'activité liée si fournie
+        if (this.taskConfig.activityId) {
+          dataToSend.activityId = parseInt(this.taskConfig.activityId);
         }
         
         // Déterminer l'URL selon le mode (création ou édition)

@@ -5,6 +5,7 @@ namespace App\Controller;
 use App\Controller\Trait\CoachTrait;
 use App\Entity\Objective;
 use App\Entity\Task;
+use App\Repository\ActivityRepository;
 use App\Repository\CoachRepository;
 use App\Repository\ObjectiveRepository;
 use App\Repository\ParentUserRepository;
@@ -39,7 +40,8 @@ class TaskController extends AbstractController
         private readonly ValidatorInterface $validator,
         private readonly TaskPlanningService $taskPlanningService,
         private readonly PermissionService $permissionService,
-        private readonly NotificationService $notificationService
+        private readonly NotificationService $notificationService,
+        private readonly ActivityRepository $activityRepository
     ) {
     }
 
@@ -117,6 +119,14 @@ class TaskController extends AbstractController
             'due_date' => $data['dueDate'] ?? null,
             'created_at' => $data['createdAt'] ?? null,
         ], $objective, $assignedTo, $assignedType);
+
+        // Lier l'activité si fournie
+        if (isset($data['activityId']) && !empty($data['activityId'])) {
+            $activity = $this->activityRepository->find($data['activityId']);
+            if ($activity) {
+                $task->setActivity($activity);
+            }
+        }
 
         // Validation
         $errors = $this->validator->validate($task);
@@ -229,6 +239,18 @@ class TaskController extends AbstractController
             }
         }
         if (isset($data['proofType'])) $task->setProofType($data['proofType']);
+        
+        // Mise à jour de l'activité liée
+        if (isset($data['activityId'])) {
+            if (empty($data['activityId'])) {
+                $task->setActivity(null);
+            } else {
+                $activity = $this->activityRepository->find($data['activityId']);
+                if ($activity) {
+                    $task->setActivity($activity);
+                }
+            }
+        }
         
         // Mise à jour de l'assignation
         if (isset($data['assignedType'])) {

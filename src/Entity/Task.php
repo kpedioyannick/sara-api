@@ -92,6 +92,10 @@ class Task
     #[ORM\OneToMany(mappedBy: 'task', targetEntity: Proof::class, cascade: ['persist', 'remove'], fetch: 'EXTRA_LAZY')]
     private Collection $proofs;
 
+    #[ORM\ManyToOne]
+    #[ORM\JoinColumn(nullable: true)]
+    private ?Activity $activity = null;
+
     public function __construct()
     {
         $this->createdAt = new \DateTimeImmutable();
@@ -302,6 +306,17 @@ class Task
         return $this;
     }
 
+    public function getActivity(): ?Activity
+    {
+        return $this->activity;
+    }
+
+    public function setActivity(?Activity $activity): static
+    {
+        $this->activity = $activity;
+        return $this;
+    }
+
     public function toArray(): array
     {
         return [
@@ -468,6 +483,10 @@ class Task
             ] : null,
             'dueDate' => $this->getDueDate()?->format('Y-m-d'),
             'createdAt' => $this->getCreatedAt()?->format('Y-m-d'),
+            'activity' => $this->getActivity() ? [
+                'id' => $this->getActivity()->getId(),
+                'title' => $this->getActivity()->getTitle(),
+            ] : null,
         ];
     }
 

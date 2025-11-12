@@ -73,6 +73,7 @@ class PlanningController extends AbstractController
         $studentId = $request->query->get('student');
         $profileType = $request->query->get('profileType'); // 'parent', 'specialist', 'student', ou null
         $selectedIds = $request->query->get('selectedIds', ''); // IDs séparés par des virgules
+        $eventType = $request->query->get('type'); // Type d'événement pour le filtre
         
         // Appliquer un filtre par défaut selon le rôle de l'utilisateur si aucun filtre n'est spécifié
         // Par défaut, afficher le planning de l'utilisateur connecté
@@ -192,6 +193,13 @@ class PlanningController extends AbstractController
                 }
                 $allEvents = $filteredEvents;
             }
+        }
+        
+        // Filtrer par type d'événement si spécifié
+        if ($eventType) {
+            $allEvents = array_filter($allEvents, function($event) use ($eventType) {
+                return $event->getType() === $eventType;
+            });
         }
         
         // Générer les 7 jours de la semaine

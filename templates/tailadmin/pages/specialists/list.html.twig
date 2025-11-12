@@ -4,6 +4,8 @@
 <div 
     x-data="specialistManager()"
     data-specialists='{{ specialists|json_encode|e('html_attr') }}'
+    data-students='{{ studentsData|json_encode|e('html_attr') }}'
+    data-is-coach="{{ isCoach ? 'true' : 'false' }}"
     class="p-4 mx-auto max-w-(--breakpoint-2xl) md:p-6"
 >
     {% include 'tailadmin/components/breadcrumb.html.twig' %}
@@ -298,6 +300,25 @@
                             </button>
                         </div>
                     </div>
+                    {% if isCoach %}
+                    <div>
+                        <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Élèves assignés</label>
+                        <select
+                            id="students-select"
+                            x-ref="studentsSelect"
+                            multiple
+                            class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+                        >
+                            <template x-for="student in studentsData" :key="student.id">
+                                <option 
+                                    :value="student.id" 
+                                    x-text="student.firstName + ' ' + student.lastName + (student.pseudo ? ' (' + student.pseudo + ')' : '')"
+                                ></option>
+                            </template>
+                        </select>
+                        <p x-show="studentsData.length === 0" class="mt-2 text-xs text-gray-500 dark:text-gray-400">Aucun élève disponible</p>
+                    </div>
+                    {% endif %}
                     <div>
                         <label class="mb-2 flex items-center gap-2">
                             <input
@@ -345,17 +366,94 @@ function specialistManager() {
             password: '',
             passwordConfirmation: '',
             isActive: true,
+            studentIds: [],
         },
         passwordForm: {
             newPassword: '',
             passwordConfirmation: '',
         },
         specialistsData: [],
+        studentsData: [],
+        isCoach: false,
+        studentsChoicesInstance: null,
         init() {
             const specialistsJson = this.$el.getAttribute('data-specialists');
             if (specialistsJson) {
                 this.specialistsData = JSON.parse(specialistsJson);
             }
+            const studentsJson = this.$el.getAttribute('data-students');
+            if (studentsJson) {
+                this.studentsData = JSON.parse(studentsJson);
+            }
+            const isCoachAttr = this.$el.getAttribute('data-is-coach');
+            this.isCoach = isCoachAttr === 'true';
+        },
+        initStudentsChoices() {
+            // Charger Choices.js si pas déjà chargé
+            if (typeof Choices === 'undefined') {
+                const script = document.createElement('script');
+                script.src = 'https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js';
+                const link = document.createElement('link');
+                link.rel = 'stylesheet';
+                link.href = 'https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css';
+                document.head.appendChild(link);
+                script.onload = () => {
+                    this.$nextTick(() => {
+                        this.initStudentsChoices();
+                    });
+                };
+                document.head.appendChild(script);
+                return;
+            }
+            
+            // Attendre que le sheet soit visible dans le DOM
+            this.$nextTick(() => {
+                // Détruire l'instance existante si elle existe
+                if (this.studentsChoicesInstance) {
+                    try {
+                        this.studentsChoicesInstance.destroy();
+                    } catch (e) {
+                        console.warn('Erreur lors de la destruction de ChoiceJS (élèves):', e);
+                    }
+                    this.studentsChoicesInstance = null;
+                }
+                
+                // Initialiser ChoiceJS sur le select des élèves
+                const studentsSelect = document.getElementById('students-select');
+                if (studentsSelect && this.studentsData && this.studentsData.length > 0) {
+                    try {
+                        this.studentsChoicesInstance = new Choices(studentsSelect, {
+                            removeItemButton: true,
+                            searchEnabled: true,
+                            searchChoices: true,
+                            searchFields: ['label', 'value'],
+                            placeholder: true,
+                            placeholderValue: 'Sélectionner des élèves',
+                            shouldSort: false,
+                            itemSelectText: '',
+                        });
+                        
+                        // Synchroniser avec Alpine.js
+                        this.studentsChoicesInstance.passedElement.element.addEventListener('change', () => {
+                            const values = this.studentsChoicesInstance.getValue(true);
+                            this.formData.studentIds = values.map(id => parseInt(id));
+                        });
+                        
+                        // Mettre à jour les valeurs si elles sont déjà définies
+                        if (this.formData.studentIds && this.formData.studentIds.length > 0) {
+                            setTimeout(() => {
+                                try {
+                                    this.studentsChoicesInstance.setChoiceByValue(this.formData.studentIds.map(String));
+                                } catch (e) {
+                                    console.warn('Erreur lors de la mise à jour initiale de ChoiceJS:', e);
+                                }
+                            }, 50);
+                        }
+                    } catch (e) {
+                        console.error('Erreur lors de l\'initialisation de ChoiceJS (élèves):', e);
+                    }
+                }
+            });
         },
         openCreate() {
             this.isEdit = false;
@@ -368,10 +466,18 @@ function specialistManager() {
                 password: '',
                 passwordConfirmation: '',
                 isActive: true,
+                studentIds: [],
             };
             this.rightSheetOpen = true;
+            
+            // Initialiser ChoiceJS après l'ouverture du sheet (pour la création aussi)
+            if (this.isCoach) {
+                setTimeout(() => {
+                    this.initStudentsChoices();
+                }, 200);
+            }
         },
-        openEdit(id) {
+        async openEdit(id) {
             const specialist = this.specialistsData.find(s => s.id === id);
             if (specialist) {
                 this.isEdit = true;
@@ -382,12 +488,34 @@ function specialistManager() {
                     lastName: specialist.lastName || '',
                     specializations: specialist.specializations ? [...specialist.specializations] : [],
                     isActive: specialist.isActive !== undefined ? specialist.isActive : true,
+                    studentIds: [],
                 };
                 this.passwordForm = {
                     newPassword: '',
                     passwordConfirmation: '',
                 };
+                
+                // Charger les élèves assignés au spécialiste
+                if (this.isCoach) {
+                    try {
+                        const response = await fetch(`/admin/specialists/${id}/students`);
+                        if (response.ok) {
+                            const data = await response.json();
+                            this.formData.studentIds = data.studentIds || [];
+                        }
+                    } catch (error) {
+                        console.error('Erreur lors du chargement des élèves:', error);
+                    }
+                }
+                
                 this.rightSheetOpen = true;
+                
+                // Initialiser ChoiceJS après l'ouverture du sheet
+                if (this.isCoach) {
+                    setTimeout(() => {
+                        this.initStudentsChoices();
+                    }, 200);
+                }
             }
         },
         changePassword() {
@@ -478,6 +606,12 @@ function specialistManager() {
                 }
             }
             
+            // Récupérer les valeurs de ChoiceJS si l'instance existe
+            if (this.isCoach && this.studentsChoicesInstance) {
+                const values = this.studentsChoicesInstance.getValue(true);
+                this.formData.studentIds = values.map(id => parseInt(id));
+            }
+            
             const data = {
                 email: this.formData.email,
                 firstName: this.formData.firstName,
@@ -485,6 +619,11 @@ function specialistManager() {
                 specializations: Array.isArray(this.formData.specializations) ? this.formData.specializations : [],
                 isActive: this.formData.isActive,
             };
+            
+            // Ajouter les studentIds si c'est un coach (création ou édition)
+            if (this.isCoach) {
+                data.studentIds = Array.isArray(this.formData.studentIds) ? this.formData.studentIds : [];
+            }
             
             // Ajouter le mot de passe seulement pour la création
             if (!this.isEdit) {
@@ -528,6 +667,16 @@ function specialistManager() {
             }
         },
         closeSheet() {
+            // Détruire ChoiceJS avant de fermer
+            if (this.studentsChoicesInstance) {
+                try {
+                    this.studentsChoicesInstance.destroy();
+                    this.studentsChoicesInstance = null;
+                } catch (e) {
+                    console.warn('Erreur lors de la destruction de ChoiceJS (élèves):', e);
+                }
+            }
+            
             this.rightSheetOpen = false;
             this.isEdit = false;
             this.currentId = null;

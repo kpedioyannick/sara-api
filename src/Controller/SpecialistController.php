@@ -4,6 +4,8 @@ namespace App\Controller;
 
 use App\Entity\Specialist;
 use App\Repository\SpecialistRepository;
+use App\Repository\StudentRepository;
+use App\Service\PermissionService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -20,7 +22,9 @@ class SpecialistController extends AbstractController
         private readonly SpecialistRepository $specialistRepository,
         private readonly EntityManagerInterface $em,
         private readonly UserPasswordHasherInterface $passwordHasher,
-        private readonly ValidatorInterface $validator
+        private readonly ValidatorInterface $validator,
+        private readonly StudentRepository $studentRepository,
+        private readonly PermissionService $permissionService
     ) {
     }
 
@@ -43,10 +47,25 @@ class SpecialistController extends AbstractController
         // Conversion en tableau pour le template
         $specialistsData = array_map(fn($specialist) => $specialist->toTemplateArray(), $specialists);
 
+        // Récupérer les élèves pour l'assignation (uniquement pour les coaches)
+        $studentsData = [];
+        $user = $this->getUser();
+        if ($user && method_exists($user, 'isCoach') && $user->isCoach()) {
+            $students = $this->studentRepository->findByCoach($user);
+            $studentsData = array_map(fn($student) => [
+                'id' => $student->getId(),
+                'firstName' => $student->getFirstName(),
+                'lastName' => $student->getLastName(),
+                'pseudo' => $student->getPseudo(),
+            ], $students);
+        }
+
         return $this->render('tailadmin/pages/specialists/list.html.twig', [
             'pageTitle' => 'Liste des Spécialistes | TailAdmin',
             'pageName' => 'Spécialistes',
             'specialists' => $specialistsData,
+            'studentsData' => $studentsData,
+            'isCoach' => $user && method_exists($user, 'isCoach') && $user->isCoach(),
             'breadcrumbs' => [
                 ['label' => 'Dashboard', 'url' => $this->generateUrl('admin_dashboard')],
             ],
@@ -83,6 +102,26 @@ class SpecialistController extends AbstractController
         
         $hashedPassword = $this->passwordHasher->hashPassword($specialist, $data['password']);
         $specialist->setPassword($hashedPassword);
+
+        // Gérer l'assignation des élèves (uniquement pour les coaches)
+        $user = $this->getUser();
+        if ($user && method_exists($user, 'isCoach') && $user->isCoach() && isset($data['studentIds'])) {
+            $studentIds = is_array($data['studentIds']) ? $data['studentIds'] : [];
+            
+            // Récupérer tous les élèves du coach
+            $coachStudents = $this->studentRepository->findByCoach($user);
+            $coachStudentIds = array_map(fn($s) => $s->getId(), $coachStudents);
+            
+            // Ajouter les élèves sélectionnés (vérifier qu'ils appartiennent au coach)
+            foreach ($studentIds as $studentId) {
+                if (in_array($studentId, $coachStudentIds)) {
+                    $student = $this->studentRepository->find($studentId);
+                    if ($student) {
+                        $specialist->addStudent($student);
+                    }
+                }
+            }
+        }
 
         // Validation
         $errors = $this->validator->validate($specialist);
@@ -121,6 +160,31 @@ class SpecialistController extends AbstractController
         if (isset($data['isActive'])) $specialist->setIsActive($data['isActive']);
         $specialist->setUpdatedAt(new \DateTimeImmutable());
 
+        // Gérer l'assignation/révocation des élèves (uniquement pour les coaches)
+        $user = $this->getUser();
+        if ($user && method_exists($user, 'isCoach') && $user->isCoach() && isset($data['studentIds'])) {
+            $studentIds = is_array($data['studentIds']) ? $data['studentIds'] : [];
+            
+            // Récupérer tous les élèves du coach
+            $coachStudents = $this->studentRepository->findByCoach($user);
+            $coachStudentIds = array_map(fn($s) => $s->getId(), $coachStudents);
+            
+            // Retirer tous les élèves actuels
+            foreach ($specialist->getStudents()->toArray() as $student) {
+                $specialist->removeStudent($student);
+            }
+            
+            // Ajouter les nouveaux élèves sélectionnés (vérifier qu'ils appartiennent au coach)
+            foreach ($studentIds as $studentId) {
+                if (in_array($studentId, $coachStudentIds)) {
+                    $student = $this->studentRepository->find($studentId);
+                    if ($student) {
+                        $specialist->addStudent($student);
+                    }
+                }
+            }
+        }
+
         // Validation
         $errors = $this->validator->validate($specialist);
         if (count($errors) > 0) {
@@ -148,6 +212,23 @@ class SpecialistController extends AbstractController
         $this->em->flush();
 
         return new JsonResponse(['success' => true, 'message' => 'Spécialiste supprimé avec succès']);
+    }
+
+    #[Route('/admin/specialists/{id}/students', name: 'admin_specialists_get_students', methods: ['GET'])]
+    #[IsGranted('ROLE_COACH')]
+    public function getStudents(int $id): JsonResponse
+    {
+        $specialist = $this->specialistRepository->find($id);
+        if (!$specialist) {
+            return new JsonResponse(['success' => false, 'message' => 'Spécialiste non trouvé'], 404);
+        }
+
+        $studentIds = array_map(fn($student) => $student->getId(), $specialist->getStudents()->toArray());
+
+        return new JsonResponse([
+            'success' => true,
+            'studentIds' => $studentIds,
+        ]);
     }
 
     #[Route('/admin/specialists/{id}/change-password', name: 'admin_specialists_change_password', methods: ['POST'])]

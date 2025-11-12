@@ -80,7 +80,24 @@
             </select>
         </div>
         
-        <div class="mt-4 flex items-center gap-2" x-show="profileType !== '' || selectedIds.length > 0">
+        <div class="mb-4">
+            <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Filtrer par statut
+            </label>
+            <select
+                x-model="selectedStatus"
+                @change="applyFilters()"
+                class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+            >
+                <option value="">Tous les statuts</option>
+                <option value="pending">En attente</option>
+                <option value="in_progress">En cours</option>
+                <option value="resolved">Résolu</option>
+                <option value="closed">Fermé</option>
+            </select>
+        </div>
+        
+        <div class="mt-4 flex items-center gap-2" x-show="profileType !== '' || selectedIds.length > 0 || selectedStatus !== ''">
             <button
                 @click="applyFilters()"
                 class="rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white shadow-theme-xs hover:bg-brand-600"
@@ -527,6 +544,7 @@ function filterManager() {
     return {
         profileType: '',
         selectedIds: [],
+        selectedStatus: '',
         choicesInstance: null,
         parentsData: [],
         specialistsData: [],
@@ -541,6 +559,10 @@ function filterManager() {
             const profileTypeAttr = this.$el.getAttribute('data-profile-type');
             const selectedIdsAttr = this.$el.getAttribute('data-selected-ids');
             const userRoleAttr = this.$el.getAttribute('data-user-role');
+            
+            // Récupérer le filtre par status depuis l'URL
+            const urlParams = new URLSearchParams(window.location.search);
+            this.selectedStatus = urlParams.get('status') || '';
             
             if (parentsJson) this.parentsData = JSON.parse(parentsJson);
             if (specialistsJson) this.specialistsData = JSON.parse(specialistsJson);
@@ -670,6 +692,9 @@ function filterManager() {
             if (this.selectedIds.length > 0) {
                 params.set('selectedIds', this.selectedIds.join(','));
             }
+            if (this.selectedStatus) {
+                params.set('status', this.selectedStatus);
+            }
             
             const url = '/admin/requests' + (params.toString() ? '?' + params.toString() : '');
             window.location.href = url;
@@ -677,6 +702,7 @@ function filterManager() {
         resetFilters() {
             this.profileType = '';
             this.selectedIds = [];
+            this.selectedStatus = '';
             window.location.href = '/admin/requests';
         }
     };

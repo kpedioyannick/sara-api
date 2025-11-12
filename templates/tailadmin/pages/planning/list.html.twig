@@ -80,7 +80,37 @@
             </select>
         </div>
         
-        <div class="mt-4 flex items-center gap-2" x-show="profileType !== '' || selectedIds.length > 0">
+        <div class="mb-4">
+            <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Filtrer par type
+            </label>
+            <select
+                x-model="selectedType"
+                @change="applyFilters()"
+                class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+            >
+                <option value="">Tous les types</option>
+                <optgroup label="Disponibilités">
+                    <option value="availability_exchange">Disponibilité - Échange</option>
+                    <option value="availability_activity">Disponibilité - Activités</option>
+                </optgroup>
+                <optgroup label="Événements scolaires">
+                    <option value="homework">Devoir</option>
+                    <option value="revision">Révision</option>
+                    <option value="task">Tâche</option>
+                    <option value="assessment">Évaluation</option>
+                    <option value="course">Cours</option>
+                    <option value="training">Formation</option>
+                    <option value="activity">Activité</option>
+                    <option value="detention">Retenue</option>
+                    <option value="exam">Examen</option>
+                    <option value="objective">Objectif</option>
+                </optgroup>
+                <option value="other">Autre</option>
+            </select>
+        </div>
+        
+        <div class="mt-4 flex items-center gap-2" x-show="profileType !== '' || selectedIds.length > 0 || selectedType !== ''">
             <button
                 @click="applyFilters()"
                 class="rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white shadow-theme-xs hover:bg-brand-600"
@@ -1063,6 +1093,7 @@ function filterManager() {
     return {
         profileType: '',
         selectedIds: [],
+        selectedType: '',
         choicesInstance: null,
         parentsData: [],
         specialistsData: [],
@@ -1077,6 +1108,10 @@ function filterManager() {
             const profileTypeAttr = this.$el.getAttribute('data-profile-type');
             const selectedIdsAttr = this.$el.getAttribute('data-selected-ids');
             const userRoleAttr = this.$el.getAttribute('data-user-role');
+            
+            // Récupérer le filtre par type depuis l'URL
+            const urlParams = new URLSearchParams(window.location.search);
+            this.selectedType = urlParams.get('type') || '';
             
             if (parentsJson) this.parentsData = JSON.parse(parentsJson);
             if (specialistsJson) this.specialistsData = JSON.parse(specialistsJson);
@@ -1207,6 +1242,7 @@ function filterManager() {
             // Réinitialiser les paramètres de filtres
             params.delete('profileType');
             params.delete('selectedIds');
+            params.delete('type');
             
             // Ajouter les nouveaux filtres
             if (this.profileType) {
@@ -1214,6 +1250,9 @@ function filterManager() {
             }
             if (this.selectedIds.length > 0) {
                 params.set('selectedIds', this.selectedIds.join(','));
+            }
+            if (this.selectedType) {
+                params.set('type', this.selectedType);
             }
             
             // Préserver le paramètre week
@@ -1229,6 +1268,11 @@ function filterManager() {
             
             // Préserver uniquement le paramètre week
             const weekParam = params.get('week');
+            
+            // Réinitialiser les filtres
+            this.profileType = '';
+            this.selectedIds = [];
+            this.selectedType = '';
             
             const url = '/admin/planning' + (weekParam !== null ? '?week=' + weekParam : '');
             window.location.href = url;
