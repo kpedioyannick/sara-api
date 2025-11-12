@@ -403,30 +403,53 @@
                 <!-- Mode édition/création -->
                 <form x-show="!isView" @submit.prevent="saveEvent()" class="space-y-6">
                     <div>
+                        <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Pour *</label>
+                        <select
+                            x-model="formData.userType"
+                            @change="formData.userId = ''"
+                            required
+                            class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+                        >
+                            <option value="">Sélectionner un type...</option>
+                            <option value="coach">Moi (Coach)</option>
+                            <option value="student">Élève</option>
+                            <option value="specialist">Spécialiste</option>
+                        </select>
+                    </div>
+                    <div>
                         <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Titre *</label>
                         <div class="space-y-2">
                             <select
                                 x-model="formData.title"
-                                @change="if (formData.title === 'custom') { showCustomTitle = true; formData.title = ''; } else { showCustomTitle = false; }"
+                                @change="handleTitleChange($event.target.value)"
                                 required
                                 class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
                             >
-                                <option value="">Sélectionner une matière...</option>
-                                <option value="Français">Français</option>
-                                <option value="Mathématiques">Mathématiques</option>
-                                <option value="Histoire">Histoire</option>
-                                <option value="Géographie">Géographie</option>
-                                <option value="Sciences">Sciences</option>
-                                <option value="Physique-Chimie">Physique-Chimie</option>
-                                <option value="SVT">SVT</option>
-                                <option value="Anglais">Anglais</option>
-                                <option value="Espagnol">Espagnol</option>
-                                <option value="Allemand">Allemand</option>
-                                <option value="Arts plastiques">Arts plastiques</option>
-                                <option value="Musique">Musique</option>
-                                <option value="EPS">EPS</option>
-                                <option value="Technologie">Technologie</option>
-                                <option value="custom">+ Ajouter une nouvelle matière</option>
+                                <option value="">Sélectionner un titre...</option>
+                                {% if app.user.isCoach() or app.user.isSpecialist() %}
+                                <optgroup label="Disponibilités">
+                                    <option value="Disponibilité pour échanger">Disponibilité pour échanger</option>
+                                    <option value="Disponibilité pour venir sur site">Disponibilité pour venir sur site</option>
+                                    <option value="Disponibilité pour aider à distance">Disponibilité pour aider à distance</option>
+                                </optgroup>
+                                {% endif %}
+                                <optgroup label="Matières">
+                                    <option value="Français">Français</option>
+                                    <option value="Mathématiques">Mathématiques</option>
+                                    <option value="Histoire">Histoire</option>
+                                    <option value="Géographie">Géographie</option>
+                                    <option value="Sciences">Sciences</option>
+                                    <option value="Physique-Chimie">Physique-Chimie</option>
+                                    <option value="SVT">SVT</option>
+                                    <option value="Anglais">Anglais</option>
+                                    <option value="Espagnol">Espagnol</option>
+                                    <option value="Allemand">Allemand</option>
+                                    <option value="Arts plastiques">Arts plastiques</option>
+                                    <option value="Musique">Musique</option>
+                                    <option value="EPS">EPS</option>
+                                    <option value="Technologie">Technologie</option>
+                                </optgroup>
+                                <option value="custom">+ Ajouter un titre personnalisé</option>
                             </select>
                             <input
                                 type="text"
@@ -455,11 +478,23 @@
                             class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
                         >
                             <option value="">Sélectionner...</option>
-                            <option value="course">Cours</option>
-                            <option value="revision">Révision</option>
-                            <option value="homework">Devoir</option>
-                            <option value="activity">Activité</option>
-                            <option value="assessment">Évaluation</option>
+                            <optgroup label="Disponibilités">
+                                <option value="availability_exchange">Disponibilité - Échange</option>
+                                <option value="availability_activity">Disponibilité - Activités</option>
+                            </optgroup>
+                            <optgroup label="Événements scolaires">
+                                <option value="homework">Devoir</option>
+                                <option value="revision">Révision</option>
+                                <option value="task">Tâche</option>
+                                <option value="assessment">Évaluation</option>
+                                <option value="course">Cours</option>
+                                <option value="training">Formation</option>
+                                <option value="activity">Activité</option>
+                                <option value="detention">Retenue</option>
+                                <option value="exam">Examen</option>
+                                <option value="objective">Objectif</option>
+                            </optgroup>
+                            <option value="other">Autre</option>
                         </select>
                     </div>
                     <div>
@@ -473,20 +508,6 @@
                             <option value="in_progress">En cours</option>
                             <option value="to_do">À faire</option>
                             <option value="completed">Terminé</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Pour *</label>
-                        <select
-                            x-model="formData.userType"
-                            @change="formData.userId = ''"
-                            required
-                            class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
-                        >
-                            <option value="">Sélectionner un type...</option>
-                            <option value="coach">Moi (Coach)</option>
-                            <option value="student">Élève</option>
-                            <option value="specialist">Spécialiste</option>
                         </select>
                     </div>
                     <div x-show="formData.userType === 'student'">
@@ -638,6 +659,28 @@ function planningManager() {
             const coachJson = this.$el.getAttribute('data-coach');
             if (coachJson) {
                 this.coachData = JSON.parse(coachJson);
+            }
+        },
+        handleTitleChange(value) {
+            if (value === 'custom') {
+                this.showCustomTitle = true;
+                this.formData.title = '';
+            } else {
+                this.showCustomTitle = false;
+                
+                // Déterminer automatiquement le type selon le titre
+                if (value.startsWith('Disponibilité pour échanger')) {
+                    this.formData.type = 'availability_exchange';
+                } else if (value.startsWith('Disponibilité pour venir sur site') || value.startsWith('Disponibilité pour aider à distance')) {
+                    this.formData.type = 'availability_activity';
+                } else {
+                    // Pour les matières, utiliser un type par défaut selon le userType
+                    if (this.formData.userType === 'student') {
+                        this.formData.type = 'course'; // Par défaut pour les élèves
+                    } else {
+                        this.formData.type = 'other'; // Par défaut pour les autres
+                    }
+                }
             }
         },
         getPlanningUrl(weekOffset) {

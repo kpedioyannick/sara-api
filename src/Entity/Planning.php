@@ -42,8 +42,6 @@ class Planning
     ];
 
     public const TYPES = [
-        self::TYPE_AVAILABILITY_EXCHANGE,
-        self::TYPE_AVAILABILITY_ACTIVITY,
         self::TYPE_HOMEWORK,
         self::TYPE_REVISION,
         self::TYPE_TASK,
