@@ -287,9 +287,21 @@ class PlanningController extends AbstractController
         } elseif ($user->isParent()) {
             // Pour les parents, les élèves sont déjà récupérés via PermissionService
             // Pas besoin de filtres par parent (ils voient leurs enfants)
+            // Ajouter les données du parent connecté
+            $coachData = [
+                'id' => $user->getId(),
+                'firstName' => $user->getFirstName(),
+                'lastName' => $user->getLastName(),
+                'email' => $user->getEmail(),
+            ];
         } elseif ($user->isSpecialist()) {
             // Pour les spécialistes, les élèves sont déjà récupérés via PermissionService
-            // Pas besoin de filtres par spécialiste (ils voient leurs élèves assignés)
+            // Ajouter le spécialiste connecté à specialistsData pour qu'il puisse se sélectionner
+            $specialistsData = [[
+                'id' => $user->getId(),
+                'firstName' => $user->getFirstName(),
+                'lastName' => $user->getLastName(),
+            ]];
         }
 
         return $this->render('tailadmin/pages/planning/list.html.twig', [
@@ -308,6 +320,8 @@ class PlanningController extends AbstractController
             'coach' => $coachData,
             'profileType' => $profileType,
             'selectedIds' => $selectedIds,
+            'currentUserId' => $user->getId(),
+            'currentUserType' => $user->getUserType(),
             'breadcrumbs' => [
                 ['label' => 'Dashboard', 'url' => $this->generateUrl('admin_dashboard')],
             ],
@@ -323,53 +337,76 @@ class PlanningController extends AbstractController
             return new JsonResponse(['success' => false, 'message' => 'Vous devez être connecté'], 403);
         }
 
-        // Seuls les coaches peuvent créer des événements de planning manuellement
-        if (!$user->isCoach()) {
-            return new JsonResponse(['success' => false, 'message' => 'Seul le coach peut créer des événements de planning'], 403);
-        }
-
-        $coach = $this->getCurrentCoach($this->coachRepository, $this->security);
-        if (!$coach) {
-            return new JsonResponse(['success' => false, 'message' => 'Coach non trouvé'], 404);
-        }
-
         $data = json_decode($request->getContent(), true);
         $planning = new Planning();
         
-        if (isset($data['title'])) $planning->setTitle($data['title']);
+        // Vérifier les champs requis
+        if (empty($data['title'])) {
+            return new JsonResponse(['success' => false, 'message' => 'Le titre est requis'], 400);
+        }
+        if (empty($data['startDate'])) {
+            return new JsonResponse(['success' => false, 'message' => 'La date de début est requise'], 400);
+        }
+        if (empty($data['endDate'])) {
+            return new JsonResponse(['success' => false, 'message' => 'La date de fin est requise'], 400);
+        }
+        
+        $planning->setTitle($data['title']);
         if (isset($data['description'])) $planning->setDescription($data['description']);
-        if (isset($data['type'])) $planning->setType($data['type']);
-        if (isset($data['status'])) $planning->setStatus($data['status']);
-        if (isset($data['startDate'])) {
+        $planning->setType($data['type'] ?? Planning::TYPE_OTHER);
+        $planning->setStatus($data['status'] ?? Planning::STATUS_TO_DO);
+        
+        try {
             $planning->setStartDate(new \DateTimeImmutable($data['startDate']));
+        } catch (\Exception $e) {
+            return new JsonResponse(['success' => false, 'message' => 'Format de date de début invalide: ' . $e->getMessage()], 400);
         }
-        if (isset($data['endDate'])) {
+        
+        try {
             $planning->setEndDate(new \DateTimeImmutable($data['endDate']));
+        } catch (\Exception $e) {
+            return new JsonResponse(['success' => false, 'message' => 'Format de date de fin invalide: ' . $e->getMessage()], 400);
         }
-        // Par défaut, associer le planning à l'utilisateur connecté
-        if (!isset($data['userId'])) {
-            $planning->setUser($coach);
-        } else {
+        
+        // Déterminer l'utilisateur cible pour l'événement
+        $targetUser = null;
+        if (isset($data['userId'])) {
             $targetUser = $this->em->getRepository(\App\Entity\User::class)->find($data['userId']);
-            if ($targetUser) {
-                // Si c'est un étudiant, vérifier les permissions
-                if ($targetUser->isStudent() && !$this->permissionService->canViewStudentPlanning($coach, $targetUser)) {
-                    return new JsonResponse(['success' => false, 'message' => 'Vous n\'avez pas accès au planning de cet utilisateur'], 403);
-                }
-                $planning->setUser($targetUser);
-            } else {
+            if (!$targetUser) {
                 return new JsonResponse(['success' => false, 'message' => 'Utilisateur non trouvé'], 400);
             }
+        } else {
+            // Par défaut, associer le planning à l'utilisateur connecté
+            $targetUser = $user;
         }
+
+        // Vérifier les permissions de création
+        if (!$this->permissionService->canCreatePlanning($user, $targetUser)) {
+            return new JsonResponse(['success' => false, 'message' => 'Vous n\'avez pas le droit de créer un événement pour cet utilisateur'], 403);
+        }
+
+        $planning->setUser($targetUser);
+        
+        // Stocker le créateur dans les métadonnées pour permettre la suppression ultérieure
+        $metadata = $planning->getMetadata() ?? [];
+        $metadata['creatorId'] = $user->getId();
+        $metadata['creatorType'] = $user->getUserType();
+        $planning->setMetadata($metadata);
 
         // Validation
         $errors = $this->validator->validate($planning);
         if (count($errors) > 0) {
             $errorMessages = [];
             foreach ($errors as $error) {
-                $errorMessages[] = $error->getMessage();
+                $property = $error->getPropertyPath();
+                $message = $error->getMessage();
+                $errorMessages[] = $property . ': ' . $message;
             }
-            return new JsonResponse(['success' => false, 'message' => implode(', ', $errorMessages)], 400);
+            return new JsonResponse([
+                'success' => false, 
+                'message' => 'Erreurs de validation: ' . implode(', ', $errorMessages),
+                'errors' => $errorMessages
+            ], 400);
         }
 
         $this->em->persist($planning);
@@ -387,31 +424,14 @@ class PlanningController extends AbstractController
             return new JsonResponse(['success' => false, 'message' => 'Vous devez être connecté'], 403);
         }
 
-        // Seuls les coaches peuvent modifier des événements de planning manuellement
-        if (!$user->isCoach()) {
-            return new JsonResponse(['success' => false, 'message' => 'Seul le coach peut modifier des événements de planning'], 403);
-        }
-
-        $coach = $this->getCurrentCoach($this->coachRepository, $this->security);
-        if (!$coach) {
-            return new JsonResponse(['success' => false, 'message' => 'Coach non trouvé'], 404);
-        }
-
         $planning = $this->planningRepository->find($id);
         if (!$planning) {
             return new JsonResponse(['success' => false, 'message' => 'Événement non trouvé'], 404);
         }
 
-        // Vérifier les permissions pour voir le planning de l'utilisateur
-        $planningUser = $planning->getUser();
-        if ($planningUser) {
-            if ($planningUser->isStudent() && !$this->permissionService->canViewStudentPlanning($coach, $planningUser)) {
-                return new JsonResponse(['success' => false, 'message' => 'Vous n\'avez pas accès au planning de cet utilisateur'], 403);
-            }
-            // Pour les autres utilisateurs, seul le propriétaire peut modifier
-            if (!$planningUser->isStudent() && $planningUser->getId() !== $coach->getId()) {
-                return new JsonResponse(['success' => false, 'message' => 'Vous ne pouvez modifier que votre propre planning'], 403);
-            }
+        // Vérifier les permissions de modification
+        if (!$this->permissionService->canModifyPlanning($user, $planning)) {
+            return new JsonResponse(['success' => false, 'message' => 'Vous n\'avez pas le droit de modifier cet événement'], 403);
         }
 
         $data = json_decode($request->getContent(), true);
@@ -424,6 +444,18 @@ class PlanningController extends AbstractController
         }
         if (isset($data['endDate'])) {
             $planning->setEndDate(new \DateTimeImmutable($data['endDate']));
+        }
+        
+        // Vérifier les permissions si l'utilisateur change
+        if (isset($data['userId'])) {
+            $targetUser = $this->em->getRepository(\App\Entity\User::class)->find($data['userId']);
+            if ($targetUser) {
+                // Vérifier les permissions de création pour le nouvel utilisateur
+                if (!$this->permissionService->canCreatePlanning($user, $targetUser)) {
+                    return new JsonResponse(['success' => false, 'message' => 'Vous n\'avez pas le droit de créer un événement pour cet utilisateur'], 403);
+                }
+                $planning->setUser($targetUser);
+            }
         }
 
         // Validation
@@ -450,31 +482,14 @@ class PlanningController extends AbstractController
             return new JsonResponse(['success' => false, 'message' => 'Vous devez être connecté'], 403);
         }
 
-        // Seuls les coaches peuvent supprimer des événements de planning manuellement
-        if (!$user->isCoach()) {
-            return new JsonResponse(['success' => false, 'message' => 'Seul le coach peut supprimer des événements de planning'], 403);
-        }
-
-        $coach = $this->getCurrentCoach($this->coachRepository, $this->security);
-        if (!$coach) {
-            return new JsonResponse(['success' => false, 'message' => 'Coach non trouvé'], 404);
-        }
-
         $planning = $this->planningRepository->find($id);
         if (!$planning) {
             return new JsonResponse(['success' => false, 'message' => 'Événement non trouvé'], 404);
         }
 
-        // Vérifier les permissions pour voir le planning de l'utilisateur
-        $planningUser = $planning->getUser();
-        if ($planningUser) {
-            if ($planningUser->isStudent() && !$this->permissionService->canViewStudentPlanning($coach, $planningUser)) {
-                return new JsonResponse(['success' => false, 'message' => 'Vous n\'avez pas accès au planning de cet utilisateur'], 403);
-            }
-            // Pour les autres utilisateurs, seul le propriétaire peut modifier
-            if (!$planningUser->isStudent() && $planningUser->getId() !== $coach->getId()) {
-                return new JsonResponse(['success' => false, 'message' => 'Vous ne pouvez modifier que votre propre planning'], 403);
-            }
+        // Vérifier les permissions de suppression
+        if (!$this->permissionService->canModifyPlanning($user, $planning)) {
+            return new JsonResponse(['success' => false, 'message' => 'Vous n\'avez pas le droit de supprimer cet événement'], 403);
         }
 
         $this->em->remove($planning);

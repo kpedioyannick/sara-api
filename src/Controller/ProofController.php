@@ -11,6 +11,7 @@ use App\Repository\PlanningRepository;
 use App\Repository\ProofRepository;
 use App\Repository\TaskRepository;
 use App\Service\FileStorageService;
+use App\Service\PermissionService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Bundle\SecurityBundle\Security;
@@ -33,7 +34,8 @@ class ProofController extends AbstractController
         private readonly Security $security,
         private readonly EntityManagerInterface $em,
         private readonly FileStorageService $fileStorageService,
-        private readonly ValidatorInterface $validator
+        private readonly ValidatorInterface $validator,
+        private readonly PermissionService $permissionService
     ) {
     }
 
@@ -88,14 +90,19 @@ class ProofController extends AbstractController
     #[Route('/admin/tasks/{taskId}/proofs/create', name: 'admin_proofs_create_for_task', methods: ['POST'])]
     public function createForTask(int $taskId, Request $request): JsonResponse
     {
-        $coach = $this->getCurrentCoach($this->coachRepository, $this->security);
-        if (!$coach) {
-            return new JsonResponse(['success' => false, 'message' => 'Coach non trouvé'], 404);
+        $user = $this->getUser();
+        if (!$user) {
+            return new JsonResponse(['success' => false, 'message' => 'Vous devez être connecté'], 403);
         }
 
         $task = $this->taskRepository->find($taskId);
-        if (!$task || $task->getObjective()?->getCoach() !== $coach) {
+        if (!$task) {
             return new JsonResponse(['success' => false, 'message' => 'Tâche non trouvée'], 404);
+        }
+
+        // Vérifier que l'utilisateur peut compléter cette tâche
+        if (!$this->permissionService->canCompleteTask($user, $task)) {
+            return new JsonResponse(['success' => false, 'message' => 'Vous n\'avez pas le droit de compléter cette tâche'], 403);
         }
 
         // Vérifier que la tâche n'est pas terminée - on ne peut ajouter des preuves que si la tâche est "pending" ou "in_progress"
@@ -110,7 +117,7 @@ class ProofController extends AbstractController
         $proof->setDescription($data['description'] ?? null);
         $proof->setType($data['type'] ?? 'text');
         $proof->setTask($task);
-        $proof->setSubmittedBy($coach);
+        $proof->setSubmittedBy($user);
 
         // Gestion du contenu selon le type
         if ($data['type'] === 'text' && isset($data['content'])) {

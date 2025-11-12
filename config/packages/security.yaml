@@ -52,6 +52,8 @@ security:
         - { path: ^/login, roles: PUBLIC_ACCESS }
         - { path: ^/register, roles: PUBLIC_ACCESS }
         # Routes admin accessibles aux coaches, parents, étudiants et spécialistes
+        - { path: ^/admin/notifications, roles: IS_AUTHENTICATED_FULLY }
+        - { path: ^/admin/search, roles: IS_AUTHENTICATED_FULLY }
         - { path: ^/admin/requests, roles: IS_AUTHENTICATED_FULLY }
         - { path: ^/admin/planning, roles: IS_AUTHENTICATED_FULLY }
         - { path: ^/admin/objectives, roles: IS_AUTHENTICATED_FULLY }
@@ -61,7 +63,7 @@ security:
         - { path: ^/admin/paths, roles: IS_AUTHENTICATED_FULLY }
         - { path: ^/admin/integrations, roles: IS_AUTHENTICATED_FULLY }
         # Autres routes admin réservées aux coaches
-        - { path: ^/admin, roles: ROLE_COACH }
+        - { path: ^/admin, roles: IS_AUTHENTICATED_FULLY }
         - { path: ^/coach, roles: ROLE_COACH }
         - { path: ^/parent, roles: ROLE_PARENT }
         - { path: ^/student, roles: ROLE_STUDENT }

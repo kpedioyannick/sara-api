@@ -38,6 +38,9 @@ class Objective
     #[ORM\Column(type: 'text')]
     private ?string $description = null;
 
+    #[ORM\Column(type: 'text', nullable: true)]
+    private ?string $descriptionOrigin = null;
+
     #[ORM\Column(nullable: true)]
     private ?\DateTimeImmutable $deadline = null;
 
@@ -101,6 +104,17 @@ class Objective
     public function setDescription(string $description): static
     {
         $this->description = $description;
+        return $this;
+    }
+
+    public function getDescriptionOrigin(): ?string
+    {
+        return $this->descriptionOrigin;
+    }
+
+    public function setDescriptionOrigin(?string $descriptionOrigin): static
+    {
+        $this->descriptionOrigin = $descriptionOrigin;
         return $this;
     }
 

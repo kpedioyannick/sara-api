@@ -436,6 +436,7 @@
                     <div class="mt-8 border-t border-gray-200 pt-6 dark:border-gray-800">
                         <div class="mb-4 flex items-center justify-between">
                             <h4 class="text-base font-semibold text-gray-800 dark:text-white/90">Tâches</h4>
+                            {% if canUseAI %}
                             <button
                                 @click="openTaskCreate()"
                                 class="inline-flex items-center gap-2 rounded-lg bg-brand-500 px-3 py-1.5 text-xs font-medium text-white shadow-theme-xs hover:bg-brand-600"
@@ -445,6 +446,7 @@
                                 </svg>
                                 Nouvelle tâche
                             </button>
+                            {% endif %}
                         </div>
                         <div class="space-y-2 max-h-64 overflow-y-auto">
                             <template x-for="task in currentTasks" :key="task.id">

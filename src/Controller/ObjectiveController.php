@@ -94,6 +94,15 @@ class ObjectiveController extends AbstractController
                     return $objective->getStatus() === $status;
                 });
             }
+            // Trier par date de création décroissante
+            usort($objectives, function($a, $b) {
+                $dateA = $a->getCreatedAt();
+                $dateB = $b->getCreatedAt();
+                if ($dateA === null && $dateB === null) return 0;
+                if ($dateA === null) return 1;
+                if ($dateB === null) return -1;
+                return $dateB <=> $dateA; // Ordre décroissant
+            });
         }
         
         // Filtrer par élève si spécifié
@@ -140,6 +149,18 @@ class ObjectiveController extends AbstractController
                 }
                 $objectives = $filteredObjectives;
             }
+        }
+
+        // Trier les objectifs par date de création décroissante (pour les coaches aussi, au cas où)
+        if ($user->isCoach()) {
+            usort($objectives, function($a, $b) {
+                $dateA = $a->getCreatedAt();
+                $dateB = $b->getCreatedAt();
+                if ($dateA === null && $dateB === null) return 0;
+                if ($dateA === null) return 1;
+                if ($dateB === null) return -1;
+                return $dateB <=> $dateA; // Ordre décroissant
+            });
         }
 
         // Conversion en tableau pour le template avec commentaires
@@ -201,6 +222,9 @@ class ObjectiveController extends AbstractController
             ];
         }, $students);
 
+        // Vérifier si l'utilisateur peut utiliser l'IA (seul le coach peut créer des tâches)
+        $canUseAI = $this->permissionService->canUseAI($user);
+
         return $this->render('tailadmin/pages/objectives/list.html.twig', [
             'pageTitle' => 'Liste des Objectifs | TailAdmin',
             'pageName' => 'objectives',
@@ -211,6 +235,7 @@ class ObjectiveController extends AbstractController
             'coaches' => $coachesData,
             'profileType' => $profileType,
             'selectedIds' => $selectedIds,
+            'canUseAI' => $canUseAI,
             'breadcrumbs' => [
                 ['label' => 'Dashboard', 'url' => $this->generateUrl('admin_dashboard')],
             ],
@@ -218,12 +243,13 @@ class ObjectiveController extends AbstractController
     }
 
     #[Route('/admin/objectives/create', name: 'admin_objectives_create', methods: ['POST'])]
+    #[IsGranted('ROLE_USER')]
     public function create(Request $request): JsonResponse
     {
         try {
-            $coach = $this->getCurrentCoach($this->coachRepository, $this->security);
-            if (!$coach) {
-                return new JsonResponse(['success' => false, 'message' => 'Coach non trouvé'], 404);
+            $user = $this->getUser();
+            if (!$user) {
+                return new JsonResponse(['success' => false, 'message' => 'Vous devez être connecté'], 403);
             }
 
             $data = json_decode($request->getContent(), true);
@@ -245,36 +271,75 @@ class ObjectiveController extends AbstractController
                 return new JsonResponse(['success' => false, 'message' => 'Élève non trouvé'], 400);
             }
 
-            // Générer les suggestions avec SmartObjectiveService
-            try {
-                $suggestions = $this->smartObjectiveService->generateSuggestions(
-                    $data['description'],
-                    $data['category']
-                );
-            } catch (\Exception $e) {
-                $this->logger->error('Erreur lors de la génération des suggestions', [
-                    'error' => $e->getMessage()
-                ]);
-                return new JsonResponse([
-                    'success' => false, 
-                    'message' => 'Erreur lors de la génération des suggestions : ' . $e->getMessage()
-                ], 500);
+            // Vérifier les permissions de création
+            if (!$this->permissionService->canCreateObjective($user, $student)) {
+                return new JsonResponse(['success' => false, 'message' => 'Vous n\'avez pas le droit de créer un objectif pour cet élève'], 403);
             }
 
-            // Créer l'objectif avec les données générées
+            // Récupérer le coach (soit l'utilisateur connecté s'il est coach, soit le coach de la famille de l'élève)
+            $coach = null;
+            if ($user instanceof \App\Entity\Coach) {
+                $coach = $user;
+            } else {
+                $coach = $this->getCurrentCoach($this->coachRepository, $this->security);
+                if (!$coach) {
+                    // Si pas de coach trouvé, récupérer le coach de la famille de l'élève
+                    $family = $student->getFamily();
+                    if ($family && $family->getCoach()) {
+                        $coach = $family->getCoach();
+                    } else {
+                        return new JsonResponse(['success' => false, 'message' => 'Coach non trouvé'], 404);
+                    }
+                }
+            }
+
+            // Vérifier si l'utilisateur peut utiliser l'IA
+            $canUseAI = $this->permissionService->canUseAI($user);
+            $suggestions = null;
+            
+            // Générer les suggestions avec SmartObjectiveService uniquement si l'utilisateur est un coach
+            if ($canUseAI) {
+                try {
+                    $suggestions = $this->smartObjectiveService->generateSuggestions(
+                        $data['description'],
+                        $data['category']
+                    );
+                } catch (\Exception $e) {
+                    $this->logger->error('Erreur lors de la génération des suggestions', [
+                        'error' => $e->getMessage()
+                    ]);
+                    return new JsonResponse([
+                        'success' => false, 
+                        'message' => 'Erreur lors de la génération des suggestions : ' . $e->getMessage()
+                    ], 500);
+                }
+            }
+
+            // Créer l'objectif avec les données générées ou manuelles
             $objective = new Objective();
             $objective->setCoach($coach);
             $objective->setStudent($student);
-            $objective->setDescription($data['description']);
+            
+            // Sauvegarder la description originale avant toute modification par l'IA
+            $descriptionOrigin = $data['description'];
+            $objective->setDescriptionOrigin($descriptionOrigin);
+            
+            // Si l'IA a généré une description, l'utiliser, sinon utiliser la description originale
+            if ($canUseAI && $suggestions && isset($suggestions['objective']['description'])) {
+                $objective->setDescription($suggestions['objective']['description']);
+            } else {
+                $objective->setDescription($descriptionOrigin);
+            }
+            
             $objective->setCategory($data['category']);
             $objective->setStatus(Objective::STATUS_MODIFICATION);
             $objective->setProgress(0);
             
-            // Utiliser le titre généré par OpenAI
-            if (isset($suggestions['objective']['title'])) {
+            // Utiliser le titre généré par OpenAI si disponible, sinon créer un titre simple
+            if ($canUseAI && $suggestions && isset($suggestions['objective']['title'])) {
                 $objective->setTitle($suggestions['objective']['title']);
             } else {
-                // Fallback si pas de titre généré
+                // Fallback si pas de titre généré ou si l'utilisateur ne peut pas utiliser l'IA
                 $objective->setTitle('Objectif - ' . substr($data['description'], 0, 50));
             }
 
@@ -297,8 +362,9 @@ class ObjectiveController extends AbstractController
             $this->em->persist($objective);
             $this->em->flush();
 
-            // Créer les tâches suggérées
-            if (isset($suggestions['tasks']) && is_array($suggestions['tasks'])) {
+            // Créer les tâches suggérées uniquement si l'IA a été utilisée
+            $tasksCount = 0;
+            if ($canUseAI && $suggestions && isset($suggestions['tasks']) && is_array($suggestions['tasks'])) {
                 foreach ($suggestions['tasks'] as $taskData) {
                     // Valider la fréquence
                     $frequency = $taskData['frequency'] ?? 'none';
@@ -328,14 +394,19 @@ class ObjectiveController extends AbstractController
                     $task->setAssignedType('coach');
                     
                     $this->em->persist($task);
+                    $tasksCount++;
                 }
                 $this->em->flush();
             }
 
+            $message = $canUseAI && $tasksCount > 0 
+                ? 'Objectif créé avec succès avec ' . $tasksCount . ' tâche(s) générée(s)'
+                : 'Objectif créé avec succès';
+
             return new JsonResponse([
                 'success' => true, 
                 'id' => $objective->getId(), 
-                'message' => 'Objectif créé avec succès avec ' . count($suggestions['tasks'] ?? []) . ' tâche(s) générée(s)'
+                'message' => $message
             ]);
         } catch (\Exception $e) {
             $this->logger->error('Erreur non capturée lors de la création d\'objectif', [
@@ -413,11 +484,24 @@ class ObjectiveController extends AbstractController
         $comments = $objective->getComments()->toArray();
         $commentsData = array_map(fn($comment) => $comment->toArray(), $comments);
 
+        // Récupérer le parent de l'élève si disponible
+        $studentParent = null;
+        $student = $objective->getStudent();
+        if ($student && $student->getFamily() && $student->getFamily()->getParent()) {
+            $parent = $student->getFamily()->getParent();
+            $studentParent = [
+                'id' => $parent->getId(),
+                'firstName' => $parent->getFirstName(),
+                'lastName' => $parent->getLastName(),
+            ];
+        }
+
         // Données de l'objectif
         $objectiveData = [
             'id' => $objective->getId(),
             'title' => $objective->getTitle(),
             'description' => $objective->getDescription(),
+            'descriptionOrigin' => $objective->getDescriptionOrigin(),
             'category' => $objective->getCategory(),
             'status' => $objective->getStatus(),
             'statusLabel' => $objective->getStatusLabel(),
@@ -433,6 +517,7 @@ class ObjectiveController extends AbstractController
                 'lastName' => $objective->getStudent()->getLastName(),
                 'pseudo' => $objective->getStudent()->getPseudo(),
             ],
+            'parent' => $studentParent,
         ];
 
         // Initialiser les variables pour les parents et spécialistes
@@ -486,6 +571,9 @@ class ObjectiveController extends AbstractController
             $userType = 'coach';
         }
 
+        // Vérifier si l'utilisateur peut utiliser l'IA
+        $canUseAI = $this->permissionService->canUseAI($currentUser);
+
         return $this->render('tailadmin/pages/objectives/detail.html.twig', [
             'pageTitle' => 'Détail de l\'Objectif | TailAdmin',
             'pageName' => 'objectives-detail',
@@ -493,6 +581,7 @@ class ObjectiveController extends AbstractController
             'tasks' => $tasksData,
             'comments' => $commentsData,
             'userType' => $userType,
+            'canUseAI' => $canUseAI,
             'students' => $studentsData,
             'parents' => $parentsData,
             'specialists' => $specialistsData,
@@ -584,16 +673,22 @@ class ObjectiveController extends AbstractController
     }
 
     #[Route('/admin/objectives/{id}/delete', name: 'admin_objectives_delete', methods: ['DELETE'])]
+    #[IsGranted('ROLE_USER')]
     public function delete(int $id): JsonResponse
     {
-        $coach = $this->getCurrentCoach($this->coachRepository, $this->security);
-        if (!$coach) {
-            return new JsonResponse(['success' => false, 'message' => 'Coach non trouvé'], 404);
+        $user = $this->getUser();
+        if (!$user) {
+            return new JsonResponse(['success' => false, 'message' => 'Vous devez être connecté'], 403);
         }
 
         $objective = $this->objectiveRepository->find($id);
-        if (!$objective || $objective->getCoach() !== $coach) {
+        if (!$objective) {
             return new JsonResponse(['success' => false, 'message' => 'Objectif non trouvé'], 404);
+        }
+
+        // Vérifier les permissions de suppression
+        if (!$this->permissionService->canDeleteObjective($user, $objective)) {
+            return new JsonResponse(['success' => false, 'message' => 'Vous n\'avez pas le droit de supprimer cet objectif'], 403);
         }
 
         $this->em->remove($objective);
@@ -735,9 +830,20 @@ class ObjectiveController extends AbstractController
     }
 
     #[Route('/admin/objectives/{id}/generate-tasks', name: 'admin_objectives_generate_tasks', methods: ['POST'])]
+    #[IsGranted('ROLE_USER')]
     public function generateTasks(int $id, Request $request): JsonResponse
     {
         try {
+            $user = $this->getUser();
+            if (!$user) {
+                return new JsonResponse(['success' => false, 'message' => 'Vous devez être connecté'], 403);
+            }
+
+            // Vérifier que seul le coach peut utiliser l'IA
+            if (!$this->permissionService->canUseAI($user)) {
+                return new JsonResponse(['success' => false, 'message' => 'Seul le coach peut utiliser l\'IA pour générer des tâches'], 403);
+            }
+
             $coach = $this->getCurrentCoach($this->coachRepository, $this->security);
             if (!$coach) {
                 return new JsonResponse(['success' => false, 'message' => 'Coach non trouvé'], 404);
@@ -776,6 +882,104 @@ class ObjectiveController extends AbstractController
             }
         } catch (\Exception $e) {
             $this->logger->error('Erreur non capturée lors de la génération de tâches', [
+                'objective_id' => $id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return new JsonResponse([
+                'success' => false,
+                'message' => 'Erreur serveur: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    #[Route('/admin/objectives/{id}/generate-from-origin', name: 'admin_objectives_generate_from_origin', methods: ['POST'])]
+    #[IsGranted('ROLE_USER')]
+    public function generateFromOrigin(int $id, Request $request): JsonResponse
+    {
+        try {
+            $user = $this->getUser();
+            if (!$user) {
+                return new JsonResponse(['success' => false, 'message' => 'Vous devez être connecté'], 403);
+            }
+
+            // Vérifier que seul le coach peut utiliser l'IA
+            if (!$this->permissionService->canUseAI($user)) {
+                return new JsonResponse(['success' => false, 'message' => 'Seul le coach peut utiliser l\'IA pour générer des tâches'], 403);
+            }
+
+            $coach = $this->getCurrentCoach($this->coachRepository, $this->security);
+            if (!$coach) {
+                return new JsonResponse(['success' => false, 'message' => 'Coach non trouvé'], 404);
+            }
+
+            $objective = $this->objectiveRepository->find($id);
+            if (!$objective || $objective->getCoach() !== $coach) {
+                return new JsonResponse(['success' => false, 'message' => 'Objectif non trouvé'], 404);
+            }
+
+            // Vérifier que description_origin existe
+            if (!$objective->getDescriptionOrigin()) {
+                return new JsonResponse(['success' => false, 'message' => 'La description originale n\'existe pas'], 400);
+            }
+
+            $type = $objective->getCategory() ?? 'general';
+
+            // Générer les suggestions avec SmartObjectiveService en utilisant description_origin
+            try {
+                $suggestions = $this->smartObjectiveService->generateSuggestions(
+                    $objective->getDescriptionOrigin(),
+                    $type
+                );
+
+                // Mettre à jour la description de l'objectif si une nouvelle description a été générée
+                if (isset($suggestions['objective']['description'])) {
+                    $objective->setDescription($suggestions['objective']['description']);
+                    $this->em->flush();
+                }
+
+                // Créer les tâches suggérées
+                $createdTasks = [];
+                if (isset($suggestions['tasks']) && is_array($suggestions['tasks'])) {
+                    foreach ($suggestions['tasks'] as $taskData) {
+                        $task = new Task();
+                        $task->setObjective($objective);
+                        $task->setTitle($taskData['title'] ?? 'Tâche sans titre');
+                        $task->setDescription($taskData['description'] ?? '');
+                        $task->setStatus('pending');
+                        $task->setRequiresProof($taskData['requiresProof'] ?? true);
+                        $task->setFrequency($taskData['frequency'] ?? 'none');
+                        $task->setAssignedType('coach');
+                        $task->setCoach($coach);
+
+                        $this->em->persist($task);
+                        $createdTasks[] = [
+                            'id' => $task->getId(),
+                            'title' => $task->getTitle(),
+                            'description' => $task->getDescription(),
+                        ];
+                    }
+                    $this->em->flush();
+                }
+
+                return new JsonResponse([
+                    'success' => true,
+                    'description' => $suggestions['objective']['description'] ?? null,
+                    'tasks' => $createdTasks,
+                    'message' => count($createdTasks) . ' tâche(s) créée(s) et description mise à jour'
+                ]);
+            } catch (\Exception $e) {
+                $this->logger->error('Erreur lors de la génération depuis description_origin', [
+                    'objective_id' => $id,
+                    'error' => $e->getMessage()
+                ]);
+                return new JsonResponse([
+                    'success' => false,
+                    'message' => 'Erreur lors de la génération : ' . $e->getMessage()
+                ], 500);
+            }
+        } catch (\Exception $e) {
+            $this->logger->error('Erreur non capturée lors de la génération depuis description_origin', [
                 'objective_id' => $id,
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()

@@ -70,23 +70,127 @@ class PermissionService
     }
 
     /**
+     * Vérifie si l'utilisateur peut créer un objectif pour un élève
+     */
+    public function canCreateObjective(User $user, Student $student): bool
+    {
+        // Coach : peut créer un objectif pour tous ses étudiants
+        if ($user instanceof Coach) {
+            $family = $student->getFamily();
+            return $family && $family->getCoach() === $user;
+        }
+
+        // Parent : peut créer un objectif pour ses enfants
+        if ($user instanceof ParentUser) {
+            $family = $user->getFamily();
+            return $family && $student->getFamily() === $family;
+        }
+
+        // Student : peut créer un objectif pour lui-même
+        if ($user instanceof Student) {
+            return $user === $student;
+        }
+
+        return false;
+    }
+
+    /**
      * Vérifie si l'utilisateur peut modifier un objectif
      */
     public function canModifyObjective(User $user, Objective $objective): bool
     {
-        // Seul le coach peut modifier un objectif
+        // Coach : peut toujours modifier un objectif dont il est le coach
         if ($user instanceof Coach) {
             return $objective->getCoach() === $user;
         }
 
-        // Parent : peut modifier les objectifs de ses enfants (dans son contexte)
+        // Parent : peut modifier les objectifs de ses enfants uniquement si l'objectif n'est pas encore validé
         if ($user instanceof ParentUser) {
             $family = $user->getFamily();
             if (!$family) {
                 return false;
             }
             $student = $objective->getStudent();
-            return $student && $student->getFamily() === $family;
+            if (!$student || $student->getFamily() !== $family) {
+                return false;
+            }
+            
+            // L'objectif ne doit pas être validé (statuts: validated, in_action, completed, paused)
+            $validatedStatuses = [
+                Objective::STATUS_VALIDATED,
+                Objective::STATUS_IN_ACTION,
+                Objective::STATUS_COMPLETED,
+                Objective::STATUS_PAUSED,
+            ];
+            return !in_array($objective->getStatus(), $validatedStatuses);
+        }
+
+        // Student : peut modifier ses propres objectifs uniquement si l'objectif n'est pas encore validé
+        if ($user instanceof Student) {
+            $student = $objective->getStudent();
+            if (!$student || $student !== $user) {
+                return false;
+            }
+            
+            // L'objectif ne doit pas être validé (statuts: validated, in_action, completed, paused)
+            $validatedStatuses = [
+                Objective::STATUS_VALIDATED,
+                Objective::STATUS_IN_ACTION,
+                Objective::STATUS_COMPLETED,
+                Objective::STATUS_PAUSED,
+            ];
+            return !in_array($objective->getStatus(), $validatedStatuses);
+        }
+
+        return false;
+    }
+
+    /**
+     * Vérifie si l'utilisateur peut supprimer un objectif
+     */
+    public function canDeleteObjective(User $user, Objective $objective): bool
+    {
+        // Coach : peut toujours supprimer un objectif dont il est le coach
+        if ($user instanceof Coach) {
+            return $objective->getCoach() === $user;
+        }
+
+        // Parent : peut supprimer les objectifs de ses enfants uniquement si l'objectif n'est pas encore validé
+        if ($user instanceof ParentUser) {
+            $family = $user->getFamily();
+            if (!$family) {
+                return false;
+            }
+            $student = $objective->getStudent();
+            if (!$student || $student->getFamily() !== $family) {
+                return false;
+            }
+            
+            // L'objectif ne doit pas être validé (statuts: validated, in_action, completed, paused)
+            $validatedStatuses = [
+                Objective::STATUS_VALIDATED,
+                Objective::STATUS_IN_ACTION,
+                Objective::STATUS_COMPLETED,
+                Objective::STATUS_PAUSED,
+            ];
+            return !in_array($objective->getStatus(), $validatedStatuses);
+        }
+
+        // Student : peut supprimer ses propres objectifs uniquement si l'objectif n'est pas encore validé
+        if ($user instanceof Student) {
+            $student = $objective->getStudent();
+            if (!$student || $student !== $user) {
+                return false;
+            }
+            
+            // L'objectif ne doit pas être validé (statuts: validated, in_action, completed, paused)
+            $validatedStatuses = [
+                Objective::STATUS_VALIDATED,
+                Objective::STATUS_IN_ACTION,
+                Objective::STATUS_COMPLETED,
+                Objective::STATUS_PAUSED,
+            ];
+            return !in_array($objective->getStatus(), $validatedStatuses);
         }
 
         return false;
@@ -111,16 +215,116 @@ class PermissionService
      */
     public function canModifyTask(User $user, ?Task $task = null, ?Objective $objective = null): bool
     {
-        // Seul le coach peut modifier une tâche
+        // Récupérer l'objectif si on a une tâche
+        if ($task && !$objective) {
+            $objective = $task->getObjective();
+        }
+        
+        if (!$objective) {
+            // Si pas d'objectif, seul un coach peut créer une tâche
+            return $user instanceof Coach;
+        }
+
+        // Coach : peut toujours modifier une tâche d'un objectif dont il est le coach
         if ($user instanceof Coach) {
-            if ($task) {
-                $objective = $task->getObjective();
+            return $objective->getCoach() === $user;
+        }
+
+        // Parent : peut modifier les tâches des objectifs de ses enfants uniquement si l'objectif n'est pas encore validé
+        if ($user instanceof ParentUser) {
+            $family = $user->getFamily();
+            if (!$family) {
+                return false;
             }
-            if ($objective) {
-                return $objective->getCoach() === $user;
+            $student = $objective->getStudent();
+            if (!$student || $student->getFamily() !== $family) {
+                return false;
             }
-            // Si pas de task ni objective, on vérifie juste que c'est un coach
-            return true;
+            
+            // L'objectif ne doit pas être validé (statuts: validated, in_action, completed, paused)
+            $validatedStatuses = [
+                Objective::STATUS_VALIDATED,
+                Objective::STATUS_IN_ACTION,
+                Objective::STATUS_COMPLETED,
+                Objective::STATUS_PAUSED,
+            ];
+            return !in_array($objective->getStatus(), $validatedStatuses);
+        }
+
+        // Student : peut modifier les tâches de ses propres objectifs uniquement si l'objectif n'est pas encore validé
+        if ($user instanceof Student) {
+            $student = $objective->getStudent();
+            if (!$student || $student !== $user) {
+                return false;
+            }
+            
+            // L'objectif ne doit pas être validé (statuts: validated, in_action, completed, paused)
+            $validatedStatuses = [
+                Objective::STATUS_VALIDATED,
+                Objective::STATUS_IN_ACTION,
+                Objective::STATUS_COMPLETED,
+                Objective::STATUS_PAUSED,
+            ];
+            return !in_array($objective->getStatus(), $validatedStatuses);
+        }
+
+        return false;
+    }
+
+    /**
+     * Vérifie si l'utilisateur peut compléter une tâche (ajouter une preuve)
+     */
+    public function canCompleteTask(User $user, Task $task): bool
+    {
+        // Coach : peut compléter toutes les tâches de ses objectifs
+        if ($user instanceof Coach) {
+            $objective = $task->getObjective();
+            return $objective && $objective->getCoach() === $user;
+        }
+
+        // Vérifier si la tâche est affectée à l'utilisateur
+        $assignedType = $task->getAssignedType();
+        
+        if ($assignedType === 'student' && $user instanceof Student) {
+            return $task->getStudent() === $user;
+        }
+        
+        if ($assignedType === 'parent' && $user instanceof ParentUser) {
+            return $task->getParent() === $user;
+        }
+        
+        if ($assignedType === 'specialist' && $user instanceof Specialist) {
+            return $task->getSpecialist() === $user;
+        }
+
+        return false;
+    }
+
+    /**
+     * Vérifie si l'utilisateur peut créer une demande pour un élève
+     */
+    public function canCreateRequest(User $user, Student $student): bool
+    {
+        // Coach : peut créer une demande pour tous ses étudiants
+        if ($user instanceof Coach) {
+            $family = $student->getFamily();
+            return $family && $family->getCoach() === $user;
+        }
+
+        // Parent : peut créer une demande pour ses enfants
+        if ($user instanceof ParentUser) {
+            $family = $user->getFamily();
+            return $family && $student->getFamily() === $family;
+        }
+
+        // Student : peut créer une demande pour lui-même
+        if ($user instanceof Student) {
+            return $user === $student;
+        }
+
+        // Specialist : peut créer une demande pour les élèves qui lui sont assignés
+        if ($user instanceof Specialist) {
+            return $user->getStudents()->contains($student);
         }
 
         return false;
@@ -194,28 +398,113 @@ class PermissionService
     }
 
     /**
+     * Vérifie si l'utilisateur peut créer un événement de planning pour un utilisateur donné
+     */
+    public function canCreatePlanning(User $user, ?User $targetUser = null): bool
+    {
+        // Si pas d'utilisateur cible, l'utilisateur peut créer pour lui-même
+        if (!$targetUser) {
+            return true; // Tout utilisateur peut créer un événement pour lui-même
+        }
+
+        // Coach : peut créer pour tous ses étudiants
+        if ($user instanceof Coach) {
+            if ($targetUser instanceof Student) {
+                $family = $targetUser->getFamily();
+                return $family && $family->getCoach() === $user;
+            }
+            // Coach peut créer pour lui-même
+            return $targetUser === $user;
+        }
+
+        // Parent : peut créer pour ses enfants
+        if ($user instanceof ParentUser) {
+            if ($targetUser instanceof Student) {
+                $family = $user->getFamily();
+                return $family && $targetUser->getFamily() === $family;
+            }
+            // Parent peut créer pour lui-même
+            return $targetUser === $user;
+        }
+
+        // Student : peut créer pour lui-même uniquement
+        if ($user instanceof Student) {
+            return $targetUser === $user;
+        }
+
+        // Specialist : peut créer pour les élèves qui lui sont assignés
+        if ($user instanceof Specialist) {
+            if ($targetUser instanceof Student) {
+                return $user->getStudents()->contains($targetUser);
+            }
+            // Specialist peut créer pour lui-même
+            return $targetUser === $user;
+        }
+
+        return false;
+    }
+
+    /**
+     * Vérifie si l'utilisateur peut modifier ou supprimer un événement de planning
+     */
+    public function canModifyPlanning(User $user, Planning $planning): bool
+    {
+        $planningUser = $planning->getUser();
+        if (!$planningUser) {
+            return false;
+        }
+
+        // Vérifier d'abord si l'utilisateur est le créateur de l'événement (stocké dans les métadonnées)
+        $metadata = $planning->getMetadata() ?? [];
+        if (isset($metadata['creatorId']) && $metadata['creatorId'] == $user->getId()) {
+            return true; // Le créateur peut toujours modifier/supprimer son événement
+        }
+
+        // Coach : peut modifier les événements de ses étudiants ou les siens
+        if ($user instanceof Coach) {
+            if ($planningUser instanceof Student) {
+                $family = $planningUser->getFamily();
+                return $family && $family->getCoach() === $user;
+            }
+            // Coach peut modifier ses propres événements
+            return $planningUser === $user;
+        }
+
+        // Parent : peut modifier les événements de ses enfants ou les siens
+        if ($user instanceof ParentUser) {
+            if ($planningUser instanceof Student) {
+                $family = $user->getFamily();
+                return $family && $planningUser->getFamily() === $family;
+            }
+            // Parent peut modifier ses propres événements
+            return $planningUser === $user;
+        }
+
+        // Student : peut modifier uniquement ses propres événements
+        if ($user instanceof Student) {
+            return $planningUser === $user;
+        }
+
+        // Specialist : peut modifier les événements des élèves qui lui sont assignés ou les siens
+        if ($user instanceof Specialist) {
+            if ($planningUser instanceof Student) {
+                return $user->getStudents()->contains($planningUser);
+            }
+            // Specialist peut modifier ses propres événements
+            return $planningUser === $user;
+        }
+
+        return false;
+    }
+
+    /**
      * Vérifie si l'utilisateur peut voir une activité
      */
     public function canViewActivity(User $user, Activity $activity): bool
     {
-        // Coach : peut voir ses activités
-        if ($user instanceof Coach) {
-            return $activity->getCreatedBy() === $user;
-        }
-
-        // Specialist : peut voir toutes les activités
-        if ($user instanceof Specialist) {
+        // Tous les rôles (élève, spécialiste, coach et parent) peuvent voir toutes les activités
+        if ($user instanceof Coach || $user instanceof Specialist || $user instanceof ParentUser || $user instanceof Student) {
             return true;
-        }
-
-        // Parent : peut voir les activités publiées
-        if ($user instanceof ParentUser) {
-            return $activity->getStatus() === Activity::STATUS_PUBLISHED;
-        }
-
-        // Student : peut voir les activités publiées
-        if ($user instanceof Student) {
-            return $activity->getStatus() === Activity::STATUS_PUBLISHED;
         }
 
         return false;
@@ -226,12 +515,12 @@ class PermissionService
      */
     public function canModifyActivity(User $user, Activity $activity): bool
     {
-        // Coach : peut modifier ses activités
+        // Coach : peut modifier toutes les activités (même celles créées par d'autres)
         if ($user instanceof Coach) {
-            return $activity->getCreatedBy() === $user;
+            return true;
         }
 
-        // Specialist : peut CRUD toutes les activités
+        // Specialist : peut modifier toutes les activités (même celles créées par d'autres) - mêmes droits que le coach
         if ($user instanceof Specialist) {
             return true;
         }
@@ -343,6 +632,15 @@ class PermissionService
         }
 
         return [];
+    }
+
+    /**
+     * Vérifie si l'utilisateur peut utiliser l'IA pour générer des objectifs ou des tâches
+     */
+    public function canUseAI(User $user): bool
+    {
+        // Seul le coach peut utiliser l'IA
+        return $user instanceof Coach;
     }
 
     /**

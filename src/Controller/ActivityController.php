@@ -68,26 +68,8 @@ class ActivityController extends AbstractController
             'search' => $request->query->get('search'),
         ];
 
-        // Récupération des activités selon le rôle
-        if ($user->isCoach()) {
-            // Si l'utilisateur est un coach, utiliser directement l'utilisateur connecté
-            $coach = $user instanceof \App\Entity\Coach ? $user : $this->getCurrentCoach($this->coachRepository, $this->security);
-            if (!$coach) {
-                throw $this->createAccessDeniedException('Vous devez être un coach pour accéder à cette page');
-            }
-            $filters['createdBy'] = $coach;
-            $activities = $this->activityRepository->findWithFilters($filters);
-        } elseif ($user->isSpecialist()) {
-            // Les spécialistes peuvent voir toutes les activités
-            $activities = $this->activityRepository->findWithFilters($filters);
-        } elseif ($user->isParent() || $user->isStudent()) {
-            // Les parents et étudiants voient uniquement les activités publiées
-            $filters['status'] = Activity::STATUS_PUBLISHED;
-            $activities = $this->activityRepository->findWithFilters($filters);
-        } else {
-            // Pour les autres rôles, on peut filtrer selon les besoins
-            $activities = $this->activityRepository->findWithFilters($filters);
-        }
+        // Tous les rôles (élève, spécialiste, coach et parent) peuvent voir toutes les activités
+        $activities = $this->activityRepository->findWithFilters($filters);
 
         // Conversion en tableau pour le template
         $activitiesData = array_map(fn($activity) => $activity->toArray(), $activities);
@@ -324,14 +306,6 @@ class ActivityController extends AbstractController
                 return new JsonResponse(['success' => false, 'message' => 'Vous n\'avez pas le droit de modifier cette activité'], 403);
             }
 
-            // Pour les coaches, vérifier qu'ils sont bien le créateur
-            if ($user->isCoach()) {
-                $coach = $this->getCurrentCoach($this->coachRepository, $this->security);
-                if (!$coach || $activity->getCreatedBy() !== $coach) {
-                    return new JsonResponse(['success' => false, 'message' => 'Vous n\'avez pas le droit de modifier cette activité'], 403);
-                }
-            }
-
             // Vérifier si on peut modifier cette activité (statut)
             if (!$activity->canModify()) {
                 return new JsonResponse([
@@ -365,10 +339,13 @@ class ActivityController extends AbstractController
                 $activity->setWorkedPoints($data['workedPoints']);
             }
 
-            // Seul le coach peut changer le statut d'une activité
+            // Seuls le coach et le spécialiste peuvent changer le statut d'une activité (toutes les activités)
             if (isset($data['status'])) {
-                if (!$user->isCoach()) {
-                    return new JsonResponse(['success' => false, 'message' => 'Seul le coach peut changer le statut d\'une activité'], 403);
+                if ($user->isCoach() || $user->isSpecialist()) {
+                    // Le coach et le spécialiste peuvent changer le statut de toutes les activités
+                    // Pas de vérification supplémentaire nécessaire, canModifyActivity gère déjà les permissions
+                } else {
+                    return new JsonResponse(['success' => false, 'message' => 'Seul le coach ou le spécialiste peut changer le statut d\'une activité'], 403);
                 }
                 // Valider que le statut est valide
                 if (!in_array($data['status'], array_keys(Activity::STATUSES))) {
@@ -443,14 +420,6 @@ class ActivityController extends AbstractController
                 return new JsonResponse(['success' => false, 'message' => 'Vous n\'avez pas le droit de supprimer cette activité'], 403);
             }
 
-            // Pour les coaches, vérifier qu'ils sont bien le créateur
-            if ($user->isCoach()) {
-                $coach = $this->getCurrentCoach($this->coachRepository, $this->security);
-                if (!$coach || $activity->getCreatedBy() !== $coach) {
-                    return new JsonResponse(['success' => false, 'message' => 'Vous n\'avez pas le droit de supprimer cette activité'], 403);
-                }
-            }
-
             // Supprimer les images associées
             foreach ($activity->getImages() as $image) {
                 $this->fileStorageService->deleteFile($image->getFilePath());
@@ -476,18 +445,39 @@ class ActivityController extends AbstractController
     }
 
     #[Route('/admin/activities/{id}/comment', name: 'admin_activities_comment', methods: ['POST'])]
-    #[IsGranted('ROLE_COACH')]
+    #[IsGranted('ROLE_USER')]
     public function addComment(int $id, Request $request): JsonResponse
     {
         try {
-            $coach = $this->getCurrentCoach($this->coachRepository, $this->security);
-            if (!$coach) {
-                return new JsonResponse(['success' => false, 'message' => 'Coach non trouvé'], 404);
+            $user = $this->getUser();
+            if (!$user) {
+                return new JsonResponse(['success' => false, 'message' => 'Vous devez être connecté'], 403);
+            }
+
+            // Seuls les coaches et spécialistes peuvent ajouter des commentaires
+            if (!$user->isCoach() && !$user->isSpecialist()) {
+                return new JsonResponse(['success' => false, 'message' => 'Vous n\'avez pas le droit d\'ajouter un commentaire'], 403);
             }
 
             $activity = $this->activityRepository->find($id);
-            if (!$activity || $activity->getCreatedBy() !== $coach) {
+            if (!$activity) {
                 return new JsonResponse(['success' => false, 'message' => 'Activité non trouvée'], 404);
+            }
+
+            // Vérifier les permissions
+            if (!$this->permissionService->canModifyActivity($user, $activity)) {
+                return new JsonResponse(['success' => false, 'message' => 'Vous n\'avez pas le droit d\'ajouter un commentaire à cette activité'], 403);
+            }
+
+            // Récupérer le coach ou spécialiste pour créer le commentaire
+            $commentUser = null;
+            if ($user->isCoach()) {
+                $commentUser = $this->getCurrentCoach($this->coachRepository, $this->security);
+                if (!$commentUser) {
+                    return new JsonResponse(['success' => false, 'message' => 'Coach non trouvé'], 404);
+                }
+            } elseif ($user->isSpecialist()) {
+                $commentUser = $user;
             }
 
             $data = json_decode($request->getContent(), true);
@@ -498,7 +488,7 @@ class ActivityController extends AbstractController
 
             $comment = Comment::createForUser([
                 'content' => $data['content'],
-            ], $coach, null, $activity);
+            ], $commentUser, null, $activity);
 
             $this->em->persist($comment);
             $this->em->flush();
@@ -522,18 +512,28 @@ class ActivityController extends AbstractController
 
 
     #[Route('/admin/activities/{id}/upload-image', name: 'admin_activities_upload_image', methods: ['POST'])]
-    #[IsGranted('ROLE_COACH')]
+    #[IsGranted('ROLE_USER')]
     public function uploadImage(int $id, Request $request): JsonResponse
     {
         try {
-            $coach = $this->getCurrentCoach($this->coachRepository, $this->security);
-            if (!$coach) {
-                return new JsonResponse(['success' => false, 'message' => 'Coach non trouvé'], 404);
+            $user = $this->getUser();
+            if (!$user) {
+                return new JsonResponse(['success' => false, 'message' => 'Vous devez être connecté'], 403);
+            }
+
+            // Seuls les coaches et spécialistes peuvent uploader des images
+            if (!$user->isCoach() && !$user->isSpecialist()) {
+                return new JsonResponse(['success' => false, 'message' => 'Vous n\'avez pas le droit d\'uploader une image'], 403);
             }
 
             $activity = $this->activityRepository->find($id);
-            if (!$activity || $activity->getCreatedBy() !== $coach) {
+            if (!$activity) {
                 return new JsonResponse(['success' => false, 'message' => 'Activité non trouvée'], 404);
+            }
+
+            // Vérifier les permissions
+            if (!$this->permissionService->canModifyActivity($user, $activity)) {
+                return new JsonResponse(['success' => false, 'message' => 'Vous n\'avez pas le droit d\'uploader une image pour cette activité'], 403);
             }
 
             $file = $request->files->get('image');

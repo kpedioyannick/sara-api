@@ -390,6 +390,54 @@ class Task
      */
     public function toTemplateArray(): array
     {
+        $assignedTo = null;
+        $assignedToName = null;
+        
+        switch ($this->getAssignedType()) {
+            case 'student':
+                if ($this->getStudent()) {
+                    $assignedTo = [
+                        'id' => $this->getStudent()->getId(),
+                        'firstName' => $this->getStudent()->getFirstName(),
+                        'lastName' => $this->getStudent()->getLastName(),
+                        'pseudo' => $this->getStudent()->getPseudo(),
+                    ];
+                    $assignedToName = $this->getStudent()->getFirstName() . ' ' . $this->getStudent()->getLastName();
+                }
+                break;
+            case 'parent':
+                if ($this->getParent()) {
+                    $assignedTo = [
+                        'id' => $this->getParent()->getId(),
+                        'firstName' => $this->getParent()->getFirstName(),
+                        'lastName' => $this->getParent()->getLastName(),
+                    ];
+                    $assignedToName = $this->getParent()->getFirstName() . ' ' . $this->getParent()->getLastName();
+                }
+                break;
+            case 'specialist':
+                if ($this->getSpecialist()) {
+                    $assignedTo = [
+                        'id' => $this->getSpecialist()->getId(),
+                        'firstName' => $this->getSpecialist()->getFirstName(),
+                        'lastName' => $this->getSpecialist()->getLastName(),
+                    ];
+                    $assignedToName = $this->getSpecialist()->getFirstName() . ' ' . $this->getSpecialist()->getLastName();
+                }
+                break;
+            case 'coach':
+            default:
+                if ($this->getCoach()) {
+                    $assignedTo = [
+                        'id' => $this->getCoach()->getId(),
+                        'firstName' => $this->getCoach()->getFirstName(),
+                        'lastName' => $this->getCoach()->getLastName(),
+                    ];
+                    $assignedToName = $this->getCoach()->getFirstName() . ' ' . $this->getCoach()->getLastName();
+                }
+                break;
+        }
+        
         return [
             'id' => $this->getId(),
             'title' => $this->getTitle(),
@@ -400,14 +448,23 @@ class Task
             'requiresProof' => $this->isRequiresProof() ?? false,
             'proofType' => $this->getProofType(),
             'assignedType' => $this->getAssignedType(),
+            'assignedTo' => $assignedTo,
+            'assignedToName' => $assignedToName,
             'student' => $this->getStudent() ? [
                 'id' => $this->getStudent()->getId(),
+                'firstName' => $this->getStudent()->getFirstName(),
+                'lastName' => $this->getStudent()->getLastName(),
+                'pseudo' => $this->getStudent()->getPseudo(),
             ] : null,
             'parent' => $this->getParent() ? [
                 'id' => $this->getParent()->getId(),
+                'firstName' => $this->getParent()->getFirstName(),
+                'lastName' => $this->getParent()->getLastName(),
             ] : null,
             'specialist' => $this->getSpecialist() ? [
                 'id' => $this->getSpecialist()->getId(),
+                'firstName' => $this->getSpecialist()->getFirstName(),
+                'lastName' => $this->getSpecialist()->getLastName(),
             ] : null,
             'dueDate' => $this->getDueDate()?->format('Y-m-d'),
             'createdAt' => $this->getCreatedAt()?->format('Y-m-d'),

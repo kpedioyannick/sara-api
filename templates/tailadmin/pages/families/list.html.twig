@@ -108,9 +108,9 @@
             {% endif %}
         </div>
         <div class="border-t border-gray-100 p-4 dark:border-gray-800 sm:p-6">
-            <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
+            <div class="grid grid-cols-1 gap-5 {% if app.user.isParent() and families|length == 1 %}sm:grid-cols-1 max-w-3xl mx-auto{% else %}sm:grid-cols-2 xl:grid-cols-3{% endif %}">
                 {% for family in families %}
-                <div>
+                <div {% if app.user.isParent() and families|length == 1 %}class="w-full"{% endif %}>
                     <div class="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] sm:p-6">
                         <div class="mb-4 flex items-center justify-between">
                             <span class="text-sm font-semibold text-gray-800 dark:text-white/90">
@@ -296,25 +296,25 @@
                 <!-- Content -->
                 <div class="flex-1 p-6">
                     <!-- View Mode -->
-                    <template x-if="!editMode">
+                    <template x-if="!editMode && currentData">
                         <div class="space-y-6">
                             <div>
                                 <label class="text-sm font-medium text-gray-500 dark:text-gray-400">Prénom</label>
-                                <p class="mt-1 text-base text-gray-800 dark:text-white/90" x-text="currentData.firstName"></p>
+                                <p class="mt-1 text-base text-gray-800 dark:text-white/90" x-text="currentData?.firstName || ''"></p>
                             </div>
                             <div>
                                 <label class="text-sm font-medium text-gray-500 dark:text-gray-400">Nom</label>
-                                <p class="mt-1 text-base text-gray-800 dark:text-white/90" x-text="currentData.lastName"></p>
+                                <p class="mt-1 text-base text-gray-800 dark:text-white/90" x-text="currentData?.lastName || ''"></p>
                             </div>
                             <div>
                                 <label class="text-sm font-medium text-gray-500 dark:text-gray-400">Email</label>
-                                <p class="mt-1 text-base text-gray-800 dark:text-white/90" x-text="currentData.email"></p>
+                                <p class="mt-1 text-base text-gray-800 dark:text-white/90" x-text="currentData?.email || ''"></p>
                             </div>
                         </div>
                     </template>
 
                     <!-- Edit Mode -->
-                    <template x-if="editMode">
+                    <template x-if="editMode && currentData">
                         <form class="space-y-6">
                             <div>
                                 <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Prénom</label>
@@ -346,6 +346,7 @@
                                     type="password"
                                     x-model="currentData.newPassword"
                                     placeholder="Laisser vide pour ne pas modifier"
+                                    autocomplete="new-password"
                                     class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
                                 />
                                 <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
@@ -579,6 +580,7 @@
                                 type="text"
                                 x-model="newStudentData.schoolName"
                                 placeholder="Nom de l'établissement"
+                                autocomplete="off"
                                 class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
                             />
                         </div>
@@ -629,32 +631,32 @@
                 <!-- Content -->
                 <div class="flex-1 p-6">
                     <!-- View Mode -->
-                    <template x-if="!editMode">
+                    <template x-if="!editMode && currentData">
                         <div class="space-y-6">
                             <div>
                                 <label class="text-sm font-medium text-gray-500 dark:text-gray-400">Prénom</label>
-                                <p class="mt-1 text-base text-gray-800 dark:text-white/90" x-text="currentData.firstName"></p>
+                                <p class="mt-1 text-base text-gray-800 dark:text-white/90" x-text="currentData?.firstName || ''"></p>
                             </div>
                             <div>
                                 <label class="text-sm font-medium text-gray-500 dark:text-gray-400">Nom</label>
-                                <p class="mt-1 text-base text-gray-800 dark:text-white/90" x-text="currentData.lastName"></p>
+                                <p class="mt-1 text-base text-gray-800 dark:text-white/90" x-text="currentData?.lastName || ''"></p>
                             </div>
                             <div>
                                 <label class="text-sm font-medium text-gray-500 dark:text-gray-400">Pseudo</label>
-                                <p class="mt-1 text-base text-gray-800 dark:text-white/90" x-text="currentData.pseudo"></p>
+                                <p class="mt-1 text-base text-gray-800 dark:text-white/90" x-text="currentData?.pseudo || 'Non renseigné'"></p>
                             </div>
                             <div>
                                 <label class="text-sm font-medium text-gray-500 dark:text-gray-400">Classe</label>
-                                <p class="mt-1 text-base text-gray-800 dark:text-white/90" x-text="currentData.class || 'Non renseignée'"></p>
+                                <p class="mt-1 text-base text-gray-800 dark:text-white/90" x-text="currentData?.class || 'Non renseignée'"></p>
                             </div>
                             <div>
                                 <label class="text-sm font-medium text-gray-500 dark:text-gray-400">Nom de l'établissement</label>
-                                <p class="mt-1 text-base text-gray-800 dark:text-white/90" x-text="currentData.schoolName || 'Non renseigné'"></p>
+                                <p class="mt-1 text-base text-gray-800 dark:text-white/90" x-text="currentData?.schoolName || 'Non renseigné'"></p>
                             </div>
                             <div>
                                 <label class="text-sm font-medium text-gray-500 dark:text-gray-400">Spécialistes assignés</label>
                                 <div class="mt-1">
-                                    <template x-if="currentData.specialists && currentData.specialists.length > 0">
+                                    <template x-if="currentData?.specialists && currentData?.specialists?.length > 0">
                                         <div class="flex flex-wrap gap-2">
                                             <template x-for="specialist in currentData.specialists" :key="specialist.id">
                                                 <span class="inline-flex items-center rounded-full bg-brand-50 px-2.5 py-0.5 text-xs font-medium text-brand-600 dark:bg-brand-500/15 dark:text-brand-400">
@@ -663,14 +665,14 @@
                                             </template>
                                         </div>
                                     </template>
-                                    <p x-show="!currentData.specialists || currentData.specialists.length === 0" class="text-base text-gray-500 dark:text-gray-400">Aucun spécialiste assigné</p>
+                                    <p x-show="!currentData?.specialists || currentData?.specialists?.length === 0" class="text-base text-gray-500 dark:text-gray-400">Aucun spécialiste assigné</p>
                                 </div>
                             </div>
                         </div>
                     </template>
 
                     <!-- Edit Mode -->
-                    <template x-if="editMode">
+                    <template x-if="editMode && currentData">
                         <form class="space-y-6">
                             <div>
                                 <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Prénom</label>
@@ -729,9 +731,11 @@
                                     type="text"
                                     x-model="currentData.schoolName"
                                     placeholder="Nom de l'établissement"
+                                    autocomplete="off"
                                     class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
                                 />
                             </div>
+                            {% if app.user.isCoach() %}
                             <div>
                                 <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Spécialistes</label>
                                 <div class="space-y-2 max-h-60 overflow-y-auto border border-gray-200 rounded-lg p-3 dark:border-gray-700">
@@ -752,12 +756,14 @@
                                     Sélectionnez un ou plusieurs spécialistes à assigner à cet élève
                                 </p>
                             </div>
+                            {% endif %}
                             <div>
                                 <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Nouveau mot de passe</label>
                                 <input
                                     type="password"
                                     x-model="currentData.newPassword"
                                     placeholder="Laisser vide pour ne pas modifier"
+                                    autocomplete="new-password"
                                     class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
                                 />
                                 <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
@@ -975,7 +981,10 @@ function familyManager() {
                     this.currentFamilyId = familyId;
                     this.currentStudentId = studentId;
                     this.currentData = JSON.parse(JSON.stringify(student));
+                    // Initialiser les valeurs par défaut pour éviter les erreurs null
                     this.currentData.newPassword = ''; // Initialiser le champ mot de passe
+                    this.currentData.pseudo = this.currentData.pseudo || '';
+                    this.currentData.specialists = this.currentData.specialists || [];
                     // Initialiser les IDs des spécialistes assignés
                     this.currentData.specialistIds = student.specialists ? student.specialists.map(s => s.id) : [];
                     this.editMode = false;

@@ -489,8 +489,8 @@ class FamilyController extends AbstractController
             $student->setPassword($hashedPassword);
         }
         
-        // Gérer l'assignation des spécialistes
-        if (isset($data['specialistIds']) && is_array($data['specialistIds'])) {
+        // Gérer l'assignation des spécialistes - uniquement pour les coaches
+        if ($user->isCoach() && isset($data['specialistIds']) && is_array($data['specialistIds'])) {
             // Retirer tous les spécialistes actuels
             foreach ($student->getSpecialists()->toArray() as $specialist) {
                 $student->removeSpecialist($specialist);

@@ -204,7 +204,7 @@
           <!-- Menu Item Objectifs -->
 
           <!-- Menu Item Activités -->
-          {% if app.user and (app.user.isCoach() or app.user.isParent() or app.user.isStudent()) %}
+          {% if app.user and (app.user.isCoach() or app.user.isParent() or app.user.isStudent() or app.user.isSpecialist()) %}
           <li>
             <a
               href="{{ path("admin_activities_list") }}"
@@ -255,7 +255,7 @@
           <!-- Menu Item Activités -->
 
           <!-- Menu Item Activités scolaires -->
-          {% if app.user and (app.user.isCoach() or app.user.isParent() or app.user.isStudent()) %}
+          {% if app.user and (app.user.isCoach() or app.user.isParent() or app.user.isStudent() or app.user.isSpecialist()) %}
           <li>
             <a
               href="{{ path("admin_paths_list") }}"

@@ -327,6 +327,7 @@
                             </template>
                         </select>
                     </div>
+                    {% if app.user.isCoach() %}
                     <div>
                         <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Spécialiste</label>
                         <select
@@ -339,6 +340,7 @@
                             </template>
                         </select>
                     </div>
+                    {% endif %}
                 </form>
             </div>
 

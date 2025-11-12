@@ -17,6 +17,7 @@
                         Liste des Activités
                     </h3>
                 </div>
+                {% if app.user.isCoach() or app.user.isSpecialist() %}
                 <div class="flex items-center gap-3">
                     <button
                         @click="openCreate()"
@@ -28,6 +29,7 @@
                         Nouvelle Activité
                     </button>
                 </div>
+                {% endif %}
             </div>
         </div>
 
@@ -103,6 +105,28 @@
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                                 </svg>
                                 <span x-text="activity.ageRange"></span>
+                            </div>
+                        </div>
+
+                        <!-- Informations du créateur et date de création -->
+                        <div class="mb-4 border-t border-gray-200 pt-3 dark:border-gray-700">
+                            <div class="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
+                                <div class="flex items-center gap-2" x-show="activity.createdBy">
+                                    <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                    </svg>
+                                    <span>
+                                        <span x-text="activity.createdBy ? (activity.createdBy.firstName + ' ' + activity.createdBy.lastName) : 'Inconnu'"></span>
+                                        <span class="ml-1 inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600 dark:bg-gray-800 dark:text-gray-400"
+                                              x-text="activity.createdBy ? (activity.createdBy.userType === 'coach' ? 'Coach' : activity.createdBy.userType === 'specialist' ? 'Spécialiste' : activity.createdBy.userType === 'parent' ? 'Parent' : activity.createdBy.userType === 'student' ? 'Élève' : activity.createdBy.userType) : ''"></span>
+                                    </span>
+                                </div>
+                                <div class="flex items-center gap-2" x-show="activity.createdAt">
+                                    <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                    </svg>
+                                    <span x-text="activity.createdAt ? formatDate(activity.createdAt) : ''"></span>
+                                </div>
                             </div>
                         </div>
 
@@ -206,13 +230,22 @@
                     <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
                         Durée <span class="text-error-500">*</span>
                     </label>
-                    <input
-                        type="text"
+                    <select
                         x-model="activityForm.duration"
                         required
                         class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
-                        placeholder="Ex: 30 minutes, 15-30 minutes"
-                    />
+                    >
+                        <option value="">Sélectionner une durée</option>
+                        <option value="15 minutes">15 minutes</option>
+                        <option value="30 minutes">30 minutes</option>
+                        <option value="45 minutes">45 minutes</option>
+                        <option value="1 heure">1 heure</option>
+                        <option value="1h30">1h30</option>
+                        <option value="2 heures">2 heures</option>
+                        <option value="15-30 minutes">15-30 minutes</option>
+                        <option value="30-45 minutes">30-45 minutes</option>
+                        <option value="45-60 minutes">45-60 minutes</option>
+                    </select>
                 </div>
 
                 <!-- Tranche d'âges -->
@@ -220,13 +253,20 @@
                     <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
                         Tranche d'âges <span class="text-error-500">*</span>
                     </label>
-                    <input
-                        type="text"
+                    <select
                         x-model="activityForm.ageRange"
                         required
                         class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
-                        placeholder="Ex: 3-5 ans, 6-8 ans"
-                    />
+                    >
+                        <option value="">Sélectionner une tranche d'âges</option>
+                        <option value="3-5 ans">3-5 ans</option>
+                        <option value="6-8 ans">6-8 ans</option>
+                        <option value="9-11 ans">9-11 ans</option>
+                        <option value="12-14 ans">12-14 ans</option>
+                        <option value="15-17 ans">15-17 ans</option>
+                        <option value="18+ ans">18+ ans</option>
+                        <option value="Tous âges">Tous âges</option>
+                    </select>
                 </div>
 
                 <!-- Type -->
@@ -378,8 +418,8 @@ function activityManager() {
         activityForm: {
             title: '',
             description: '',
-            duration: '',
-            ageRange: '',
+            duration: '30 minutes',
+            ageRange: '6-8 ans',
             type: '',
             categoryId: '',
             objectives: [],
@@ -435,8 +475,8 @@ function activityManager() {
             this.activityForm = {
                 title: '',
                 description: '',
-                duration: '',
-                ageRange: '',
+                duration: '30 minutes',
+                ageRange: '6-8 ans',
                 type: '',
                 categoryId: '',
                 objectives: [],
@@ -507,6 +547,21 @@ function activityManager() {
         
         viewActivity(id) {
             window.location.href = `/admin/activities/${id}`;
+        },
+        
+        formatDate(dateString) {
+            if (!dateString) return '';
+            try {
+                const date = new Date(dateString);
+                const day = String(date.getDate()).padStart(2, '0');
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const year = date.getFullYear();
+                const hours = String(date.getHours()).padStart(2, '0');
+                const minutes = String(date.getMinutes()).padStart(2, '0');
+                return `${day}/${month}/${year} à ${hours}:${minutes}`;
+            } catch (e) {
+                return dateString;
+            }
         }
     };
 }

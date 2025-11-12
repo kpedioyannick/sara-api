@@ -159,6 +159,19 @@ class RequestController extends AbstractController
             }
         }
 
+        // Trier les demandes par date de création décroissante
+        // Si c'est un tableau (pour les non-coaches), le trier manuellement
+        if (is_array($requests) && !empty($requests)) {
+            usort($requests, function($a, $b) {
+                $dateA = $a->getCreatedAt();
+                $dateB = $b->getCreatedAt();
+                if ($dateA === null && $dateB === null) return 0;
+                if ($dateA === null) return 1;
+                if ($dateB === null) return -1;
+                return $dateB <=> $dateA; // Ordre décroissant
+            });
+        }
+
         // Conversion en tableau pour le template
         $requestsData = array_map(fn($request) => $request->toTemplateArray(), $requests);
         
@@ -250,17 +263,56 @@ class RequestController extends AbstractController
     }
 
     #[Route('/admin/requests/create', name: 'admin_requests_create', methods: ['POST'])]
+    #[IsGranted('ROLE_USER')]
     public function create(HttpRequest $request): JsonResponse
     {
-        $coach = $this->getCurrentCoach($this->coachRepository, $this->security);
-        if (!$coach) {
-            return new JsonResponse(['success' => false, 'message' => 'Coach non trouvé'], 404);
+        $user = $this->getUser();
+        if (!$user) {
+            return new JsonResponse(['success' => false, 'message' => 'Vous devez être connecté'], 403);
         }
 
         $data = json_decode($request->getContent(), true);
+        
+        // Récupérer le coach (soit l'utilisateur connecté s'il est coach, soit le coach de la famille de l'élève)
+        $coach = null;
+        $creator = null;
+        
+        if ($user instanceof \App\Entity\Coach) {
+            $coach = $user;
+            $creator = $user;
+        } else {
+            // Pour les parents et autres rôles, récupérer le coach de la famille
+            if (isset($data['studentId'])) {
+                $student = $this->studentRepository->find($data['studentId']);
+                if ($student) {
+                    // Vérifier les permissions de création
+                    if (!$this->permissionService->canCreateRequest($user, $student)) {
+                        return new JsonResponse(['success' => false, 'message' => 'Vous n\'avez pas le droit de créer une demande pour cet élève'], 403);
+                    }
+                    
+                    $family = $student->getFamily();
+                    if ($family && $family->getCoach()) {
+                        $coach = $family->getCoach();
+                    }
+                }
+            }
+            
+            // Si pas de coach trouvé, essayer de récupérer via getCurrentCoach
+            if (!$coach) {
+                $coach = $this->getCurrentCoach($this->coachRepository, $this->security);
+            }
+            
+            if (!$coach) {
+                return new JsonResponse(['success' => false, 'message' => 'Coach non trouvé'], 404);
+            }
+            
+            // Le créateur est l'utilisateur connecté (parent, étudiant, etc.)
+            $creator = $user;
+        }
+
         $requestEntity = new Request();
         $requestEntity->setCoach($coach);
-        $requestEntity->setCreator($coach);
+        $requestEntity->setCreator($creator);
         $requestEntity->setRecipient($coach);
         
         if (isset($data['title'])) $requestEntity->setTitle($data['title']);
@@ -280,7 +332,10 @@ class RequestController extends AbstractController
                 $requestEntity->setParent($student->getFamily()?->getParent());
             }
         }
-        if (isset($data['specialistId'])) {
+        
+        // Les parents ne peuvent pas choisir un spécialiste lors de la création
+        // Seuls les coaches peuvent assigner un spécialiste
+        if (isset($data['specialistId']) && $user instanceof \App\Entity\Coach) {
             $specialist = $this->specialistRepository->find($data['specialistId']);
             if ($specialist) $requestEntity->setSpecialist($specialist);
         }
@@ -474,15 +529,20 @@ class RequestController extends AbstractController
             return new JsonResponse(['success' => false, 'message' => 'Vous n\'avez pas accès à cette demande'], 403);
         }
 
+        // Récupérer le coach de la demande (toujours requis pour les messages)
+        $coach = $requestEntity->getCoach();
+        if (!$coach) {
+            return new JsonResponse(['success' => false, 'message' => 'Coach de la demande non trouvé'], 404);
+        }
+
         // Pour les coaches, vérifier qu'ils sont bien le coach de la demande
-        $coach = null;
         $sender = $user; // L'expéditeur du message
         if ($user->isCoach()) {
-            $coach = $this->getCurrentCoach($this->coachRepository, $this->security);
-            if (!$coach || $requestEntity->getCoach() !== $coach) {
+            $currentCoach = $this->getCurrentCoach($this->coachRepository, $this->security);
+            if (!$currentCoach || $requestEntity->getCoach() !== $currentCoach) {
                 return new JsonResponse(['success' => false, 'message' => 'Vous n\'avez pas accès à cette demande'], 403);
             }
-            $sender = $coach; // Pour les coaches, l'expéditeur est le coach
+            $sender = $currentCoach; // Pour les coaches, l'expéditeur est le coach
         }
 
         // Gérer les fichiers uploadés (FormData) ou JSON

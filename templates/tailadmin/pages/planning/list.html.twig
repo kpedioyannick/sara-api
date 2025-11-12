@@ -11,6 +11,8 @@
     data-parents='{{ parents|json_encode|e('html_attr') }}'
     data-specialists='{{ specialists|json_encode|e('html_attr') }}'
     data-coach='{{ coach|json_encode|e('html_attr') }}'
+    data-current-user-id="{{ currentUserId }}"
+    data-current-user-type="{{ currentUserType }}"
     class="p-4 mx-auto max-w-(--breakpoint-2xl) md:p-6"
 >
     {% include 'tailadmin/components/breadcrumb.html.twig' %}
@@ -404,17 +406,33 @@
                 <form x-show="!isView" @submit.prevent="saveEvent()" class="space-y-6">
                     <div>
                         <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Pour *</label>
+                        {% if app.user.isStudent() %}
+                        <div class="rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90">
+                            <span>Élève</span>
+                        </div>
+                        {% else %}
                         <select
                             x-model="formData.userType"
-                            @change="formData.userId = ''"
+                            @change="onUserTypeChange()"
                             required
                             class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
                         >
                             <option value="">Sélectionner un type...</option>
+                            {% if app.user.isCoach() %}
                             <option value="coach">Moi (Coach)</option>
                             <option value="student">Élève</option>
                             <option value="specialist">Spécialiste</option>
+                            {% elseif app.user.isParent() %}
+                            <option value="parent">Moi</option>
+                            <option value="student">Élève</option>
+                            {% elseif app.user.isSpecialist() %}
+                            <option value="specialist">Moi</option>
+                            <option value="student">Élève</option>
+                            {% else %}
+                            <option value="student">Élève</option>
+                            {% endif %}
                         </select>
+                        {% endif %}
                     </div>
                     <div>
                         <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Titre *</label>
@@ -431,6 +449,10 @@
                                     <option value="Disponibilité pour échanger">Disponibilité pour échanger</option>
                                     <option value="Disponibilité pour venir sur site">Disponibilité pour venir sur site</option>
                                     <option value="Disponibilité pour aider à distance">Disponibilité pour aider à distance</option>
+                                </optgroup>
+                                {% elseif app.user.isParent() %}
+                                <optgroup label="Disponibilités">
+                                    <option value="Disponibilité pour échanger">Disponibilité pour échanger</option>
                                 </optgroup>
                                 {% endif %}
                                 <optgroup label="Matières">
@@ -510,8 +532,13 @@
                             <option value="completed">Terminé</option>
                         </select>
                     </div>
-                    <div x-show="formData.userType === 'student'">
+                    <div x-show="formData.userType === 'student'{% if app.user.isStudent() %} || true{% endif %}">
                         <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Élève *</label>
+                        {% if app.user.isStudent() %}
+                        <div class="rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90">
+                            <span x-text="studentsData.find(s => s.id == currentUserId) ? (studentsData.find(s => s.id == currentUserId).firstName + ' ' + studentsData.find(s => s.id == currentUserId).lastName) : 'Moi'"></span>
+                        </div>
+                        {% else %}
                         <select
                             x-model="formData.userId"
                             :required="formData.userType === 'student'"
@@ -522,9 +549,15 @@
                                 <option :value="student.id" x-text="student.firstName + ' ' + student.lastName"></option>
                             </template>
                         </select>
+                        {% endif %}
                     </div>
                     <div x-show="formData.userType === 'specialist'">
                         <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Spécialiste *</label>
+                        {% if app.user.isSpecialist() %}
+                        <div class="rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90">
+                            <span x-text="specialistsData.find(s => s.id == currentUserId) ? (specialistsData.find(s => s.id == currentUserId).firstName + ' ' + specialistsData.find(s => s.id == currentUserId).lastName) : 'Moi'"></span>
+                        </div>
+                        {% else %}
                         <select
                             x-model="formData.userId"
                             :required="formData.userType === 'specialist'"
@@ -535,6 +568,7 @@
                                 <option :value="specialist.id" x-text="specialist.firstName + ' ' + specialist.lastName"></option>
                             </template>
                         </select>
+                        {% endif %}
                     </div>
                     <div>
                         <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Date *</label>
@@ -645,7 +679,10 @@ function planningManager() {
         studentsData: [],
         specialistsData: [],
         coachData: null,
+        parentData: null,
         students: [],
+        currentUserId: null,
+        currentUserType: null,
         init() {
             const studentsJson = this.$el.getAttribute('data-students');
             if (studentsJson) {
@@ -658,7 +695,22 @@ function planningManager() {
             }
             const coachJson = this.$el.getAttribute('data-coach');
             if (coachJson) {
-                this.coachData = JSON.parse(coachJson);
+                const parsed = JSON.parse(coachJson);
+                // Si l'utilisateur est un parent, stocker dans parentData
+                {% if app.user.isParent() %}
+                this.parentData = parsed;
+                {% else %}
+                this.coachData = parsed;
+                {% endif %}
+            }
+            // Récupérer l'ID et le type de l'utilisateur connecté
+            const currentUserIdAttr = this.$el.getAttribute('data-current-user-id');
+            if (currentUserIdAttr) {
+                this.currentUserId = parseInt(currentUserIdAttr);
+            }
+            const currentUserTypeAttr = this.$el.getAttribute('data-current-user-type');
+            if (currentUserTypeAttr) {
+                this.currentUserType = currentUserTypeAttr;
             }
         },
         handleTitleChange(value) {
@@ -701,13 +753,26 @@ function planningManager() {
             this.currentId = null;
             this.showCustomTitle = false;
             const selectedDate = date || new Date().toISOString().split('T')[0];
+            
+            // Préremplir les champs selon le type d'utilisateur
+            let userType = '';
+            let userId = '';
+            if (this.currentUserType === 'student' && this.currentUserId) {
+                userType = 'student';
+                userId = this.currentUserId;
+            } else if (this.currentUserType === 'specialist' && this.currentUserId) {
+                // Pour les spécialistes, préremplir avec "Moi" par défaut
+                userType = 'specialist';
+                userId = this.currentUserId;
+            }
+            
             this.formData = {
                 title: '',
                 description: '',
                 type: '',
                 status: 'scheduled',
-                userType: '',
-                userId: '',
+                userType: userType,
+                userId: userId,
                 date: selectedDate,
                 startTime: '09:00',
                 endTime: '10:00',
@@ -716,6 +781,16 @@ function planningManager() {
             };
             this.updateDateTime();
             this.rightSheetOpen = true;
+        },
+        
+        onUserTypeChange() {
+            // Réinitialiser userId quand le type change
+            this.formData.userId = '';
+            
+            // Si le spécialiste sélectionne "Moi", préremplir avec son ID
+            if (this.formData.userType === 'specialist' && this.currentUserType === 'specialist' && this.currentUserId) {
+                this.formData.userId = this.currentUserId;
+            }
         },
         openCreateWithDate(dateString) {
             // Convertir la date du format "YYYY-MM-DD" si nécessaire
@@ -826,6 +901,8 @@ function planningManager() {
             if (userId) {
                 if (this.coachData && userId == this.coachData.id) {
                     userType = 'coach';
+                } else if (this.parentData && userId == this.parentData.id) {
+                    userType = 'parent';
                 } else if (this.studentsData.find(s => s.id == userId)) {
                     userType = 'student';
                 } else if (this.specialistsData.find(s => s.id == userId)) {
@@ -851,7 +928,7 @@ function planningManager() {
         },
         openDelete(id) {
             if (confirm('Êtes-vous sûr de vouloir supprimer cet événement ?')) {
-                fetch(`/admin/planning/${id}`, {
+                fetch(`/admin/planning/${id}/delete`, {
                     method: 'DELETE',
                     headers: { 'X-Requested-With': 'XMLHttpRequest' },
                 })
@@ -897,6 +974,8 @@ function planningManager() {
             let userId = this.formData.userId;
             if (this.formData.userType === 'coach' && this.coachData) {
                 userId = this.coachData.id;
+            } else if (this.formData.userType === 'parent' && this.parentData) {
+                userId = this.parentData.id;
             }
             
             const data = {

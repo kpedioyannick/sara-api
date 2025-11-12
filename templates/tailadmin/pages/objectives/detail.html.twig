@@ -64,7 +64,7 @@
               <h3 class="text-2xl font-semibold text-gray-800 dark:text-white/90">
                 {{ objective.title }}
               </h3>
-              {% if app.user.isCoach() %}
+              {% if app.user.isCoach() or (app.user.isParent() and objective.status not in ['validated', 'in_action', 'completed', 'paused']) %}
               <button
                 @click="openObjectiveEdit()"
                 class="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-theme-xs transition-colors hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
@@ -100,9 +100,14 @@
                       }),
                     });
                     
-                    const result = await response.json();
+                    let result;
+                    try {
+                      result = await response.json();
+                    } catch (e) {
+                      result = { success: false, message: 'Erreur lors de la lecture de la réponse' };
+                    }
                     
-                    if (result.success) {
+                    if (response.ok && result.success) {
                       if (window.showToast) {
                         window.showToast('Statut mis à jour avec succès', 'success');
                       }
@@ -111,15 +116,21 @@
                         window.location.reload();
                       }, 500);
                     } else {
+                      const errorMessage = result.message || 'Erreur lors de la mise à jour du statut';
                       if (window.showToast) {
-                        window.showToast(result.message || 'Erreur lors de la mise à jour du statut', 'error');
+                        window.showToast(errorMessage, 'error');
+                      } else {
+                        alert(errorMessage);
                       }
                       this.isUpdating = false;
                     }
                   } catch (error) {
                     console.error('Erreur:', error);
+                    const errorMessage = 'Une erreur est survenue lors de la mise à jour du statut';
                     if (window.showToast) {
-                      window.showToast('Une erreur est survenue', 'error');
+                      window.showToast(errorMessage, 'error');
+                    } else {
+                      alert(errorMessage);
                     }
                     this.isUpdating = false;
                   }
@@ -264,7 +275,27 @@
         </div>
 
         <div>
-          <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Description</h4>
+          <div class="flex items-center justify-between mb-2">
+            <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300">Description</h4>
+            {% if app.user.isCoach() and objective.descriptionOrigin %}
+            <button
+              @click="generateFromOrigin()"
+              :disabled="generatingFromOrigin"
+              class="inline-flex items-center gap-2 rounded-lg border border-brand-500 bg-brand-50 px-3 py-1.5 text-xs font-medium text-brand-600 shadow-theme-xs hover:bg-brand-100 disabled:opacity-50 disabled:cursor-not-allowed dark:border-brand-400 dark:bg-brand-500/15 dark:text-brand-400 dark:hover:bg-brand-500/25"
+              title="Générer des tâches et une description à partir de la description originale"
+            >
+              <svg x-show="!generatingFromOrigin" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+              </svg>
+              <svg x-show="generatingFromOrigin" class="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              <span x-show="!generatingFromOrigin">Générer depuis l'original</span>
+              <span x-show="generatingFromOrigin">Génération...</span>
+            </button>
+            {% endif %}
+          </div>
           <p class="text-base text-gray-600 dark:text-gray-400 whitespace-pre-wrap">{{ objective.description }}</p>
         </div>
       </div>
@@ -284,6 +315,7 @@
             <span class="text-sm text-gray-500 dark:text-gray-400">
               Total: {{ tasks.pending|length + tasks.in_progress|length + tasks.completed|length }}
             </span>
+            {% if canUseAI %}
             <button
               @click="openTaskCreate()"
               {% if not objective.canModifyTasks %}disabled{% endif %}
@@ -295,6 +327,7 @@
               </svg>
               Nouvelle tâche
             </button>
+            {% endif %}
           </div>
         </div>
       </div>
@@ -406,61 +439,121 @@
                     Preuve requise
                   </span>
                   {% endif %}
-                  <button
-                    data-task-id="{{ task.id }}"
-                    data-task-proofs="{{ task.proofs|json_encode|e('html_attr') }}"
-                    data-task-title="{{ task.title|e('html_attr') }}"
-                    @click="showProofHistoryFromButton($event)"
-                    class="inline-flex items-center gap-1 rounded-full {% if task.proofs|length > 0 %}bg-gray-100 px-2 py-0.5 text-theme-xs font-medium text-gray-700 hover:bg-gray-200 dark:bg-white/[0.03] dark:text-white/80 dark:hover:bg-white/[0.05]{% else %}bg-gray-50 px-2 py-0.5 text-theme-xs font-medium text-gray-500 hover:bg-gray-100 dark:bg-white/[0.02] dark:text-gray-400 dark:hover:bg-white/[0.03]{% endif %}"
-                    title="Voir l'historique des preuves"
+                  {% if task.assignedType == 'student' and task.assignedTo %}
+                  <span
+                    class="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2 py-0.5 text-theme-xs font-medium text-blue-600 dark:bg-blue-500/15 dark:text-blue-400"
+                    title="À qui est affectée la tâche"
                   >
-                    <svg class="fill-current" width="14" height="14" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M8 1C4.134 1 1 4.134 1 8s3.134 7 7 7 7-3.134 7-7-3.134-7-7-7zm0 12.5c-3.032 0-5.5-2.468-5.5-5.5S4.968 2.5 8 2.5 13.5 4.968 13.5 8 11.032 13.5 8 13.5z" fill=""/>
-                      <path d="M8 4.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7zm0 6a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5z" fill=""/>
+                    <svg class="fill-current" width="12" height="12" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M8 8a3 3 0 100-6 3 3 0 000 6zM8 9.5c-2.5 0-4.5 1.25-4.5 2.75V13.5h9V12.25c0-1.5-2-2.75-4.5-2.75z" fill="currentColor"/>
                     </svg>
-                    {% if task.proofs|length > 0 %}
-                      {{ task.proofs|length }}
-                    {% else %}
-                      Historique
-                    {% endif %}
-                  </button>
-                  <button
-                    data-task-id="{{ task.id }}"
-                    data-task-status="{{ task.status }}"
-                    data-task-frequency="{{ task.frequency|default('none') }}"
-                    data-task-requires-proof="{{ task.requiresProof ? 'true' : 'false' }}"
-                    data-task-title="{{ task.title|e('html_attr') }}"
-                    data-task-description="{{ task.description|e('html_attr') }}"
-                    data-task-assigned-type="{{ task.assignedType|default('coach') }}"
-                    data-task-student-id="{{ task.student ? task.student.id : '' }}"
-                    data-task-parent-id="{{ task.parent ? task.parent.id : '' }}"
-                    data-task-specialist-id="{{ task.specialist ? task.specialist.id : '' }}"
-                    data-task-created-at="{{ task.createdAt|default('') }}"
-                    data-task-due-date="{{ task.dueDate|default('') }}"
-                    @click="openTaskConfig($event)"
-                    {% if not objective.canModifyTasks %}disabled{% endif %}
-                    class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-theme-xs font-medium {% if objective.canModifyTasks %}bg-gray-50 text-gray-500 hover:bg-gray-100 dark:bg-white/[0.02] dark:text-gray-400 dark:hover:bg-white/[0.03]{% else %}bg-gray-200 text-gray-400 cursor-not-allowed dark:bg-gray-800 dark:text-gray-600{% endif %}"
-                    title="{% if objective.canModifyTasks %}Configurer la tâche{% else %}Impossible de modifier cette tâche. {{ objective.statusMessage }}{% endif %}"
+                    {{ task.assignedTo.pseudo|default(task.assignedTo.firstName ~ ' ' ~ task.assignedTo.lastName) }}
+                  </span>
+                  {% elseif task.assignedType == 'parent' and task.assignedTo %}
+                  <span
+                    class="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2 py-0.5 text-theme-xs font-medium text-blue-600 dark:bg-blue-500/15 dark:text-blue-400"
+                    title="À qui est affectée la tâche"
                   >
-                    <svg class="fill-current" width="14" height="14" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M11.334 2.666a2.667 2.667 0 0 1 3.771 3.772l-8 8a2.667 2.667 0 0 1-1.886.781l-2.89.111a.667.667 0 0 1-.687-.687l.111-2.89a2.667 2.667 0 0 1 .78-1.886l8-8Zm2.39 2.39a1.333 1.333 0 0 0-1.886-1.886L10.667 4.61l1.886 1.886 1.171-1.44Z" fill=""/>
+                    <svg class="fill-current" width="12" height="12" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M8 8a3 3 0 100-6 3 3 0 000 6zM8 9.5c-2.5 0-4.5 1.25-4.5 2.75V13.5h9V12.25c0-1.5-2-2.75-4.5-2.75z" fill="currentColor"/>
                     </svg>
-                    Configurer
-                  </button>
-                  {% if objective.canModifyTasks and task.status != 'completed' %}
-                  <button
-                    data-task-id="{{ task.id }}"
-                    data-task-status="{{ task.status }}"
-                    @click="deleteTask({{ task.id }}, '{{ task.status }}')"
-                    class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-theme-xs font-medium bg-red-50 text-red-500 hover:bg-red-100 dark:bg-red-500/15 dark:text-red-400 dark:hover:bg-red-500/25"
-                    title="Supprimer la tâche"
+                    {{ task.assignedTo.firstName ~ ' ' ~ task.assignedTo.lastName }}
+                  </span>
+                  {% elseif task.assignedType == 'specialist' and task.assignedTo %}
+                  <span
+                    class="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2 py-0.5 text-theme-xs font-medium text-blue-600 dark:bg-blue-500/15 dark:text-blue-400"
+                    title="À qui est affectée la tâche"
                   >
-                    <svg class="fill-current" width="14" height="14" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M5.33333 2.66667V1.33333C5.33333 0.979711 5.47381 0.640573 5.72386 0.390524C5.97391 0.140476 6.31305 0 6.66667 0H9.33333C9.68696 0 10.0261 0.140476 10.2761 0.390524C10.5262 0.640573 10.6667 0.979711 10.6667 1.33333V2.66667H14.6667C15.0333 2.66667 15.3333 2.96667 15.3333 3.33333C15.3333 3.7 15.0333 4 14.6667 4H13.3333V14C13.3333 14.7072 12.7472 15.3333 12 15.3333H4C3.25281 15.3333 2.66667 14.7072 2.66667 14V4H1.33333C0.966667 4 0.666667 3.7 0.666667 3.33333C0.666667 2.96667 0.966667 2.66667 1.33333 2.66667H5.33333ZM6.66667 1.33333V2.66667H9.33333V1.33333H6.66667Z" fill="currentColor"/>
+                    <svg class="fill-current" width="12" height="12" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M8 8a3 3 0 100-6 3 3 0 000 6zM8 9.5c-2.5 0-4.5 1.25-4.5 2.75V13.5h9V12.25c0-1.5-2-2.75-4.5-2.75z" fill="currentColor"/>
                     </svg>
-                    Supprimer
-                  </button>
+                    {{ task.assignedTo.firstName ~ ' ' ~ task.assignedTo.lastName }}
+                  </span>
+                  {% else %}
+                  <span
+                    class="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2 py-0.5 text-theme-xs font-medium text-blue-600 dark:bg-blue-500/15 dark:text-blue-400"
+                    title="À qui est affectée la tâche"
+                  >
+                    <svg class="fill-current" width="12" height="12" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M8 8a3 3 0 100-6 3 3 0 000 6zM8 9.5c-2.5 0-4.5 1.25-4.5 2.75V13.5h9V12.25c0-1.5-2-2.75-4.5-2.75z" fill="currentColor"/>
+                    </svg>
+                    Coach
+                  </span>
                   {% endif %}
+                  <div class="relative" x-data="{ open{{ task.id }}: false }">
+                    <button
+                      @click="open{{ task.id }} = !open{{ task.id }}"
+                      class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-gray-50 text-gray-500 hover:bg-gray-100 dark:bg-white/[0.02] dark:text-gray-400 dark:hover:bg-white/[0.03]"
+                      title="Actions"
+                    >
+                      <svg class="fill-current" width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M8 4.5a1.5 1.5 0 100 3 1.5 1.5 0 000-3zM8 1.5a1.5 1.5 0 100 3 1.5 1.5 0 000-3zM8 7.5a1.5 1.5 0 100 3 1.5 1.5 0 000-3z" fill="currentColor"/>
+                      </svg>
+                    </button>
+                    <div
+                      x-show="open{{ task.id }}"
+                      @click.away="open{{ task.id }} = false"
+                      x-transition:enter="transition ease-out duration-100"
+                      x-transition:enter-start="transform opacity-0 scale-95"
+                      x-transition:enter-end="transform opacity-100 scale-100"
+                      x-transition:leave="transition ease-in duration-75"
+                      x-transition:leave-start="transform opacity-100 scale-100"
+                      x-transition:leave-end="transform opacity-0 scale-95"
+                      class="absolute right-0 z-10 mt-2 w-48 rounded-lg bg-white shadow-lg ring-1 ring-black ring-opacity-5 dark:bg-gray-800 dark:ring-white/10"
+                      style="display: none;"
+                    >
+                      <div class="py-1">
+                        <button
+                          data-task-id="{{ task.id }}"
+                          data-task-proofs="{{ task.proofs|json_encode|e('html_attr') }}"
+                          data-task-title="{{ task.title|e('html_attr') }}"
+                          @click="showProofHistoryFromButton($event); open{{ task.id }} = false"
+                          class="flex w-full items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
+                        >
+                          <svg class="fill-current" width="14" height="14" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M8 1C4.134 1 1 4.134 1 8s3.134 7 7 7 7-3.134 7-7-3.134-7-7-7zm0 12.5c-3.032 0-5.5-2.468-5.5-5.5S4.968 2.5 8 2.5 13.5 4.968 13.5 8 11.032 13.5 8 13.5z" fill=""/>
+                            <path d="M8 4.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7zm0 6a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5z" fill=""/>
+                          </svg>
+                          Historique{% if task.proofs|length > 0 %} ({{ task.proofs|length }}){% endif %}
+                        </button>
+                        <button
+                          data-task-id="{{ task.id }}"
+                          data-task-status="{{ task.status }}"
+                          data-task-frequency="{{ task.frequency|default('none') }}"
+                          data-task-requires-proof="{{ task.requiresProof ? 'true' : 'false' }}"
+                          data-task-title="{{ task.title|e('html_attr') }}"
+                          data-task-description="{{ task.description|e('html_attr') }}"
+                          data-task-assigned-type="{{ task.assignedType|default('coach') }}"
+                          data-task-student-id="{{ task.student ? task.student.id : '' }}"
+                          data-task-parent-id="{{ task.parent ? task.parent.id : '' }}"
+                          data-task-specialist-id="{{ task.specialist ? task.specialist.id : '' }}"
+                          data-task-created-at="{{ task.createdAt|default('') }}"
+                          data-task-due-date="{{ task.dueDate|default('') }}"
+                          @click="openTaskConfig($event); open{{ task.id }} = false"
+                          {% if not objective.canModifyTasks %}disabled{% endif %}
+                          class="flex w-full items-center gap-2 px-4 py-2 text-sm {% if objective.canModifyTasks %}text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700{% else %}text-gray-400 cursor-not-allowed dark:text-gray-600{% endif %}"
+                        >
+                          <svg class="fill-current" width="14" height="14" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M11.334 2.666a2.667 2.667 0 0 1 3.771 3.772l-8 8a2.667 2.667 0 0 1-1.886.781l-2.89.111a.667.667 0 0 1-.687-.687l.111-2.89a2.667 2.667 0 0 1 .78-1.886l8-8Zm2.39 2.39a1.333 1.333 0 0 0-1.886-1.886L10.667 4.61l1.886 1.886 1.171-1.44Z" fill=""/>
+                          </svg>
+                          Configurer
+                        </button>
+                        {% if objective.canModifyTasks and task.status != 'completed' %}
+                        <button
+                          data-task-id="{{ task.id }}"
+                          data-task-status="{{ task.status }}"
+                          @click="deleteTask({{ task.id }}, '{{ task.status }}'); open{{ task.id }} = false"
+                          class="flex w-full items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-500/15"
+                        >
+                          <svg class="fill-current" width="14" height="14" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M5.33333 2.66667V1.33333C5.33333 0.979711 5.47381 0.640573 5.72386 0.390524C5.97391 0.140476 6.31305 0 6.66667 0H9.33333C9.68696 0 10.0261 0.140476 10.2761 0.390524C10.5262 0.640573 10.6667 0.979711 10.6667 1.33333V2.66667H14.6667C15.0333 2.66667 15.3333 2.96667 15.3333 3.33333C15.3333 3.7 15.0333 4 14.6667 4H13.3333V14C13.3333 14.7072 12.7472 15.3333 12 15.3333H4C3.25281 15.3333 2.66667 14.7072 2.66667 14V4H1.33333C0.966667 4 0.666667 3.7 0.666667 3.33333C0.666667 2.96667 0.966667 2.66667 1.33333 2.66667H5.33333ZM6.66667 1.33333V2.66667H9.33333V1.33333H6.66667Z" fill="currentColor"/>
+                          </svg>
+                          Supprimer
+                        </button>
+                        {% endif %}
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
                 <div
@@ -628,61 +721,121 @@
                     Preuve requise
                   </span>
                   {% endif %}
-                  <button
-                    data-task-id="{{ task.id }}"
-                    data-task-proofs="{{ task.proofs|json_encode|e('html_attr') }}"
-                    data-task-title="{{ task.title|e('html_attr') }}"
-                    @click="showProofHistoryFromButton($event)"
-                    class="inline-flex items-center gap-1 rounded-full {% if task.proofs|length > 0 %}bg-gray-100 px-2 py-0.5 text-theme-xs font-medium text-gray-700 hover:bg-gray-200 dark:bg-white/[0.03] dark:text-white/80 dark:hover:bg-white/[0.05]{% else %}bg-gray-50 px-2 py-0.5 text-theme-xs font-medium text-gray-500 hover:bg-gray-100 dark:bg-white/[0.02] dark:text-gray-400 dark:hover:bg-white/[0.03]{% endif %}"
-                    title="Voir l'historique des preuves"
+                  {% if task.assignedType == 'student' and task.assignedTo %}
+                  <span
+                    class="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2 py-0.5 text-theme-xs font-medium text-blue-600 dark:bg-blue-500/15 dark:text-blue-400"
+                    title="À qui est affectée la tâche"
                   >
-                    <svg class="fill-current" width="14" height="14" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M8 1C4.134 1 1 4.134 1 8s3.134 7 7 7 7-3.134 7-7-3.134-7-7-7zm0 12.5c-3.032 0-5.5-2.468-5.5-5.5S4.968 2.5 8 2.5 13.5 4.968 13.5 8 11.032 13.5 8 13.5z" fill=""/>
-                      <path d="M8 4.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7zm0 6a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5z" fill=""/>
+                    <svg class="fill-current" width="12" height="12" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M8 8a3 3 0 100-6 3 3 0 000 6zM8 9.5c-2.5 0-4.5 1.25-4.5 2.75V13.5h9V12.25c0-1.5-2-2.75-4.5-2.75z" fill="currentColor"/>
                     </svg>
-                    {% if task.proofs|length > 0 %}
-                      {{ task.proofs|length }}
-                    {% else %}
-                      Historique
-                    {% endif %}
-                  </button>
-                  <button
-                    data-task-id="{{ task.id }}"
-                    data-task-status="{{ task.status }}"
-                    data-task-frequency="{{ task.frequency|default('none') }}"
-                    data-task-requires-proof="{{ task.requiresProof ? 'true' : 'false' }}"
-                    data-task-title="{{ task.title|e('html_attr') }}"
-                    data-task-description="{{ task.description|e('html_attr') }}"
-                    data-task-assigned-type="{{ task.assignedType|default('coach') }}"
-                    data-task-student-id="{{ task.student ? task.student.id : '' }}"
-                    data-task-parent-id="{{ task.parent ? task.parent.id : '' }}"
-                    data-task-specialist-id="{{ task.specialist ? task.specialist.id : '' }}"
-                    data-task-created-at="{{ task.createdAt|default('') }}"
-                    data-task-due-date="{{ task.dueDate|default('') }}"
-                    @click="openTaskConfig($event)"
-                    {% if not objective.canModifyTasks %}disabled{% endif %}
-                    class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-theme-xs font-medium {% if objective.canModifyTasks %}bg-gray-50 text-gray-500 hover:bg-gray-100 dark:bg-white/[0.02] dark:text-gray-400 dark:hover:bg-white/[0.03]{% else %}bg-gray-200 text-gray-400 cursor-not-allowed dark:bg-gray-800 dark:text-gray-600{% endif %}"
-                    title="{% if objective.canModifyTasks %}Configurer la tâche{% else %}Impossible de modifier cette tâche. {{ objective.statusMessage }}{% endif %}"
+                    {{ task.assignedTo.pseudo|default(task.assignedTo.firstName ~ ' ' ~ task.assignedTo.lastName) }}
+                  </span>
+                  {% elseif task.assignedType == 'parent' and task.assignedTo %}
+                  <span
+                    class="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2 py-0.5 text-theme-xs font-medium text-blue-600 dark:bg-blue-500/15 dark:text-blue-400"
+                    title="À qui est affectée la tâche"
                   >
-                    <svg class="fill-current" width="14" height="14" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M11.334 2.666a2.667 2.667 0 0 1 3.771 3.772l-8 8a2.667 2.667 0 0 1-1.886.781l-2.89.111a.667.667 0 0 1-.687-.687l.111-2.89a2.667 2.667 0 0 1 .78-1.886l8-8Zm2.39 2.39a1.333 1.333 0 0 0-1.886-1.886L10.667 4.61l1.886 1.886 1.171-1.44Z" fill=""/>
+                    <svg class="fill-current" width="12" height="12" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M8 8a3 3 0 100-6 3 3 0 000 6zM8 9.5c-2.5 0-4.5 1.25-4.5 2.75V13.5h9V12.25c0-1.5-2-2.75-4.5-2.75z" fill="currentColor"/>
                     </svg>
-                    Configurer
-                  </button>
-                  {% if objective.canModifyTasks and task.status != 'completed' %}
-                  <button
-                    data-task-id="{{ task.id }}"
-                    data-task-status="{{ task.status }}"
-                    @click="deleteTask({{ task.id }}, '{{ task.status }}')"
-                    class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-theme-xs font-medium bg-red-50 text-red-500 hover:bg-red-100 dark:bg-red-500/15 dark:text-red-400 dark:hover:bg-red-500/25"
-                    title="Supprimer la tâche"
+                    {{ task.assignedTo.firstName ~ ' ' ~ task.assignedTo.lastName }}
+                  </span>
+                  {% elseif task.assignedType == 'specialist' and task.assignedTo %}
+                  <span
+                    class="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2 py-0.5 text-theme-xs font-medium text-blue-600 dark:bg-blue-500/15 dark:text-blue-400"
+                    title="À qui est affectée la tâche"
                   >
-                    <svg class="fill-current" width="14" height="14" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M5.33333 2.66667V1.33333C5.33333 0.979711 5.47381 0.640573 5.72386 0.390524C5.97391 0.140476 6.31305 0 6.66667 0H9.33333C9.68696 0 10.0261 0.140476 10.2761 0.390524C10.5262 0.640573 10.6667 0.979711 10.6667 1.33333V2.66667H14.6667C15.0333 2.66667 15.3333 2.96667 15.3333 3.33333C15.3333 3.7 15.0333 4 14.6667 4H13.3333V14C13.3333 14.7072 12.7472 15.3333 12 15.3333H4C3.25281 15.3333 2.66667 14.7072 2.66667 14V4H1.33333C0.966667 4 0.666667 3.7 0.666667 3.33333C0.666667 2.96667 0.966667 2.66667 1.33333 2.66667H5.33333ZM6.66667 1.33333V2.66667H9.33333V1.33333H6.66667Z" fill="currentColor"/>
+                    <svg class="fill-current" width="12" height="12" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M8 8a3 3 0 100-6 3 3 0 000 6zM8 9.5c-2.5 0-4.5 1.25-4.5 2.75V13.5h9V12.25c0-1.5-2-2.75-4.5-2.75z" fill="currentColor"/>
                     </svg>
-                    Supprimer
-                  </button>
+                    {{ task.assignedTo.firstName ~ ' ' ~ task.assignedTo.lastName }}
+                  </span>
+                  {% else %}
+                  <span
+                    class="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2 py-0.5 text-theme-xs font-medium text-blue-600 dark:bg-blue-500/15 dark:text-blue-400"
+                    title="À qui est affectée la tâche"
+                  >
+                    <svg class="fill-current" width="12" height="12" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M8 8a3 3 0 100-6 3 3 0 000 6zM8 9.5c-2.5 0-4.5 1.25-4.5 2.75V13.5h9V12.25c0-1.5-2-2.75-4.5-2.75z" fill="currentColor"/>
+                    </svg>
+                    Coach
+                  </span>
                   {% endif %}
+                  <div class="relative" x-data="{ open{{ task.id }}: false }">
+                    <button
+                      @click="open{{ task.id }} = !open{{ task.id }}"
+                      class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-gray-50 text-gray-500 hover:bg-gray-100 dark:bg-white/[0.02] dark:text-gray-400 dark:hover:bg-white/[0.03]"
+                      title="Actions"
+                    >
+                      <svg class="fill-current" width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M8 4.5a1.5 1.5 0 100 3 1.5 1.5 0 000-3zM8 1.5a1.5 1.5 0 100 3 1.5 1.5 0 000-3zM8 7.5a1.5 1.5 0 100 3 1.5 1.5 0 000-3z" fill="currentColor"/>
+                      </svg>
+                    </button>
+                    <div
+                      x-show="open{{ task.id }}"
+                      @click.away="open{{ task.id }} = false"
+                      x-transition:enter="transition ease-out duration-100"
+                      x-transition:enter-start="transform opacity-0 scale-95"
+                      x-transition:enter-end="transform opacity-100 scale-100"
+                      x-transition:leave="transition ease-in duration-75"
+                      x-transition:leave-start="transform opacity-100 scale-100"
+                      x-transition:leave-end="transform opacity-0 scale-95"
+                      class="absolute right-0 z-10 mt-2 w-48 rounded-lg bg-white shadow-lg ring-1 ring-black ring-opacity-5 dark:bg-gray-800 dark:ring-white/10"
+                      style="display: none;"
+                    >
+                      <div class="py-1">
+                        <button
+                          data-task-id="{{ task.id }}"
+                          data-task-proofs="{{ task.proofs|json_encode|e('html_attr') }}"
+                          data-task-title="{{ task.title|e('html_attr') }}"
+                          @click="showProofHistoryFromButton($event); open{{ task.id }} = false"
+                          class="flex w-full items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
+                        >
+                          <svg class="fill-current" width="14" height="14" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M8 1C4.134 1 1 4.134 1 8s3.134 7 7 7 7-3.134 7-7-3.134-7-7-7zm0 12.5c-3.032 0-5.5-2.468-5.5-5.5S4.968 2.5 8 2.5 13.5 4.968 13.5 8 11.032 13.5 8 13.5z" fill=""/>
+                            <path d="M8 4.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7zm0 6a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5z" fill=""/>
+                          </svg>
+                          Historique{% if task.proofs|length > 0 %} ({{ task.proofs|length }}){% endif %}
+                        </button>
+                        <button
+                          data-task-id="{{ task.id }}"
+                          data-task-status="{{ task.status }}"
+                          data-task-frequency="{{ task.frequency|default('none') }}"
+                          data-task-requires-proof="{{ task.requiresProof ? 'true' : 'false' }}"
+                          data-task-title="{{ task.title|e('html_attr') }}"
+                          data-task-description="{{ task.description|e('html_attr') }}"
+                          data-task-assigned-type="{{ task.assignedType|default('coach') }}"
+                          data-task-student-id="{{ task.student ? task.student.id : '' }}"
+                          data-task-parent-id="{{ task.parent ? task.parent.id : '' }}"
+                          data-task-specialist-id="{{ task.specialist ? task.specialist.id : '' }}"
+                          data-task-created-at="{{ task.createdAt|default('') }}"
+                          data-task-due-date="{{ task.dueDate|default('') }}"
+                          @click="openTaskConfig($event); open{{ task.id }} = false"
+                          {% if not objective.canModifyTasks %}disabled{% endif %}
+                          class="flex w-full items-center gap-2 px-4 py-2 text-sm {% if objective.canModifyTasks %}text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700{% else %}text-gray-400 cursor-not-allowed dark:text-gray-600{% endif %}"
+                        >
+                          <svg class="fill-current" width="14" height="14" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M11.334 2.666a2.667 2.667 0 0 1 3.771 3.772l-8 8a2.667 2.667 0 0 1-1.886.781l-2.89.111a.667.667 0 0 1-.687-.687l.111-2.89a2.667 2.667 0 0 1 .78-1.886l8-8Zm2.39 2.39a1.333 1.333 0 0 0-1.886-1.886L10.667 4.61l1.886 1.886 1.171-1.44Z" fill=""/>
+                          </svg>
+                          Configurer
+                        </button>
+                        {% if objective.canModifyTasks and task.status != 'completed' %}
+                        <button
+                          data-task-id="{{ task.id }}"
+                          data-task-status="{{ task.status }}"
+                          @click="deleteTask({{ task.id }}, '{{ task.status }}'); open{{ task.id }} = false"
+                          class="flex w-full items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-500/15"
+                        >
+                          <svg class="fill-current" width="14" height="14" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M5.33333 2.66667V1.33333C5.33333 0.979711 5.47381 0.640573 5.72386 0.390524C5.97391 0.140476 6.31305 0 6.66667 0H9.33333C9.68696 0 10.0261 0.140476 10.2761 0.390524C10.5262 0.640573 10.6667 0.979711 10.6667 1.33333V2.66667H14.6667C15.0333 2.66667 15.3333 2.96667 15.3333 3.33333C15.3333 3.7 15.0333 4 14.6667 4H13.3333V14C13.3333 14.7072 12.7472 15.3333 12 15.3333H4C3.25281 15.3333 2.66667 14.7072 2.66667 14V4H1.33333C0.966667 4 0.666667 3.7 0.666667 3.33333C0.666667 2.96667 0.966667 2.66667 1.33333 2.66667H5.33333ZM6.66667 1.33333V2.66667H9.33333V1.33333H6.66667Z" fill="currentColor"/>
+                          </svg>
+                          Supprimer
+                        </button>
+                        {% endif %}
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
                 <div
@@ -1379,7 +1532,7 @@
               </label>
               <button
                 type="button"
-                x-show="taskConfig.isNew"
+                x-show="taskConfig.isNew && canUseAI"
                 @click="generateSmartTasks()"
                 :disabled="generatingTasks"
                 class="inline-flex items-center gap-2 rounded-lg border border-brand-500 bg-brand-50 px-3 py-1.5 text-xs font-medium text-brand-600 shadow-theme-xs hover:bg-brand-100 disabled:opacity-50 disabled:cursor-not-allowed dark:border-brand-400 dark:bg-brand-500/15 dark:text-brand-400 dark:hover:bg-brand-500/25"
@@ -1452,7 +1605,7 @@
             </label>
             <select
               x-model="taskConfig.assignedType"
-              @change="taskConfig.studentId = ''; taskConfig.parentId = ''; taskConfig.specialistId = '';"
+              @change="onAssignedTypeChange()"
               class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90 mb-3"
             >
               <option value="coach">Coach</option>
@@ -1825,6 +1978,7 @@ function taskManager() {
     configSubmitting: false,
     configTaskTitle: '',
     generatingTasks: false,
+    generatingFromOrigin: false,
     students: [],
     parents: [],
     specialists: [],
@@ -1850,6 +2004,7 @@ function taskManager() {
     objectiveId: {{ objective.id }},
     objective: null,
     studentsData: [],
+    canUseAI: {{ canUseAI ? 'true' : 'false' }},
     
     init() {
       const studentsJson = this.$el.getAttribute('data-students');
@@ -1899,39 +2054,62 @@ function taskManager() {
           body: JSON.stringify(this.objectiveFormData),
         });
         
-        const result = await response.json();
+        let result;
+        try {
+          result = await response.json();
+        } catch (e) {
+          result = { success: false, message: 'Erreur lors de la lecture de la réponse' };
+        }
         
-        if (result.success) {
+        if (response.ok && result.success) {
           if (window.showToast) {
             window.showToast('Objectif mis à jour avec succès', 'success');
+          } else {
+            alert('Objectif mis à jour avec succès');
           }
           this.closeObjectiveEditSheet();
           setTimeout(() => {
             window.location.reload();
           }, 500);
         } else {
+          const errorMessage = result.message || 'Erreur lors de la mise à jour';
           if (window.showToast) {
-            window.showToast(result.message || 'Erreur lors de la mise à jour', 'error');
+            window.showToast(errorMessage, 'error');
+          } else {
+            alert(errorMessage);
           }
         }
       } catch (error) {
         console.error('Erreur:', error);
+        const errorMessage = 'Une erreur est survenue lors de la mise à jour de l\'objectif';
         if (window.showToast) {
-          window.showToast('Une erreur est survenue', 'error');
+          window.showToast(errorMessage, 'error');
+        } else {
+          alert(errorMessage);
         }
       }
     },
     
     openProofModal(event, taskId, taskTitle) {
-      console.log('openProofModal appelé', { taskId, taskTitle, checked: event.target.checked });
+      // Récupérer la checkbox par taskId si event.target n'est pas disponible
+      let checkbox = event?.target;
+      if (!checkbox && taskId) {
+        checkbox = document.querySelector(`input[data-task-id="${taskId}"]`);
+      }
+      
+      const isChecked = checkbox ? checkbox.checked : false;
+      console.log('openProofModal appelé', { taskId, taskTitle, checked: isChecked, checkbox });
+      
       // Empêcher la propagation de l'événement
       if (event) {
         event.stopPropagation();
         event.preventDefault();
       }
       
-      const checkbox = event.target;
-      const isChecked = checkbox.checked;
+      if (!checkbox) {
+        console.error('Checkbox non trouvée pour la tâche', taskId);
+        return;
+      }
       
       // Récupérer le statut de la tâche depuis la checkbox
       const taskStatus = checkbox.getAttribute('data-task-status');
@@ -1942,9 +2120,7 @@ function taskManager() {
           window.showToast('Impossible d\'ajouter une preuve à une tâche terminée', 'error');
         }
         // Remettre la checkbox dans son état précédent
-        if (checkbox) {
-          checkbox.checked = false;
-        }
+        checkbox.checked = false;
         return;
       }
       
@@ -1995,9 +2171,20 @@ function taskManager() {
         return;
       }
       
+      // Cocher la checkbox manuellement (car preventDefault empêche le comportement par défaut)
+      // On vérifiera les permissions côté serveur lors de la soumission
+      checkbox.checked = true;
+      
       // Stocker le statut avant d'ouvrir le modal
       checkbox.setAttribute('data-task-status', taskStatus);
-      this.openProofModal(event, taskId, taskTitle);
+      
+      // Créer un nouvel événement avec checked = true pour openProofModal
+      const syntheticEvent = {
+        target: checkbox,
+        stopPropagation: () => {},
+        preventDefault: () => {}
+      };
+      this.openProofModal(syntheticEvent, taskId, taskTitle);
     },
     
     handleFileSelect(event) {
@@ -2079,12 +2266,20 @@ function taskManager() {
           body: JSON.stringify(data),
         });
         
-        const result = await response.json().catch(() => ({ success: false, message: 'Erreur lors de l\'envoi' }));
+        let result;
+        try {
+          result = await response.json();
+        } catch (e) {
+          result = { success: false, message: 'Erreur lors de la lecture de la réponse' };
+        }
         
         if (response.ok && result.success) {
+          // La checkbox est déjà cochée, on la garde cochée
           // Afficher un message de succès
           if (window.showToast) {
             window.showToast(result.message || 'Preuve envoyée avec succès', 'success');
+          } else {
+            alert(result.message || 'Preuve envoyée avec succès');
           }
           
           // Fermer le rightSheet
@@ -2099,13 +2294,33 @@ function taskManager() {
           const errorMessage = result.message || 'Erreur lors de l\'envoi de la preuve';
           if (window.showToast) {
             window.showToast(errorMessage, 'error');
+          } else {
+            alert(errorMessage);
           }
+          
+          // Décocher la checkbox en cas d'erreur
+          const taskCheckbox = document.querySelector(`input[data-task-id="${this.currentTaskId}"]`);
+          if (taskCheckbox) {
+            taskCheckbox.checked = false;
+          }
+          
+          // Fermer le rightSheet
+          this.proofSheetOpen = false;
         }
       } catch (error) {
         console.error('Erreur lors de l\'envoi de la preuve:', error);
         if (window.showToast) {
           window.showToast('Une erreur est survenue', 'error');
         }
+        
+        // Décocher la checkbox en cas d'erreur
+        const taskCheckbox = document.querySelector(`input[data-task-id="${this.currentTaskId}"]`);
+        if (taskCheckbox) {
+          taskCheckbox.checked = false;
+        }
+        
+        // Fermer le rightSheet
+        this.proofSheetOpen = false;
       } finally {
         this.proofSubmitting = false;
       }
@@ -2321,6 +2536,23 @@ function taskManager() {
       this.configSheetOpen = true;
     },
     
+    onAssignedTypeChange() {
+      // Réinitialiser tous les IDs d'affectation
+      this.taskConfig.studentId = '';
+      this.taskConfig.parentId = '';
+      this.taskConfig.specialistId = '';
+      
+      // Définir les valeurs par défaut selon le type d'affectation
+      if (this.taskConfig.assignedType === 'student' && this.objective?.student?.id) {
+        // Si "Élève" est sélectionné, définir l'élève de l'objectif par défaut
+        this.taskConfig.studentId = this.objective.student.id;
+      } else if (this.taskConfig.assignedType === 'parent' && this.objective?.parent?.id) {
+        // Si "Parent" est sélectionné, définir le parent de l'élève de l'objectif par défaut
+        this.taskConfig.parentId = this.objective.parent.id;
+      }
+      // Pour "specialist", on laisse vide (pas de valeur par défaut)
+    },
+    
     async generateSmartTasks() {
       if (!this.objectiveId) {
         if (window.showToast) {
@@ -2340,7 +2572,12 @@ function taskManager() {
           body: JSON.stringify({}),
         });
 
-        const result = await response.json().catch(() => ({ success: false, message: 'Erreur lors de la génération' }));
+        let result;
+        try {
+          result = await response.json();
+        } catch (e) {
+          result = { success: false, message: 'Erreur lors de la lecture de la réponse' };
+        }
 
         if (response.ok && result.success && result.tasks && result.tasks.length > 0) {
           // Prendre la première tâche suggérée et remplir le formulaire
@@ -2356,11 +2593,11 @@ function taskManager() {
             // On peut l'ajouter si nécessaire
           }
 
+          const successMessage = `${result.tasks.length} tâche(s) suggérée(s). Première tâche chargée.`;
           if (window.showToast) {
-            window.showToast(
-              `${result.tasks.length} tâche(s) suggérée(s). Première tâche chargée.`,
-              'success'
-            );
+            window.showToast(successMessage, 'success');
+          } else {
+            alert(successMessage);
           }
 
           // Optionnel: afficher toutes les suggestions dans une modal ou permettre de naviguer entre elles
@@ -2369,15 +2606,94 @@ function taskManager() {
           const errorMessage = result.message || 'Aucune tâche suggérée';
           if (window.showToast) {
             window.showToast(errorMessage, 'error');
+          } else {
+            alert(errorMessage);
           }
         }
       } catch (error) {
         console.error('Erreur lors de la génération des tâches:', error);
+        const errorMessage = 'Erreur lors de la génération des suggestions';
         if (window.showToast) {
-          window.showToast('Erreur lors de la génération des suggestions', 'error');
+          window.showToast(errorMessage, 'error');
+        } else {
+          alert(errorMessage);
         }
       } finally {
         this.generatingTasks = false;
+      }
+    },
+    
+    async generateFromOrigin() {
+      if (!this.objectiveId) {
+        if (window.showToast) {
+          window.showToast('Erreur: ID de l\'objectif manquant', 'error');
+        }
+        return;
+      }
+
+      this.generatingFromOrigin = true;
+
+      try {
+        const response = await fetch(`/admin/objectives/${this.objectiveId}/generate-from-origin`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({}),
+        });
+
+        let result;
+        try {
+          result = await response.json();
+        } catch (e) {
+          result = { success: false, message: 'Erreur lors de la lecture de la réponse' };
+        }
+
+        if (response.ok && result.success) {
+          // Mettre à jour la description si elle a été générée
+          if (result.description) {
+            // Recharger la page pour afficher la nouvelle description
+            window.location.reload();
+          }
+          
+          // Si des tâches ont été générées, les afficher
+          if (result.tasks && result.tasks.length > 0) {
+            const successMessage = `${result.tasks.length} tâche(s) générée(s) et description mise à jour.`;
+            if (window.showToast) {
+              window.showToast(successMessage, 'success');
+            }
+            // Recharger la page pour afficher les nouvelles tâches
+            setTimeout(() => {
+              window.location.reload();
+            }, 1000);
+          } else {
+            const successMessage = result.message || 'Description mise à jour avec succès.';
+            if (window.showToast) {
+              window.showToast(successMessage, 'success');
+            }
+            // Recharger la page pour afficher la nouvelle description
+            setTimeout(() => {
+              window.location.reload();
+            }, 1000);
+          }
+        } else {
+          const errorMessage = result.message || 'Erreur lors de la génération';
+          if (window.showToast) {
+            window.showToast(errorMessage, 'error');
+          } else {
+            alert(errorMessage);
+          }
+        }
+      } catch (error) {
+        console.error('Erreur lors de la génération depuis l\'original:', error);
+        const errorMessage = 'Erreur lors de la génération';
+        if (window.showToast) {
+          window.showToast(errorMessage, 'error');
+        } else {
+          alert(errorMessage);
+        }
+      } finally {
+        this.generatingFromOrigin = false;
       }
     },
     
@@ -2463,14 +2779,21 @@ function taskManager() {
           body: JSON.stringify(dataToSend),
         });
         
-        const result = await response.json().catch(() => ({ success: false, message: 'Erreur lors de l\'enregistrement' }));
+        let result;
+        try {
+          result = await response.json();
+        } catch (e) {
+          result = { success: false, message: 'Erreur lors de la lecture de la réponse' };
+        }
         
         if (response.ok && result.success) {
+          const message = this.taskConfig.isNew 
+            ? (result.message || 'Tâche créée avec succès')
+            : (result.message || 'Configuration enregistrée avec succès');
           if (window.showToast) {
-            const message = this.taskConfig.isNew 
-              ? (result.message || 'Tâche créée avec succès')
-              : (result.message || 'Configuration enregistrée avec succès');
             window.showToast(message, 'success');
+          } else {
+            alert(message);
           }
           
           // Fermer le rightSheet
@@ -2486,16 +2809,20 @@ function taskManager() {
             : 'Erreur lors de l\'enregistrement de la configuration');
           if (window.showToast) {
             window.showToast(errorMessage, 'error');
+          } else {
+            alert(errorMessage);
           }
           this.configSubmitting = false;
         }
       } catch (error) {
         console.error('Erreur lors de l\'enregistrement:', error);
+        const errorMessage = this.taskConfig.isNew 
+          ? 'Erreur lors de la création de la tâche'
+          : 'Erreur lors de l\'enregistrement de la configuration';
         if (window.showToast) {
-          const errorMessage = this.taskConfig.isNew 
-            ? 'Erreur lors de la création de la tâche'
-            : 'Erreur lors de l\'enregistrement de la configuration';
           window.showToast(errorMessage, 'error');
+        } else {
+          alert(errorMessage);
         }
       } finally {
         this.configSubmitting = false;
@@ -2566,11 +2893,18 @@ function taskManager() {
           body: JSON.stringify(this.commentFormData),
         });
         
-        const result = await response.json();
+        let result;
+        try {
+          result = await response.json();
+        } catch (e) {
+          result = { success: false, message: 'Erreur lors de la lecture de la réponse' };
+        }
         
-        if (result.success) {
+        if (response.ok && result.success) {
           if (window.showToast) {
             window.showToast(result.message || 'Commentaire enregistré avec succès', 'success');
+          } else {
+            alert(result.message || 'Commentaire enregistré avec succès');
           }
           
           // Fermer le formulaire
@@ -2584,12 +2918,17 @@ function taskManager() {
           const errorMessage = result.message || 'Erreur lors de l\'enregistrement du commentaire';
           if (window.showToast) {
             window.showToast(errorMessage, 'error');
+          } else {
+            alert(errorMessage);
           }
         }
       } catch (error) {
         console.error('Erreur lors de l\'enregistrement du commentaire:', error);
+        const errorMessage = 'Une erreur est survenue lors de l\'enregistrement du commentaire';
         if (window.showToast) {
-          window.showToast('Une erreur est survenue', 'error');
+          window.showToast(errorMessage, 'error');
+        } else {
+          alert(errorMessage);
         }
       } finally {
         this.commentSubmitting = false;
@@ -2628,11 +2967,18 @@ function taskManager() {
           },
         });
         
-        const result = await response.json();
+        let result;
+        try {
+          result = await response.json();
+        } catch (e) {
+          result = { success: false, message: 'Erreur lors de la lecture de la réponse' };
+        }
         
-        if (result.success) {
+        if (response.ok && result.success) {
           if (window.showToast) {
             window.showToast(result.message || 'Tâche supprimée avec succès', 'success');
+          } else {
+            alert(result.message || 'Tâche supprimée avec succès');
           }
           
           // Recharger la page pour mettre à jour l'affichage
@@ -2643,12 +2989,17 @@ function taskManager() {
           const errorMessage = result.message || 'Erreur lors de la suppression de la tâche';
           if (window.showToast) {
             window.showToast(errorMessage, 'error');
+          } else {
+            alert(errorMessage);
           }
         }
       } catch (error) {
         console.error('Erreur lors de la suppression de la tâche:', error);
+        const errorMessage = 'Une erreur est survenue lors de la suppression de la tâche';
         if (window.showToast) {
-          window.showToast('Une erreur est survenue', 'error');
+          window.showToast(errorMessage, 'error');
+        } else {
+          alert(errorMessage);
         }
       }
     },
@@ -2666,11 +3017,18 @@ function taskManager() {
           },
         });
         
-        const result = await response.json();
+        let result;
+        try {
+          result = await response.json();
+        } catch (e) {
+          result = { success: false, message: 'Erreur lors de la lecture de la réponse' };
+        }
         
-        if (result.success) {
+        if (response.ok && result.success) {
           if (window.showToast) {
             window.showToast(result.message || 'Commentaire supprimé avec succès', 'success');
+          } else {
+            alert(result.message || 'Commentaire supprimé avec succès');
           }
           
           // Recharger la page pour mettre à jour l'affichage
@@ -2681,12 +3039,17 @@ function taskManager() {
           const errorMessage = result.message || 'Erreur lors de la suppression du commentaire';
           if (window.showToast) {
             window.showToast(errorMessage, 'error');
+          } else {
+            alert(errorMessage);
           }
         }
       } catch (error) {
         console.error('Erreur lors de la suppression du commentaire:', error);
+        const errorMessage = 'Une erreur est survenue lors de la suppression du commentaire';
         if (window.showToast) {
-          window.showToast('Une erreur est survenue', 'error');
+          window.showToast(errorMessage, 'error');
+        } else {
+          alert(errorMessage);
         }
       }
     },

@@ -58,13 +58,22 @@
                 <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
                     Durée <span class="text-error-500">*</span>
                 </label>
-                <input
-                    type="text"
+                <select
                     x-model="editForm.duration"
                     required
                     class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
-                    placeholder="Ex: 30 minutes, 15-30 minutes"
-                />
+                >
+                    <option value="">Sélectionner une durée</option>
+                    <option value="15 minutes">15 minutes</option>
+                    <option value="30 minutes">30 minutes</option>
+                    <option value="45 minutes">45 minutes</option>
+                    <option value="1 heure">1 heure</option>
+                    <option value="1h30">1h30</option>
+                    <option value="2 heures">2 heures</option>
+                    <option value="15-30 minutes">15-30 minutes</option>
+                    <option value="30-45 minutes">30-45 minutes</option>
+                    <option value="45-60 minutes">45-60 minutes</option>
+                </select>
             </div>
 
             <!-- Tranche d'âges -->
@@ -72,13 +81,20 @@
                 <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
                     Tranche d'âges <span class="text-error-500">*</span>
                 </label>
-                <input
-                    type="text"
+                <select
                     x-model="editForm.ageRange"
                     required
                     class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
-                    placeholder="Ex: 3-5 ans, 6-8 ans"
-                />
+                >
+                    <option value="">Sélectionner une tranche d'âges</option>
+                    <option value="3-5 ans">3-5 ans</option>
+                    <option value="6-8 ans">6-8 ans</option>
+                    <option value="9-11 ans">9-11 ans</option>
+                    <option value="12-14 ans">12-14 ans</option>
+                    <option value="15-17 ans">15-17 ans</option>
+                    <option value="18+ ans">18+ ans</option>
+                    <option value="Tous âges">Tous âges</option>
+                </select>
             </div>
 
             <!-- Type -->
