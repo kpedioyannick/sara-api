@@ -47,6 +47,18 @@ services:
         arguments:
             $openaiApiKey: '%env(default:OPENAI_API_KEY)%'
 
+    # Email Notification Service
+    App\Service\EmailNotificationService:
+        arguments:
+            $appName: 'SARA'
+            $baseUrl: '%env(default::APP_URL)%'
+
+    # Contact Email Service
+    App\Service\ContactEmailService:
+        arguments:
+            $contactEmail: '%env(default::CONTACT_EMAIL)%'
+            $appName: 'SARA'
+
     # HttpClient pour Mercure (ignore SSL verification)
     mercure.http_client:
         class: Symfony\Component\HttpClient\HttpClient

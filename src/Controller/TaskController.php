@@ -12,6 +12,7 @@ use App\Repository\SpecialistRepository;
 use App\Repository\StudentRepository;
 use App\Repository\TaskRepository;
 use App\Service\TaskPlanningService;
+use App\Service\NotificationService;
 use App\Service\PermissionService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -37,7 +38,8 @@ class TaskController extends AbstractController
         private readonly SpecialistRepository $specialistRepository,
         private readonly ValidatorInterface $validator,
         private readonly TaskPlanningService $taskPlanningService,
-        private readonly PermissionService $permissionService
+        private readonly PermissionService $permissionService,
+        private readonly NotificationService $notificationService
     ) {
     }
 
@@ -136,6 +138,15 @@ class TaskController extends AbstractController
         } catch (\Exception $e) {
             // Logger l'erreur mais ne pas faire échouer la création de la tâche
             // Les événements Planning peuvent être régénérés plus tard
+        }
+
+        // Notifier l'utilisateur assigné si ce n'est pas le coach
+        try {
+            if ($assignedType !== 'coach') {
+                $this->notificationService->notifyNewTaskAssigned($task);
+            }
+        } catch (\Exception $e) {
+            error_log('Erreur notification nouvelle tâche: ' . $e->getMessage());
         }
 
         return new JsonResponse(['success' => true, 'id' => $task->getId(), 'message' => 'Tâche créée avec succès']);
@@ -335,6 +346,9 @@ class TaskController extends AbstractController
 
         $data = json_decode($request->getContent(), true);
         
+        // Sauvegarder l'ancien statut pour détecter le changement
+        $oldStatus = $task->getStatus();
+        
         // Mettre à jour le statut
         if (isset($data['status']) && in_array($data['status'], [Task::STATUS_PENDING, Task::STATUS_IN_PROGRESS, Task::STATUS_COMPLETED])) {
             $task->setStatus($data['status']);
@@ -366,6 +380,15 @@ class TaskController extends AbstractController
         }
 
         $this->em->flush();
+
+        // Notifier si la tâche vient d'être validée (passée à completed)
+        try {
+            if ($oldStatus !== Task::STATUS_COMPLETED && $task->getStatus() === Task::STATUS_COMPLETED) {
+                $this->notificationService->notifyTaskValidated($task);
+            }
+        } catch (\Exception $e) {
+            error_log('Erreur notification tâche validée: ' . $e->getMessage());
+        }
 
         // Mettre à jour les événements Planning si la fréquence a changé
         try {

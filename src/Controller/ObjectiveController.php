@@ -15,6 +15,7 @@ use App\Repository\SpecialistRepository;
 use App\Repository\StudentRepository;
 use App\Repository\TaskRepository;
 use App\Service\SmartObjectiveService;
+use App\Service\NotificationService;
 use App\Service\PermissionService;
 use App\Entity\Task;
 use Doctrine\ORM\EntityManagerInterface;
@@ -45,7 +46,8 @@ class ObjectiveController extends AbstractController
         private readonly SmartObjectiveService $smartObjectiveService,
         private readonly TaskRepository $taskRepository,
         private readonly LoggerInterface $logger,
-        private readonly PermissionService $permissionService
+        private readonly PermissionService $permissionService,
+        private readonly NotificationService $notificationService
     ) {
     }
 
@@ -362,6 +364,13 @@ class ObjectiveController extends AbstractController
             $this->em->persist($objective);
             $this->em->flush();
 
+            // Notifier le coach si l'objectif a été créé par un parent/élève
+            try {
+                $this->notificationService->notifyObjectiveCreated($objective, $user);
+            } catch (\Exception $e) {
+                error_log('Erreur notification objectif créé: ' . $e->getMessage());
+            }
+
             // Créer les tâches suggérées uniquement si l'IA a été utilisée
             $tasksCount = 0;
             if ($canUseAI && $suggestions && isset($suggestions['tasks']) && is_array($suggestions['tasks'])) {
@@ -621,6 +630,10 @@ class ObjectiveController extends AbstractController
         }
 
         $data = json_decode($request->getContent(), true);
+        
+        // Sauvegarder l'ancien statut pour détecter le changement
+        $oldStatus = $objective->getStatus();
+        
         if (isset($data['title'])) $objective->setTitle($data['title']);
         if (isset($data['description'])) $objective->setDescription($data['description']);
         if (isset($data['category'])) $objective->setCategory($data['category']);
@@ -668,6 +681,15 @@ class ObjectiveController extends AbstractController
         }
 
         $this->em->flush();
+
+        // Notifier si l'objectif vient d'être validé
+        try {
+            if ($oldStatus !== Objective::STATUS_VALIDATED && $objective->getStatus() === Objective::STATUS_VALIDATED) {
+                $this->notificationService->notifyObjectiveValidated($objective);
+            }
+        } catch (\Exception $e) {
+            error_log('Erreur notification objectif validé: ' . $e->getMessage());
+        }
 
         return new JsonResponse(['success' => true, 'message' => 'Objectif modifié avec succès']);
     }

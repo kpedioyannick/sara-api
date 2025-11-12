@@ -12,6 +12,7 @@ use App\Repository\RequestRepository;
 use App\Repository\SpecialistRepository;
 use App\Repository\StudentRepository;
 use App\Service\FileStorageService;
+use App\Service\NotificationService;
 use App\Service\RequestAIService;
 use App\Service\PermissionService;
 use Doctrine\ORM\EntityManagerInterface;
@@ -43,7 +44,8 @@ class RequestController extends AbstractController
         private readonly HubInterface $hub,
         private readonly FileStorageService $fileStorageService,
         private readonly RequestAIService $requestAIService,
-        private readonly PermissionService $permissionService
+        private readonly PermissionService $permissionService,
+        private readonly NotificationService $notificationService
     ) {
     }
 
@@ -353,6 +355,15 @@ class RequestController extends AbstractController
         $this->em->persist($requestEntity);
         $this->em->flush();
 
+        // Notifier le coach si la demande a été créée par un parent/élève/spécialiste
+        try {
+            if ($creator->getId() !== $coach->getId()) {
+                $this->notificationService->notifyRequestCreated($requestEntity, $creator);
+            }
+        } catch (\Exception $e) {
+            error_log('Erreur notification demande créée: ' . $e->getMessage());
+        }
+
         return new JsonResponse(['success' => true, 'id' => $requestEntity->getId(), 'message' => 'Demande créée avec succès']);
     }
 
@@ -652,6 +663,15 @@ class RequestController extends AbstractController
         
         // Rafraîchir la requête pour que la relation soit à jour
         $this->em->refresh($requestEntity);
+
+        // Notifier le créateur de la demande si le message vient du coach
+        try {
+            if ($sender->getId() !== $requestEntity->getCreator()?->getId()) {
+                $this->notificationService->notifyRequestResponded($requestEntity, $sender);
+            }
+        } catch (\Exception $e) {
+            error_log('Erreur notification réponse demande: ' . $e->getMessage());
+        }
 
         // Publier le message via Mercure pour le temps réel (avec gestion d'erreur)
         try {

@@ -1,0 +1,246 @@
+{% extends 'tailadmin/layouts/base.html.twig' %}
+
+{% block page_title %}{{ pageTitle|default('Notifications | TailAdmin') }}{% endblock %}
+
+{% block content %}
+<div class="mx-auto max-w-screen-2xl p-4 md:p-6 2xl:p-10">
+  {% include 'tailadmin/components/breadcrumb.html.twig' with { 
+    items: [
+      {'label': 'Dashboard', 'url': path(app.user and app.user.isCoach() ? 'admin_dashboard' : 'app_dashboard')},
+      {'label': 'Notifications', 'url': ''}
+    ]
+  } %}
+
+  <!-- ====== Notifications Section Start ====== -->
+  <div class="rounded-lg border border-gray-200 bg-white shadow-default dark:border-gray-800 dark:bg-gray-900">
+    <!-- Header -->
+    <div class="border-b border-gray-200 px-6 py-4 dark:border-gray-800">
+      <div class="flex items-center justify-between">
+        <div>
+          <h3 class="text-xl font-semibold text-gray-900 dark:text-white">Notifications</h3>
+          <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+            <span x-text="unreadCount"></span> non lue<span x-show="unreadCount > 1">s</span>
+          </p>
+        </div>
+        <button
+          @click="markAllAsRead()"
+          x-show="unreadCount > 0"
+          class="inline-flex items-center gap-2 rounded-lg border border-brand-500 bg-brand-50 px-4 py-2 text-sm font-medium text-brand-600 hover:bg-brand-100 dark:border-brand-400 dark:bg-brand-500/15 dark:text-brand-400 dark:hover:bg-brand-500/25"
+          style="display: none;"
+        >
+          <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+          </svg>
+          Tout marquer comme lu
+        </button>
+      </div>
+    </div>
+
+    <!-- Notifications List -->
+    <div
+      x-data="notificationsList()"
+      x-init="init()"
+      class="divide-y divide-gray-200 dark:divide-gray-700"
+    >
+      <template x-if="notifications.length === 0">
+        <div class="py-12 text-center">
+          <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+          </svg>
+          <p class="mt-4 text-sm text-gray-500 dark:text-gray-400">Aucune notification</p>
+        </div>
+      </template>
+
+      <template x-for="notification in notifications" :key="notification.id">
+        <div
+          @click="openNotification(notification)"
+          :class="notification.isRead ? 'bg-white dark:bg-gray-800' : 'bg-blue-50 dark:bg-blue-900/20'"
+          class="flex items-start gap-4 p-6 hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer transition-colors"
+        >
+          <div class="flex-shrink-0">
+            <div class="flex h-10 w-10 items-center justify-center rounded-full"
+                 :class="getNotificationIconClass(notification.type)">
+              <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" :d="getNotificationIcon(notification.type)" />
+              </svg>
+            </div>
+          </div>
+
+          <div class="flex-1 min-w-0">
+            <div class="flex items-start justify-between gap-2">
+              <div class="flex-1">
+                <p class="text-sm font-semibold text-gray-900 dark:text-white" x-text="notification.title"></p>
+                <p class="mt-1 text-sm text-gray-600 dark:text-gray-400" x-text="notification.message || ''"></p>
+                <p class="mt-2 text-xs text-gray-500 dark:text-gray-500" x-text="formatDate(notification.createdAt)"></p>
+              </div>
+              <div class="flex items-center gap-2">
+                <span
+                  x-show="!notification.isRead"
+                  class="h-2 w-2 rounded-full bg-blue-600"
+                  style="display: none;"
+                ></span>
+                <button
+                  @click.stop="deleteNotification(notification.id)"
+                  class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                >
+                  <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </template>
+    </div>
+  </div>
+  <!-- ====== Notifications Section End ====== -->
+</div>
+
+<script>
+function notificationsList() {
+  return {
+    notifications: {{ notifications|json_encode|raw }},
+    unreadCount: {{ unreadCount }},
+    page: {{ page }},
+
+    init() {
+      // Pas besoin de charger, les données sont déjà dans le template
+    },
+
+    async openNotification(notification) {
+      // Marquer comme lu si ce n'est pas déjà fait
+      if (!notification.isRead) {
+        await this.markAsRead(notification.id);
+      }
+      
+      // Rediriger vers l'URL de la notification
+      if (notification.url) {
+        window.location.href = notification.url;
+      }
+    },
+
+    async markAsRead(notificationId) {
+      try {
+        const response = await fetch(`{{ path('api_notifications_mark_read', {id: 'PLACEHOLDER'}) }}`.replace('PLACEHOLDER', notificationId), {
+          method: 'POST',
+          headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+          }
+        });
+        
+        if (response.ok) {
+          const notification = this.notifications.find(n => n.id === notificationId);
+          if (notification && !notification.isRead) {
+            notification.isRead = true;
+            if (this.unreadCount > 0) {
+              this.unreadCount--;
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Erreur marquage comme lu:', error);
+      }
+    },
+
+    async markAllAsRead() {
+      try {
+        const response = await fetch('{{ path('api_notifications_mark_all_read') }}', {
+          method: 'POST',
+          headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+          }
+        });
+        
+        if (response.ok) {
+          this.notifications.forEach(n => n.isRead = true);
+          this.unreadCount = 0;
+        }
+      } catch (error) {
+        console.error('Erreur marquage tout comme lu:', error);
+      }
+    },
+
+    async deleteNotification(notificationId) {
+      try {
+        const response = await fetch(`{{ path('api_notifications_delete', {id: 'PLACEHOLDER'}) }}`.replace('PLACEHOLDER', notificationId), {
+          method: 'DELETE',
+          headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+          }
+        });
+        
+        if (response.ok) {
+          const notification = this.notifications.find(n => n.id === notificationId);
+          if (notification && !notification.isRead) {
+            if (this.unreadCount > 0) {
+              this.unreadCount--;
+            }
+          }
+          this.notifications = this.notifications.filter(n => n.id !== notificationId);
+        }
+      } catch (error) {
+        console.error('Erreur suppression notification:', error);
+      }
+    },
+
+    formatDate(dateString) {
+      if (!dateString) return '';
+      
+      try {
+        const date = new Date(dateString);
+        const now = new Date();
+        const diffMs = now - date;
+        const diffMins = Math.floor(diffMs / 60000);
+        const diffHours = Math.floor(diffMs / 3600000);
+        const diffDays = Math.floor(diffMs / 86400000);
+        
+        if (diffMins < 1) return 'À l\'instant';
+        if (diffMins < 60) return `Il y a ${diffMins} min`;
+        if (diffHours < 24) return `Il y a ${diffHours} h`;
+        if (diffDays < 7) return `Il y a ${diffDays} j`;
+        
+        return date.toLocaleDateString('fr-FR', {
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        });
+      } catch (e) {
+        return dateString;
+      }
+    },
+
+    getNotificationIconClass(type) {
+      const classes = {
+        'task_completed': 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400',
+        'task_validated': 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400',
+        'objective_created': 'bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400',
+        'objective_validated': 'bg-yellow-100 text-yellow-600 dark:bg-yellow-900/30 dark:text-yellow-400',
+        'request_created': 'bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400',
+        'request_responded': 'bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400',
+        'proof_submitted': 'bg-cyan-100 text-cyan-600 dark:bg-cyan-900/30 dark:text-cyan-400',
+        'new_task_assigned': 'bg-pink-100 text-pink-600 dark:bg-pink-900/30 dark:text-pink-400',
+      };
+      return classes[type] || 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400';
+    },
+
+    getNotificationIcon(type) {
+      const icons = {
+        'task_completed': 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z',
+        'task_validated': 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z',
+        'objective_created': 'M12 4v16m8-8H4',
+        'objective_validated': 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z',
+        'request_created': 'M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z',
+        'request_responded': 'M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6',
+        'proof_submitted': 'M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12',
+        'new_task_assigned': 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2',
+      };
+      return icons[type] || 'M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9';
+    }
+  };
+}
+</script>
+{% endblock %}
+

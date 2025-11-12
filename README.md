@@ -227,9 +227,23 @@ sara_api/
 # Configuration Symfony
 APP_ENV=dev
 APP_SECRET=your-secret-key
+APP_URL=http://localhost:8000
 
 # Base de données MySQL
 DATABASE_URL="mysql://sara_api:sara_password@localhost:3306/sara_api?serverVersion=8.0&charset=utf8mb4"
+
+# Configuration Mailer (pour les emails de notifications)
+# En développement avec Mailpit (Docker)
+# MAILER_DSN=smtp://localhost:1025
+
+# En production avec SendBlue (Brevo) - RECOMMANDÉ
+# Configuration SendBlue :
+# - Serveur SMTP: smtp-relay.brevo.com
+# - Port: 587
+# - Connexion: TLS
+# Format du DSN:
+MAILER_DSN=l de contact (pour recevoir les messages du formulaire)
+CONTACT_EMAIL=contact@sara.education
 ```
 
 ### Configuration Doctrine (config/packages/doctrine.yaml)
@@ -253,6 +267,214 @@ doctrine:
 3. Vider le cache : `php bin/console cache:clear --env=prod`
 4. Configurer le serveur web (Apache/Nginx)
 5. Configurer SSL/TLS
+
+### 🔔 Déploiement de Mercure sur Ubuntu
+
+Mercure est nécessaire pour les notifications en temps réel et les messages instantanés.
+
+#### Option 1 : Installation via Docker (Recommandé)
+
+```bash
+# Installer Docker si ce n'est pas déjà fait
+sudo apt update
+sudo apt install -y docker.io docker-compose
+
+# Démarrer Mercure avec Docker Compose
+docker-compose up -d mercure
+
+# Vérifier que Mercure fonctionne
+curl http://localhost:3000/.well-known/mercure
+```
+
+#### Option 2 : Installation binaire sur Ubuntu
+
+```bash
+# Télécharger le binaire Mercure
+cd /tmp
+wget https://github.com/dunglas/mercure/releases/latest/download/mercure_linux_amd64.tar.gz
+
+# Extraire l'archive
+tar -xzf mercure_linux_amd64.tar.gz
+
+# Déplacer le binaire dans un répertoire système
+sudo mv mercure /usr/local/bin/
+sudo chmod +x /usr/local/bin/mercure
+
+# Créer un utilisateur dédié pour Mercure
+sudo useradd -r -s /bin/false mercure
+```
+
+#### Configuration Mercure comme service systemd
+
+```bash
+# Créer le fichier de service
+sudo nano /etc/systemd/system/mercure.service
+```
+
+Contenu du fichier `/etc/systemd/system/mercure.service` :
+
+```ini
+[Unit]
+Description=Mercure Hub
+After=network.target
+
+[Service]
+Type=simple
+User=mercure
+Group=mercure
+ExecStart=/usr/local/bin/mercure \
+    --addr=:3000 \
+    --cors-allowed-origins=https://votre-domaine.com,http://localhost:8000 \
+    --publish-allowed-origins=https://votre-domaine.com,http://localhost:8000 \
+    --publisher-jwt-key='!ChangeThisMercureHubJWTSecretKey!' \
+    --subscriber-jwt-key='!ChangeThisMercureHubJWTSecretKey!'
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+```
+
+**Important** : Remplacez `!ChangeThisMercureHubJWTSecretKey!` par une clé secrète forte et identique à celle configurée dans `config/packages/mercure.yaml`.
+
+```bash
+# Recharger systemd
+sudo systemctl daemon-reload
+
+# Activer le service au démarrage
+sudo systemctl enable mercure
+
+# Démarrer Mercure
+sudo systemctl start mercure
+
+# Vérifier le statut
+sudo systemctl status mercure
+
+# Voir les logs
+sudo journalctl -u mercure -f
+```
+
+#### Configuration avec Nginx (Reverse Proxy)
+
+Si vous utilisez Nginx, ajoutez cette configuration pour proxifier Mercure :
+
+```nginx
+# /etc/nginx/sites-available/sara-api
+server {
+    listen 443 ssl http2;
+    server_name votre-domaine.com;
+
+    # ... configuration SSL ...
+
+    # Proxy pour Mercure
+    location /.well-known/mercure {
+        proxy_pass http://127.0.0.1:3000;
+        proxy_read_timeout 24h;
+        proxy_http_version 1.1;
+        proxy_set_header Connection "";
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        
+        # CORS headers
+        add_header Access-Control-Allow-Origin * always;
+        add_header Access-Control-Allow-Methods "GET, POST, OPTIONS" always;
+        add_header Access-Control-Allow-Headers "Authorization, Content-Type" always;
+        
+        if ($request_method = OPTIONS) {
+            return 204;
+        }
+    }
+}
+```
+
+#### Configuration avec Apache (Reverse Proxy)
+
+Si vous utilisez Apache, ajoutez cette configuration :
+
+```apache
+# /etc/apache2/sites-available/sara-api.conf
+<VirtualHost *:443>
+    ServerName votre-domaine.com
+    
+    # ... configuration SSL ...
+
+    # Proxy pour Mercure
+    ProxyPreserveHost On
+    ProxyPass /.well-known/mercure http://127.0.0.1:3000/.well-known/mercure
+    ProxyPassReverse /.well-known/mercure http://127.0.0.1:3000/.well-known/mercure
+    
+    # Headers pour WebSocket
+    RewriteEngine on
+    RewriteCond %{HTTP:Upgrade} websocket [NC]
+    RewriteCond %{HTTP:Connection} upgrade [NC]
+    RewriteRule ^/.well-known/mercure(.*) ws://127.0.0.1:3000/.well-known/mercure$1 [P,L]
+    
+    # CORS
+    Header always set Access-Control-Allow-Origin "*"
+    Header always set Access-Control-Allow-Methods "GET, POST, OPTIONS"
+    Header always set Access-Control-Allow-Headers "Authorization, Content-Type"
+</VirtualHost>
+```
+
+Activer les modules Apache nécessaires :
+```bash
+sudo a2enmod proxy
+sudo a2enmod proxy_http
+sudo a2enmod proxy_wstunnel
+sudo a2enmod rewrite
+sudo a2enmod headers
+sudo systemctl restart apache2
+```
+
+#### Vérification de l'installation
+
+```bash
+# Tester la connexion à Mercure
+curl http://localhost:3000/.well-known/mercure
+
+# Ou avec HTTPS si configuré
+curl https://votre-domaine.com/.well-known/mercure
+
+# Vérifier que le service est actif
+sudo systemctl status mercure
+```
+
+#### Configuration dans l'application
+
+Assurez-vous que `config/packages/mercure.yaml` contient la bonne URL :
+
+```yaml
+mercure:
+    hubs:
+        default:
+            url: 'https://votre-domaine.com/.well-known/mercure'  # Production
+            # url: 'https://localhost:8443/.well-known/mercure'   # Développement
+            public_url: 'https://votre-domaine.com/.well-known/mercure'
+            jwt:
+                secret: '!ChangeThisMercureHubJWTSecretKey!'  # Même secret que dans le service
+                publish: ['*']
+                subscribe: ['*']
+```
+
+#### Dépannage
+
+```bash
+# Voir les logs en temps réel
+sudo journalctl -u mercure -f
+
+# Redémarrer Mercure
+sudo systemctl restart mercure
+
+# Vérifier les ports ouverts
+sudo netstat -tlnp | grep 3000
+
+# Tester la connexion WebSocket
+wscat -c ws://localhost:3000/.well-known/mercure?topic=/notifications/user/1
+```
 
 ### Docker (optionnel)
 ```dockerfile

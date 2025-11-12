@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nouveau message de contact</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        .email-container {
+            background-color: #ffffff;
+            border-radius: 8px;
+            padding: 30px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .header {
+            border-bottom: 2px solid #20814a;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+        .logo {
+            color: #20814a;
+            font-size: 24px;
+            font-weight: bold;
+            margin: 0;
+        }
+        .content {
+            margin: 20px 0;
+        }
+        .title {
+            font-size: 20px;
+            font-weight: bold;
+            color: #20814a;
+            margin-bottom: 20px;
+        }
+        .info-section {
+            background-color: #f9fafb;
+            border-left: 4px solid #20814a;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        .info-label {
+            font-weight: bold;
+            color: #374151;
+            margin-bottom: 5px;
+        }
+        .info-value {
+            color: #555;
+            margin-bottom: 15px;
+        }
+        .message-box {
+            background-color: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 5px;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        .message-text {
+            color: #555;
+            white-space: pre-wrap;
+            line-height: 1.8;
+        }
+        .footer {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #e0e0e0;
+            font-size: 12px;
+            color: #888;
+            text-align: center;
+        }
+        .reply-button {
+            display: inline-block;
+            padding: 12px 24px;
+            background-color: #20814a;
+            color: #ffffff;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: bold;
+            margin-top: 20px;
+        }
+        .reply-button:hover {
+            background-color: #1a6b3d;
+        }
+    </style>
+</head>
+<body>
+    <div class="email-container">
+        <div class="header">
+            <h1 class="logo">{{ appName }}</h1>
+        </div>
+
+        <div class="content">
+            <h2 class="title">Nouveau message de contact</h2>
+            
+            <div class="info-section">
+                <div class="info-label">Prénom :</div>
+                <div class="info-value">{{ contactMessage.firstName }}</div>
+
+                <div class="info-label">Nom :</div>
+                <div class="info-value">{{ contactMessage.lastName }}</div>
+
+                <div class="info-label">Email :</div>
+                <div class="info-value">
+                    <a href="mailto:{{ contactMessage.email }}">{{ contactMessage.email }}</a>
+                </div>
+
+                {% if contactMessage.phone %}
+                <div class="info-label">Téléphone :</div>
+                <div class="info-value">
+                    <a href="tel:{{ contactMessage.phone }}">{{ contactMessage.phone }}</a>
+                </div>
+                {% endif %}
+
+                <div class="info-label">Sujet :</div>
+                <div class="info-value">{{ contactMessage.subject }}</div>
+            </div>
+
+            <div class="message-box">
+                <div class="info-label">Message :</div>
+                <div class="message-text">{{ contactMessage.message }}</div>
+            </div>
+
+            <div style="margin-top: 20px;">
+                <a href="mailto:{{ contactMessage.email }}?subject=Re: {{ contactMessage.subject }}" class="reply-button">
+                    Répondre à {{ contactMessage.firstName }} {{ contactMessage.lastName }}
+                </a>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>Vous recevez cet email car un nouveau message a été envoyé via le formulaire de contact de {{ appName }}.</p>
+            <p>&copy; {{ "now"|date("Y") }} {{ appName }}. Tous droits réservés.</p>
+        </div>
+    </div>
+</body>
+</html>
+

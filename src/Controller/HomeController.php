@@ -4,6 +4,7 @@ namespace App\Controller;
 
 use App\Entity\ContactMessage;
 use App\Form\ContactMessageType;
+use App\Service\ContactEmailService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -13,7 +14,8 @@ use Symfony\Component\Routing\Attribute\Route;
 class HomeController extends AbstractController
 {
     public function __construct(
-        private readonly EntityManagerInterface $em
+        private readonly EntityManagerInterface $em,
+        private readonly ContactEmailService $contactEmailService
     ) {
     }
 
@@ -52,6 +54,20 @@ class HomeController extends AbstractController
         if ($form->isSubmitted() && $form->isValid()) {
             $this->em->persist($contactMessage);
             $this->em->flush();
+            
+            // Envoyer un email de notification à l'équipe
+            try {
+                $this->contactEmailService->sendContactNotification($contactMessage);
+            } catch (\Exception $e) {
+                error_log('Erreur envoi email notification contact: ' . $e->getMessage());
+            }
+            
+            // Envoyer un email de confirmation à l'expéditeur
+            try {
+                $this->contactEmailService->sendContactConfirmation($contactMessage);
+            } catch (\Exception $e) {
+                error_log('Erreur envoi email confirmation contact: ' . $e->getMessage());
+            }
             
             $this->addFlash('success', 'Votre message a été envoyé avec succès ! Nous vous répondrons dans les plus brefs délais.');
             

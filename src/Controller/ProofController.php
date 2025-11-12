@@ -11,6 +11,7 @@ use App\Repository\PlanningRepository;
 use App\Repository\ProofRepository;
 use App\Repository\TaskRepository;
 use App\Service\FileStorageService;
+use App\Service\NotificationService;
 use App\Service\PermissionService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -35,7 +36,8 @@ class ProofController extends AbstractController
         private readonly EntityManagerInterface $em,
         private readonly FileStorageService $fileStorageService,
         private readonly ValidatorInterface $validator,
-        private readonly PermissionService $permissionService
+        private readonly PermissionService $permissionService,
+        private readonly NotificationService $notificationService
     ) {
     }
 
@@ -158,6 +160,14 @@ class ProofController extends AbstractController
         }
         
         $this->em->flush();
+
+        // Notifier le coach qu'une preuve a été soumise
+        try {
+            $this->notificationService->notifyProofSubmitted($task, $user);
+        } catch (\Exception $e) {
+            // Log l'erreur mais ne bloque pas la création de la preuve
+            error_log('Erreur notification preuve soumise: ' . $e->getMessage());
+        }
 
         return new JsonResponse(['success' => true, 'id' => $proof->getId(), 'message' => 'Preuve créée avec succès']);
     }
