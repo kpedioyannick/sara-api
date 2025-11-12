@@ -67,9 +67,10 @@ class RequestController extends AbstractController
 
         // Récupération des demandes selon le rôle de l'utilisateur
         if ($user->isCoach()) {
-            $coach = $this->getCurrentCoach($this->coachRepository, $this->security);
+            // Si l'utilisateur est un coach, utiliser directement l'utilisateur connecté
+            $coach = $user instanceof \App\Entity\Coach ? $user : $this->getCurrentCoach($this->coachRepository, $this->security);
             if (!$coach) {
-                throw $this->createNotFoundException('Aucun coach trouvé');
+                throw $this->createAccessDeniedException('Vous devez être un coach pour accéder à cette page');
             }
             $requests = $this->requestRepository->findByCoachWithSearch(
                 $coach,
@@ -103,8 +104,8 @@ class RequestController extends AbstractController
             }
         }
         
-        // Appliquer les filtres par profil si spécifiés (pour les coaches uniquement)
-        if ($user->isCoach() && $profileType && $selectedIds) {
+        // Appliquer les filtres par profil si spécifiés (pour les coaches et les parents)
+        if (($user->isCoach() || $user->isParent()) && $profileType && $selectedIds) {
             $ids = array_filter(array_map('intval', explode(',', $selectedIds)));
             if (!empty($ids)) {
                 $filteredRequests = [];
@@ -209,6 +210,16 @@ class RequestController extends AbstractController
                 'firstName' => $coach->getFirstName(),
                 'lastName' => $coach->getLastName(),
             ]];
+        } elseif ($user->isParent()) {
+            // Pour les parents : récupérer leurs enfants pour les filtres
+            $students = $this->permissionService->getAccessibleStudents($user);
+            $studentsData = array_map(fn($student) => [
+                'id' => $student->getId(),
+                'firstName' => $student->getFirstName(),
+                'lastName' => $student->getLastName(),
+                'pseudo' => $student->getPseudo(),
+                'class' => $student->getClass(),
+            ], $students);
         } else {
             // Pour les autres rôles, utiliser PermissionService
             $students = $this->permissionService->getAccessibleStudents($user);

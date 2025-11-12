@@ -67,9 +67,10 @@ class ObjectiveController extends AbstractController
 
         // Récupération des objectifs selon le rôle de l'utilisateur
         if ($user->isCoach()) {
-            $coach = $this->getCurrentCoach($this->coachRepository, $this->security);
+            // Si l'utilisateur est un coach, utiliser directement l'utilisateur connecté
+            $coach = $user instanceof \App\Entity\Coach ? $user : $this->getCurrentCoach($this->coachRepository, $this->security);
             if (!$coach) {
-                throw $this->createNotFoundException('Aucun coach trouvé');
+                throw $this->createAccessDeniedException('Vous devez être un coach pour accéder à cette page');
             }
             $objectives = $this->objectiveRepository->findByCoachWithSearch(
                 $coach,
@@ -102,8 +103,8 @@ class ObjectiveController extends AbstractController
             });
         }
         
-        // Appliquer les filtres par profil si spécifiés (pour les coaches uniquement)
-        if ($user->isCoach() && $profileType && $selectedIds) {
+        // Appliquer les filtres par profil si spécifiés (pour les coaches et les parents)
+        if (($user->isCoach() || $user->isParent()) && $profileType && $selectedIds) {
             $ids = array_filter(array_map('intval', explode(',', $selectedIds)));
             if (!empty($ids)) {
                 $filteredObjectives = [];
@@ -194,6 +195,7 @@ class ObjectiveController extends AbstractController
                 'firstName' => $student->getFirstName(),
                 'lastName' => $student->getLastName(),
                 'pseudo' => $student->getPseudo(),
+                'class' => $student->getClass(),
                 'familyIdentifier' => $familyIdentifier,
                 'parentLastName' => $parentLastName,
             ];

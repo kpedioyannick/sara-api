@@ -70,9 +70,10 @@ class ActivityController extends AbstractController
 
         // Récupération des activités selon le rôle
         if ($user->isCoach()) {
-            $coach = $this->getCurrentCoach($this->coachRepository, $this->security);
+            // Si l'utilisateur est un coach, utiliser directement l'utilisateur connecté
+            $coach = $user instanceof \App\Entity\Coach ? $user : $this->getCurrentCoach($this->coachRepository, $this->security);
             if (!$coach) {
-                throw $this->createNotFoundException('Aucun coach trouvé');
+                throw $this->createAccessDeniedException('Vous devez être un coach pour accéder à cette page');
             }
             $filters['createdBy'] = $coach;
             $activities = $this->activityRepository->findWithFilters($filters);

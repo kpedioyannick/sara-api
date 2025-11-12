@@ -297,6 +297,34 @@ class PronoteController extends AbstractController
             throw $this->createNotFoundException('Intégration non trouvée');
         }
 
+        // Trier les messages du carnet de correspondance par date décroissante
+        $metadata = $integration->getMetadata() ?? [];
+        $notebook = $metadata['notebook'] ?? $metadata['carnet_correspondance'] ?? [];
+        if (is_array($notebook) && count($notebook) > 0) {
+            usort($notebook, function($a, $b) {
+                $dateA = $a['date'] ?? $a['raw']['startDate'] ?? $a['raw']['date'] ?? '';
+                $dateB = $b['date'] ?? $b['raw']['startDate'] ?? $b['raw']['date'] ?? '';
+                
+                if (empty($dateA) && empty($dateB)) {
+                    return 0;
+                }
+                if (empty($dateA)) {
+                    return 1;
+                }
+                if (empty($dateB)) {
+                    return -1;
+                }
+                
+                // Comparer les dates (décroissant : plus récent en premier)
+                return strcmp($dateB, $dateA);
+            });
+            
+            // Mettre à jour les métadonnées avec le notebook trié
+            $metadata['notebook'] = $notebook;
+            $metadata['carnet_correspondance'] = $notebook;
+            $integration->setMetadata($metadata);
+        }
+
         return $this->render('tailadmin/pages/integrations/pronote/detail.html.twig', [
             'pageTitle' => 'Détail Intégration PRONOTE | SARA',
             'pageName' => 'integrations',

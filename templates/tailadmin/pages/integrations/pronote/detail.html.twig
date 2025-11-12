@@ -271,8 +271,25 @@
                     <h4 class="mb-3 text-sm font-medium text-gray-700 dark:text-gray-300">📔 Carnet de correspondance</h4>
                     {% set notebook = integration.metadata.notebook ?? integration.metadata.carnet_correspondance ?? [] %}
                     {% if notebook|length > 0 %}
+                        {# Trier les messages par date décroissante (plus récent en premier) #}
+                        {% set sortedNotebook = [] %}
+                        {% for message in notebook %}
+                            {% set sortedNotebook = sortedNotebook|merge([message]) %}
+                        {% endfor %}
+                        {# Trier manuellement par date décroissante #}
+                        {% set sortedNotebook = sortedNotebook|sort((a, b) => {
+                            if not b.date and not a.date %}
+                                return 0;
+                            {% elseif not b.date %}
+                                return -1;
+                            {% elseif not a.date %}
+                                return 1;
+                            {% else %}
+                                return b.date <=> a.date;
+                            {% endif %}
+                        }) %}
                         <div class="space-y-3">
-                            {% for message in notebook %}
+                            {% for message in sortedNotebook %}
                             <div class="rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800/50">
                                 <div class="mb-2 flex items-start justify-between">
                                     <div class="flex-1">

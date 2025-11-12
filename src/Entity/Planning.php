@@ -22,6 +22,11 @@ class Planning
     public const TYPE_EXAM         = 'exam';
     public const TYPE_OBJECTIVE    = 'objective';
     public const TYPE_OTHER        = 'other';
+        // Types de disponibilités
+    public const TYPE_AVAILABILITY_EXCHANGE = 'availability_exchange'; // Dispos pour échanger avec élèves ou parents
+    public const TYPE_AVAILABILITY_ACTIVITY = 'availability_activity'; // Dispos pour réaliser des activités sur le site 
+        
+
 
     // Statuts
     public const STATUS_TO_DO = 'to_do';
@@ -37,6 +42,8 @@ class Planning
     ];
 
     public const TYPES = [
+        self::TYPE_AVAILABILITY_EXCHANGE,
+        self::TYPE_AVAILABILITY_ACTIVITY,
         self::TYPE_HOMEWORK,
         self::TYPE_REVISION,
         self::TYPE_TASK,
@@ -223,7 +230,7 @@ class Planning
             'date' => $this->getDate()?->format('Y-m-d H:i:s'),
             'type' => $this->getType(),
             'status' => $this->getStatus(),
-            'user' => $this->getUser()?->toSimpleArray(),
+            'user' => $this->getUser()?->getId(),
             'recurrence' => $this->getRecurrence(),
             'recurrenceInterval' => $this->getRecurrenceInterval(),
             'recurrenceEnd' => $this->getRecurrenceEnd()?->format('Y-m-d H:i:s'),
@@ -254,7 +261,7 @@ class Planning
                 'id' => $this->getUser()->getId(),
                 'firstName' => $this->getUser()->getFirstName(),
                 'lastName' => $this->getUser()->getLastName(),
-                'email' => $this->getUser()->getEmail(),
+                'pseudo' => $this->getUser()->getPseudo(),
             ] : null,
             'createdAt' => $this->getCreatedAt()?->format('Y-m-d H:i:s'),
         ];

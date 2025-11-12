@@ -38,13 +38,26 @@ class AvailabilityController extends AbstractController
     }
 
     #[Route('/admin/availabilities', name: 'admin_availabilities_list')]
-    #[IsGranted('ROLE_COACH')]
+    #[IsGranted('ROLE_USER')]
     public function list(Request $request): Response
     {
-        $coach = $this->getCurrentCoach($this->coachRepository, $this->security);
-        
-        if (!$coach) {
-            throw $this->createNotFoundException('Aucun coach trouvé');
+        $user = $this->getUser();
+        if (!$user) {
+            throw $this->createAccessDeniedException('Vous devez être connecté');
+        }
+
+        // Pour les coaches, récupérer le coach
+        $coach = null;
+        if ($user->isCoach()) {
+            $coach = $this->getCurrentCoach($this->coachRepository, $this->security);
+            if (!$coach) {
+                throw $this->createNotFoundException('Aucun coach trouvé');
+            }
+        } elseif ($user->isParent() || $user->isStudent() || $user->isSpecialist()) {
+            // Pour les autres rôles, ils peuvent voir leurs propres disponibilités
+            // Pour l'instant, on ne récupère que les disponibilités du coach (à adapter si nécessaire)
+            // Les parents/étudiants/spécialistes verront les disponibilités de leur coach
+            $coach = null; // À adapter selon les besoins
         }
 
         // Récupérer les paramètres de filtrage

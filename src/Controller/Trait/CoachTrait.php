@@ -20,11 +20,9 @@ trait CoachTrait
             return $user;
         }
         
-        // Pour le développement, on retourne le premier coach actif
-        // En production, cela devrait être géré par l'authentification
-        $coaches = $coachRepository->findBy(['isActive' => true], ['id' => 'ASC'], 1);
-        
-        return $coaches[0] ?? null;
+        // Si l'utilisateur n'est pas un coach, retourner null
+        // Ne pas retourner un autre coach car cela pourrait causer des problèmes de sécurité
+        return null;
     }
 }
 

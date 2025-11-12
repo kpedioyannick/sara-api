@@ -95,9 +95,31 @@
         <div class="mb-6 rounded-2xl border border-gray-200 p-5 lg:p-6 dark:border-gray-800">
             <div class="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
                 <div class="flex-1">
-                    <h4 class="text-lg font-semibold text-gray-800 lg:mb-6 dark:text-white/90">
-                        Informations personnelles
-                    </h4>
+                    <div class="mb-6 flex items-center justify-between">
+                        <h4 class="text-lg font-semibold text-gray-800 dark:text-white/90">
+                            Informations personnelles
+                        </h4>
+                        <div class="flex gap-2">
+                            <button
+                                @click="isEditInfoModal = true"
+                                class="inline-flex items-center gap-2 rounded-lg border border-brand-500 bg-white px-3 py-1.5 text-sm font-medium text-brand-600 hover:bg-brand-50 dark:border-brand-500 dark:bg-gray-800 dark:text-brand-400 dark:hover:bg-gray-700"
+                            >
+                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                </svg>
+                                Modifier
+                            </button>
+                            <button
+                                @click="isChangePasswordModal = true"
+                                class="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700"
+                            >
+                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                                </svg>
+                                Changer le mot de passe
+                            </button>
+                        </div>
+                    </div>
 
                     <div class="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-7 2xl:gap-x-32">
                         <div>

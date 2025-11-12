@@ -42,7 +42,7 @@ class MessageController extends AbstractController
     }
 
     #[Route('/admin/notifications', name: 'admin_notifications', methods: ['GET'])]
-    #[IsGranted('ROLE_COACH')]
+    #[IsGranted('ROLE_USER')]
     public function notifications(): JsonResponse
     {
         $user = $this->getUser();
@@ -50,7 +50,6 @@ class MessageController extends AbstractController
             return new JsonResponse(['notifications' => []], 401);
         }
 
-        $coach = $this->getCurrentCoach($this->coachRepository, $this->security);
         $messages = $this->messageRepository->findRecentNotifications($user, 10);
 
         $notifications = [];

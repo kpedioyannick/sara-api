@@ -17,7 +17,7 @@
 >
     {% include 'tailadmin/components/breadcrumb.html.twig' %}
 
-    {% if app.user.isCoach() %}
+    {% if app.user.isCoach() or app.user.isParent() %}
     <!-- Barre de filtres -->
     <div 
         x-data="filterManager()"
@@ -26,20 +26,22 @@
         data-students='{{ students|json_encode|e('html_attr') }}'
         data-profile-type='{{ profileType|default('') }}'
         data-selected-ids='{{ selectedIds|default('') }}'
+        data-user-role='{% if app.user.isCoach() %}coach{% elseif app.user.isParent() %}parent{% elseif app.user.isSpecialist() %}specialist{% else %}student{% endif %}'
         class="mb-6 rounded-2xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-white/[0.03]"
     >
         <div class="mb-4">
             <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
                 Filtrer par profil
             </label>
-            <div class="flex gap-2">
+            <div class="flex gap-2 flex-wrap">
                 <button
                     @click="setProfileType('')"
                     :class="profileType === '' ? 'bg-brand-500 text-white' : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'"
                     class="rounded-lg px-4 py-2 text-sm font-medium transition-colors hover:bg-brand-600 hover:text-white dark:hover:bg-gray-700"
                 >
-                    Tous
+                    {% if app.user.isParent() %}Tous mes enfants{% else %}Tous{% endif %}
                 </button>
+                {% if app.user.isCoach() %}
                 <button
                     @click="setProfileType('parent')"
                     :class="profileType === 'parent' ? 'bg-brand-500 text-white' : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'"
@@ -54,12 +56,13 @@
                 >
                     Spécialiste
                 </button>
+                {% endif %}
                 <button
                     @click="setProfileType('student')"
                     :class="profileType === 'student' ? 'bg-brand-500 text-white' : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'"
                     class="rounded-lg px-4 py-2 text-sm font-medium transition-colors hover:bg-brand-600 hover:text-white dark:hover:bg-gray-700"
                 >
-                    Élève
+                    {% if app.user.isParent() %}Enfant{% else %}Élève{% endif %}
                 </button>
             </div>
         </div>
@@ -527,6 +530,7 @@ function filterManager() {
         specialistsData: [],
         studentsData: [],
         currentOptions: [],
+        userRole: '',
         init() {
             // Récupérer les données depuis les attributs data
             const parentsJson = this.$el.getAttribute('data-parents');
@@ -534,12 +538,14 @@ function filterManager() {
             const studentsJson = this.$el.getAttribute('data-students');
             const profileTypeAttr = this.$el.getAttribute('data-profile-type');
             const selectedIdsAttr = this.$el.getAttribute('data-selected-ids');
+            const userRoleAttr = this.$el.getAttribute('data-user-role');
             
             if (parentsJson) this.parentsData = JSON.parse(parentsJson);
             if (specialistsJson) this.specialistsData = JSON.parse(specialistsJson);
             if (studentsJson) this.studentsData = JSON.parse(studentsJson);
             if (profileTypeAttr) this.profileType = profileTypeAttr;
             if (selectedIdsAttr) this.selectedIds = selectedIdsAttr ? selectedIdsAttr.split(',').map(id => parseInt(id)) : [];
+            if (userRoleAttr) this.userRole = userRoleAttr;
             
             // Attendre que Choices.js soit chargé
             if (typeof Choices !== 'undefined') {

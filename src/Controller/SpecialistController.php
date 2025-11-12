@@ -25,7 +25,7 @@ class SpecialistController extends AbstractController
     }
 
     #[Route('/admin/specialists', name: 'admin_specialists_list')]
-    #[IsGranted('ROLE_COACH')]
+    #[IsGranted('ROLE_USER')]
     public function list(Request $request): Response
     {
         // Récupération des paramètres de filtrage
