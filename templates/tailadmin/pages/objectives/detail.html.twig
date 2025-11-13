@@ -1,202 +1,5 @@
 {% extends 'tailadmin/layouts/base.html.twig' %}
 
-{% macro renderTask(task, objective) %}
-  <div
-    draggable="true"
-    class="p-5 bg-white border border-gray-200 task rounded-xl shadow-theme-sm dark:border-gray-800 dark:bg-white/5 {% if task.status == 'completed' %}opacity-75{% endif %}"
-  >
-    <div class="flex flex-col gap-4">
-      <!-- Ligne 1: Checkbox + Titre -->
-      <div class="flex items-start gap-3">
-        <label
-          for="taskCheckbox{{ task.id }}"
-          class="flex-shrink-0 {% if task.status != 'completed' %}cursor-pointer{% else %}cursor-not-allowed opacity-75{% endif %}"
-          @click.stop
-        >
-          <input
-            type="checkbox"
-            id="taskCheckbox{{ task.id }}"
-            class="sr-only taskCheckbox"
-            data-task-id="{{ task.id }}"
-            {% if task.status == 'completed' %}checked disabled{% endif %}
-            data-task-title="{{ task.title|escape }}"
-            data-task-status="{{ task.status }}"
-            {% if task.status != 'completed' %}@change.stop="openProofModalFromCheckbox($event)"{% endif %}
-            @click.stop
-          />
-          <div
-            class="flex items-center justify-center w-5 h-5 border border-gray-300 rounded-md box dark:border-gray-700 {% if task.status == 'completed' %}bg-success-500 border-success-500{% else %}bg-white{% endif %}"
-          >
-            {% if task.status == 'completed' %}
-            <span>
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 14 14"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  d="M11.6668 3.5L5.25016 9.91667L2.3335 7"
-                  stroke="white"
-                  stroke-width="1.94437"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                />
-              </svg>
-            </span>
-            {% else %}
-            <span class="opacity-0">
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 14 14"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  d="M11.6668 3.5L5.25016 9.91667L2.3335 7"
-                  stroke="white"
-                  stroke-width="1.94437"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                />
-              </svg>
-            </span>
-            {% endif %}
-          </div>
-        </label>
-        <div class="flex-1">
-          <h4 class="text-base font-medium text-gray-800 dark:text-white/90 {% if task.status == 'completed' %}line-through opacity-50{% endif %}">
-            {{ task.title }}
-          </h4>
-          
-          <!-- Ligne 2: Affectation -->
-          <div class="mt-1.5 flex items-center gap-1.5 text-sm text-gray-600 dark:text-gray-400">
-            <span class="inline-flex items-center gap-1">
-              {% if task.assignedType == 'student' and task.assignedTo %}
-                <span class="text-base">👤</span>
-                <span>Affectée à : {{ task.assignedTo.pseudo|default(task.assignedTo.firstName ~ ' ' ~ task.assignedTo.lastName) }}</span>
-              {% elseif task.assignedType == 'parent' and task.assignedTo %}
-                <span class="text-base">👨‍👩</span>
-                <span>Affectée à : {{ task.assignedTo.firstName ~ ' ' ~ task.assignedTo.lastName }}</span>
-              {% elseif task.assignedType == 'specialist' and task.assignedTo %}
-                <span class="text-base">👨‍⚕️</span>
-                <span>Affectée à : {{ task.assignedTo.firstName ~ ' ' ~ task.assignedTo.lastName }}</span>
-              {% else %}
-                <span class="text-base">👨‍🏫</span>
-                <span>Affectée à : Coach</span>
-              {% endif %}
-            </span>
-          </div>
-          
-          <!-- Ligne 3: Dates -->
-          <div class="mt-1.5 text-sm text-gray-500 dark:text-gray-400">
-            {% if task.createdAt and task.dueDate %}
-              Du {{ task.createdAt|date('d/m/Y') }} au {{ task.dueDate|date('d/m/Y') }}
-            {% elseif task.createdAt %}
-              Début : {{ task.createdAt|date('d/m/Y') }}
-            {% elseif task.dueDate %}
-              Fin : {{ task.dueDate|date('d/m/Y') }}
-            {% endif %}
-          </div>
-          
-          <!-- Ligne 4: Étoiles (preuves) -->
-          {% if task.requiresProof %}
-          <div class="mt-2 flex items-center gap-1">
-            {% set proofCount = task.proofs|length %}
-            {% for i in 1..proofCount %}
-              <span class="text-yellow-400 text-lg">⭐</span>
-            {% endfor %}
-            {% if proofCount == 0 %}
-              <span class="text-xs text-gray-400 dark:text-gray-500">Aucune preuve</span>
-            {% else %}
-              <span class="ml-1 text-xs text-gray-500 dark:text-gray-400">{{ proofCount }} preuve{{ proofCount > 1 ? 's' : '' }}</span>
-            {% endif %}
-          </div>
-          {% endif %}
-        </div>
-      </div>
-      
-      <!-- Ligne 5: Boutons d'action -->
-      <div class="mt-3 flex flex-wrap gap-2 pt-3 border-t border-gray-200 dark:border-gray-800">
-        <button
-          data-task-id="{{ task.id }}"
-          data-task-status="{{ task.status }}"
-          data-task-frequency="{{ task.frequency|default('none') }}"
-          data-task-requires-proof="{{ task.requiresProof ? 'true' : 'false' }}"
-          data-task-title="{{ task.title|e('html_attr') }}"
-          data-task-description="{{ task.description|e('html_attr') }}"
-          data-task-assigned-type="{{ task.assignedType|default('coach') }}"
-          data-task-student-id="{{ task.student ? task.student.id : '' }}"
-          data-task-parent-id="{{ task.parent ? task.parent.id : '' }}"
-          data-task-specialist-id="{{ task.specialist ? task.specialist.id : '' }}"
-          data-task-activity-id="{{ task.activity ? task.activity.id : '' }}"
-          data-task-created-at="{{ task.createdAt|default('') }}"
-          data-task-due-date="{{ task.dueDate|default('') }}"
-          @click="openTaskConfig($event)"
-          class="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
-        >
-          <svg class="fill-current" width="14" height="14" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M8 1C4.134 1 1 4.134 1 8s3.134 7 7 7 7-3.134 7-7-3.134-7-7-7zm0 12.5c-3.032 0-5.5-2.468-5.5-5.5S4.968 2.5 8 2.5 13.5 4.968 13.5 8 11.032 13.5 8 13.5z" fill=""/>
-            <path d="M8 4.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7zm0 6a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5z" fill=""/>
-          </svg>
-          Détail
-        </button>
-        <button
-          data-task-id="{{ task.id }}"
-          data-task-status="{{ task.status }}"
-          data-task-frequency="{{ task.frequency|default('none') }}"
-          data-task-requires-proof="{{ task.requiresProof ? 'true' : 'false' }}"
-          data-task-title="{{ task.title|e('html_attr') }}"
-          data-task-description="{{ task.description|e('html_attr') }}"
-          data-task-assigned-type="{{ task.assignedType|default('coach') }}"
-          data-task-student-id="{{ task.student ? task.student.id : '' }}"
-          data-task-parent-id="{{ task.parent ? task.parent.id : '' }}"
-          data-task-specialist-id="{{ task.specialist ? task.specialist.id : '' }}"
-          data-task-activity-id="{{ task.activity ? task.activity.id : '' }}"
-          data-task-created-at="{{ task.createdAt|default('') }}"
-          data-task-due-date="{{ task.dueDate|default('') }}"
-          @click="openTaskConfig($event)"
-          {% if not objective.canModifyTasks %}disabled{% endif %}
-          class="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700 {% if not objective.canModifyTasks %}opacity-50 cursor-not-allowed{% endif %}"
-        >
-          <svg class="fill-current" width="14" height="14" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M11.334 2.666a2.667 2.667 0 0 1 3.771 3.772l-8 8a2.667 2.667 0 0 1-1.886.781l-2.89.111a.667.667 0 0 1-.687-.687l.111-2.89a2.667 2.667 0 0 1 .78-1.886l8-8Zm2.39 2.39a1.333 1.333 0 0 0-1.886-1.886L10.667 4.61l1.886 1.886 1.171-1.44Z" fill=""/>
-          </svg>
-          Configurer
-        </button>
-        <button
-          data-task-id="{{ task.id }}"
-          data-task-proofs="{{ task.proofs|json_encode|e('html_attr') }}"
-          data-task-title="{{ task.title|e('html_attr') }}"
-          @click="showProofHistoryFromButton($event)"
-          class="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
-        >
-          <svg class="fill-current" width="14" height="14" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M8 1C4.134 1 1 4.134 1 8s3.134 7 7 7 7-3.134 7-7-3.134-7-7-7zm0 12.5c-3.032 0-5.5-2.468-5.5-5.5S4.968 2.5 8 2.5 13.5 4.968 13.5 8 11.032 13.5 8 13.5z" fill=""/>
-            <path d="M8 4.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7zm0 6a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5z" fill=""/>
-          </svg>
-          Historique{% if task.proofs|length > 0 %} ({{ task.proofs|length }}){% endif %}
-        </button>
-        {% if objective.canModifyTasks and task.status != 'completed' %}
-        <button
-          data-task-id="{{ task.id }}"
-          data-task-status="{{ task.status }}"
-          @click="deleteTask({{ task.id }}, '{{ task.status }}')"
-          class="inline-flex items-center gap-1.5 rounded-lg border border-red-200 bg-white px-3 py-1.5 text-sm font-medium text-red-600 shadow-theme-xs hover:bg-red-50 dark:border-red-800 dark:bg-gray-800 dark:text-red-400 dark:hover:bg-red-900/20"
-        >
-          <svg class="fill-current" width="14" height="14" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M5.33333 2.66667V1.33333C5.33333 0.979711 5.47381 0.640573 5.72386 0.390524C5.97391 0.140476 6.31305 0 6.66667 0H9.33333C9.68696 0 10.0261 0.140476 10.2761 0.390524C10.5262 0.640573 10.6667 0.979711 10.6667 1.33333V2.66667H14.6667C15.0333 2.66667 15.3333 2.96667 15.3333 3.33333C15.3333 3.7 15.0333 4 14.6667 4H13.3333V14C13.3333 14.7072 12.7472 15.3333 12 15.3333H4C3.25281 15.3333 2.66667 14.7072 2.66667 14V4H1.33333C0.966667 4 0.666667 3.7 0.666667 3.33333C0.666667 2.96667 0.966667 2.66667 1.33333 2.66667H5.33333ZM6.66667 1.33333V2.66667H9.33333V1.33333H6.66667Z" fill="currentColor"/>
-          </svg>
-          Supprimer
-        </button>
-        {% endif %}
-      </div>
-    </div>
-  </div>
-{% endmacro %}
-
 {% block content %}
 <!-- ===== Main Content Start ===== -->
 <main 
@@ -552,13 +355,271 @@
           </div>
 
           {% for task in tasks.pending %}
-            {{ _self.renderTask(task, objective) }}
+          <!-- task item -->
+          <div
+            draggable="true"
+            class="p-5 bg-white border border-gray-200 task rounded-xl shadow-theme-sm dark:border-gray-800 dark:bg-white/5"
+          >
+            <div
+              class="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between"
+            >
+              <div class="flex items-start w-full gap-4">
+                <span class="text-gray-400">
+                  <svg
+                    class="fill-current"
+                    width="20"
+                    height="20"
+                    viewBox="0 0 20 20"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      fill-rule="evenodd"
+                      clip-rule="evenodd"
+                      d="M2.43311 5.0001C2.43311 4.50304 2.83605 4.1001 3.33311 4.1001L16.6664 4.1001C17.1635 4.1001 17.5664 4.50304 17.5664 5.0001C17.5664 5.49715 17.1635 5.9001 16.6664 5.9001L3.33311 5.9001C2.83605 5.9001 2.43311 5.49716 2.43311 5.0001ZM2.43311 15.0001C2.43311 14.503 2.83605 14.1001 3.33311 14.1001L16.6664 14.1001C17.1635 14.1001 17.5664 14.503 17.5664 15.0001C17.5664 15.4972 17.1635 15.9001 16.6664 15.9001L3.33311 15.9001C2.83605 15.9001 2.43311 15.4972 2.43311 15.0001ZM3.33311 9.1001C2.83605 9.1001 2.43311 9.50304 2.43311 10.0001C2.43311 10.4972 2.83605 10.9001 3.33311 10.9001L16.6664 10.9001C17.1635 10.9001 17.5664 10.4972 17.5664 10.0001C17.5664 9.50304 17.1635 9.1001 16.6664 9.1001L3.33311 9.1001Z"
+                      fill=""
+                    />
+                  </svg>
+                </span>
+
+                <label
+                  for="taskCheckbox{{ task.id }}"
+                  class="w-full {% if task.status != 'completed' %}cursor-pointer{% else %}cursor-not-allowed opacity-75{% endif %}"
+                  @click.stop
+                >
+                  <div class="relative flex items-start">
+                    <input
+                      type="checkbox"
+                      id="taskCheckbox{{ task.id }}"
+                      class="sr-only taskCheckbox"
+                      data-task-id="{{ task.id }}"
+                      {% if task.status == 'completed' %}checked disabled{% endif %}
+                      data-task-id="{{ task.id }}"
+                      data-task-title="{{ task.title|escape }}"
+                      data-task-status="{{ task.status }}"
+                      {% if task.status != 'completed' %}@change.stop="openProofModalFromCheckbox($event)"{% endif %}
+                      @click.stop
+                    />
+                    <div
+                      class="flex items-center justify-center w-full h-5 mr-3 border border-gray-300 rounded-md box max-w-5 dark:border-gray-700 {% if task.status == 'completed' %}opacity-50{% endif %}"
+                    >
+                      <span class="opacity-0">
+                        <svg
+                          width="14"
+                          height="14"
+                          viewBox="0 0 14 14"
+                          fill="none"
+                          xmlns="http://www.w3.org/2000/svg"
+                        >
+                          <path
+                            d="M11.6668 3.5L5.25016 9.91667L2.3335 7"
+                            stroke="white"
+                            stroke-width="1.94437"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                          />
+                        </svg>
+                      </span>
+                    </div>
+                    <p
+                      class="-mt-0.5 text-base text-gray-800 dark:text-white/90"
+                    >
+                      {{ task.title }}
+                    </p>
+                  </div>
+                </label>
+              </div>
+
+              <div
+                class="flex flex-col-reverse items-start justify-end w-full gap-3 xl:flex-row xl:items-center xl:gap-5"
+              >
+                <div class="flex items-center gap-2">
+                  {% if task.requiresProof %}
+                  <span
+                    class="inline-flex rounded-full bg-brand-50 px-2 py-0.5 text-theme-xs font-medium text-brand-500 dark:bg-brand-500/15 dark:text-brand-400"
+                  >
+                    Preuve requise
+                  </span>
+                  {% endif %}
+                  {% if task.assignedType == 'student' and task.assignedTo %}
+                  <span
+                    class="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2 py-0.5 text-theme-xs font-medium text-blue-600 dark:bg-blue-500/15 dark:text-blue-400"
+                    title="À qui est affectée la tâche"
+                  >
+                    <svg class="fill-current" width="12" height="12" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M8 8a3 3 0 100-6 3 3 0 000 6zM8 9.5c-2.5 0-4.5 1.25-4.5 2.75V13.5h9V12.25c0-1.5-2-2.75-4.5-2.75z" fill="currentColor"/>
+                    </svg>
+                    {{ task.assignedTo.pseudo|default(task.assignedTo.firstName ~ ' ' ~ task.assignedTo.lastName) }}
+                  </span>
+                  {% elseif task.assignedType == 'parent' and task.assignedTo %}
+                  <span
+                    class="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2 py-0.5 text-theme-xs font-medium text-blue-600 dark:bg-blue-500/15 dark:text-blue-400"
+                    title="À qui est affectée la tâche"
+                  >
+                    <svg class="fill-current" width="12" height="12" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M8 8a3 3 0 100-6 3 3 0 000 6zM8 9.5c-2.5 0-4.5 1.25-4.5 2.75V13.5h9V12.25c0-1.5-2-2.75-4.5-2.75z" fill="currentColor"/>
+                    </svg>
+                    {{ task.assignedTo.firstName ~ ' ' ~ task.assignedTo.lastName }}
+                  </span>
+                  {% elseif task.assignedType == 'specialist' and task.assignedTo %}
+                  <span
+                    class="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2 py-0.5 text-theme-xs font-medium text-blue-600 dark:bg-blue-500/15 dark:text-blue-400"
+                    title="À qui est affectée la tâche"
+                  >
+                    <svg class="fill-current" width="12" height="12" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M8 8a3 3 0 100-6 3 3 0 000 6zM8 9.5c-2.5 0-4.5 1.25-4.5 2.75V13.5h9V12.25c0-1.5-2-2.75-4.5-2.75z" fill="currentColor"/>
+                    </svg>
+                    {{ task.assignedTo.firstName ~ ' ' ~ task.assignedTo.lastName }}
+                  </span>
                   {% else %}
+                  <span
+                    class="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2 py-0.5 text-theme-xs font-medium text-blue-600 dark:bg-blue-500/15 dark:text-blue-400"
+                    title="À qui est affectée la tâche"
+                  >
+                    <svg class="fill-current" width="12" height="12" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M8 8a3 3 0 100-6 3 3 0 000 6zM8 9.5c-2.5 0-4.5 1.25-4.5 2.75V13.5h9V12.25c0-1.5-2-2.75-4.5-2.75z" fill="currentColor"/>
+                    </svg>
+                    Coach
+                  </span>
+                  {% endif %}
+                  <div class="relative" x-data="{ open{{ task.id }}: false }">
+                    <button
+                      @click="open{{ task.id }} = !open{{ task.id }}"
+                      class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-gray-50 text-gray-500 hover:bg-gray-100 dark:bg-white/[0.02] dark:text-gray-400 dark:hover:bg-white/[0.03]"
+                      title="Actions"
+                    >
+                      <svg class="fill-current" width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M8 4.5a1.5 1.5 0 100 3 1.5 1.5 0 000-3zM8 1.5a1.5 1.5 0 100 3 1.5 1.5 0 000-3zM8 7.5a1.5 1.5 0 100 3 1.5 1.5 0 000-3z" fill="currentColor"/>
+                      </svg>
+                    </button>
+                    <div
+                      x-show="open{{ task.id }}"
+                      @click.away="open{{ task.id }} = false"
+                      x-transition:enter="transition ease-out duration-100"
+                      x-transition:enter-start="transform opacity-0 scale-95"
+                      x-transition:enter-end="transform opacity-100 scale-100"
+                      x-transition:leave="transition ease-in duration-75"
+                      x-transition:leave-start="transform opacity-100 scale-100"
+                      x-transition:leave-end="transform opacity-0 scale-95"
+                      class="absolute right-0 z-10 mt-2 w-48 rounded-lg bg-white shadow-lg ring-1 ring-black ring-opacity-5 dark:bg-gray-800 dark:ring-white/10"
+                      style="display: none;"
+                    >
+                      <div class="py-1">
+                        <button
+                          data-task-id="{{ task.id }}"
+                          data-task-proofs="{{ task.proofs|json_encode|e('html_attr') }}"
+                          data-task-title="{{ task.title|e('html_attr') }}"
+                          @click="showProofHistoryFromButton($event); open{{ task.id }} = false"
+                          class="flex w-full items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
+                        >
+                          <svg class="fill-current" width="14" height="14" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M8 1C4.134 1 1 4.134 1 8s3.134 7 7 7 7-3.134 7-7-3.134-7-7-7zm0 12.5c-3.032 0-5.5-2.468-5.5-5.5S4.968 2.5 8 2.5 13.5 4.968 13.5 8 11.032 13.5 8 13.5z" fill=""/>
+                            <path d="M8 4.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7zm0 6a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5z" fill=""/>
+                          </svg>
+                          Historique{% if task.proofs|length > 0 %} ({{ task.proofs|length }}){% endif %}
+                        </button>
+                        <button
+                          data-task-id="{{ task.id }}"
+                          data-task-status="{{ task.status }}"
+                          data-task-frequency="{{ task.frequency|default('none') }}"
+                          data-task-requires-proof="{{ task.requiresProof ? 'true' : 'false' }}"
+                          data-task-title="{{ task.title|e('html_attr') }}"
+                          data-task-description="{{ task.description|e('html_attr') }}"
+                          data-task-assigned-type="{{ task.assignedType|default('coach') }}"
+                          data-task-student-id="{{ task.student ? task.student.id : '' }}"
+                          data-task-parent-id="{{ task.parent ? task.parent.id : '' }}"
+                          data-task-specialist-id="{{ task.specialist ? task.specialist.id : '' }}"
+                          data-task-activity-id="{{ task.activity ? task.activity.id : '' }}"
+                          data-task-created-at="{{ task.createdAt|default('') }}"
+                          data-task-due-date="{{ task.dueDate|default('') }}"
+                          @click="openTaskConfig($event); open{{ task.id }} = false"
+                          {% if not objective.canModifyTasks %}disabled{% endif %}
+                          class="flex w-full items-center gap-2 px-4 py-2 text-sm {% if objective.canModifyTasks %}text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700{% else %}text-gray-400 cursor-not-allowed dark:text-gray-600{% endif %}"
+                        >
+                          <svg class="fill-current" width="14" height="14" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M11.334 2.666a2.667 2.667 0 0 1 3.771 3.772l-8 8a2.667 2.667 0 0 1-1.886.781l-2.89.111a.667.667 0 0 1-.687-.687l.111-2.89a2.667 2.667 0 0 1 .78-1.886l8-8Zm2.39 2.39a1.333 1.333 0 0 0-1.886-1.886L10.667 4.61l1.886 1.886 1.171-1.44Z" fill=""/>
+                          </svg>
+                          Configurer
+                        </button>
+                        {% if objective.canModifyTasks and task.status != 'completed' %}
+                        <button
+                          data-task-id="{{ task.id }}"
+                          data-task-status="{{ task.status }}"
+                          @click="deleteTask({{ task.id }}, '{{ task.status }}'); open{{ task.id }} = false"
+                          class="flex w-full items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-500/15"
+                        >
+                          <svg class="fill-current" width="14" height="14" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M5.33333 2.66667V1.33333C5.33333 0.979711 5.47381 0.640573 5.72386 0.390524C5.97391 0.140476 6.31305 0 6.66667 0H9.33333C9.68696 0 10.0261 0.140476 10.2761 0.390524C10.5262 0.640573 10.6667 0.979711 10.6667 1.33333V2.66667H14.6667C15.0333 2.66667 15.3333 2.96667 15.3333 3.33333C15.3333 3.7 15.0333 4 14.6667 4H13.3333V14C13.3333 14.7072 12.7472 15.3333 12 15.3333H4C3.25281 15.3333 2.66667 14.7072 2.66667 14V4H1.33333C0.966667 4 0.666667 3.7 0.666667 3.33333C0.666667 2.96667 0.966667 2.66667 1.33333 2.66667H5.33333ZM6.66667 1.33333V2.66667H9.33333V1.33333H6.66667Z" fill="currentColor"/>
+                          </svg>
+                          Supprimer
+                        </button>
+                        {% endif %}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div
+                  class="flex items-center justify-between w-full gap-5 xl:w-auto xl:justify-normal"
+                >
+                  <div class="flex items-center gap-3">
+                    {% if task.createdAt %}
+                    <span
+                      class="flex items-center gap-1 text-sm text-gray-500 cursor-pointer dark:text-gray-400"
+                      title="Date de début"
+                    >
+                      <svg
+                        class="fill-current"
+                        width="16"
+                        height="16"
+                        viewBox="0 0 16 16"
+                        fill="none"
+                        xmlns="http://www.w3.org/2000/svg"
+                      >
+                        <path
+                          fill-rule="evenodd"
+                          clip-rule="evenodd"
+                          d="M5.33329 1.0835C5.74751 1.0835 6.08329 1.41928 6.08329 1.8335V2.25016L9.91663 2.25016V1.8335C9.91663 1.41928 10.2524 1.0835 10.6666 1.0835C11.0808 1.0835 11.4166 1.41928 11.4166 1.8335V2.25016L12.3333 2.25016C13.2998 2.25016 14.0833 3.03366 14.0833 4.00016V12.6668C14.0833 13.6333 13.2998 14.4168 12.3333 14.4168L3.66663 14.4168C2.70013 14.4168 1.91663 13.6333 1.91663 12.6668V4.00016C1.91663 3.03366 2.70013 2.25016 3.66663 2.25016L4.58329 2.25016V1.8335C4.58329 1.41928 4.91908 1.0835 5.33329 1.0835ZM5.33329 3.75016L3.66663 3.75016C3.52855 3.75016 3.41663 3.86209 3.41663 4.00016V5.25016L12.5833 5.25016V4.00016C12.5833 3.86209 12.4714 3.75016 12.3333 3.75016L10.6666 3.75016L5.33329 3.75016ZM12.5833 6.75016L3.41663 6.75016L3.41663 12.6668C3.41663 12.8049 3.52855 12.9168 3.66663 12.9168L12.3333 12.9168C12.4714 12.9168 12.5833 12.8049 12.5833 12.6668L12.5833 6.75016Z"
+                          fill=""
+                        />
+                      </svg>
+                      Début: {{ task.createdAt|date('d/m/Y') }}
+                    </span>
+                    {% endif %}
+                    {% if task.dueDate %}
+                    <span
+                      class="flex items-center gap-1 text-sm text-gray-500 cursor-pointer dark:text-gray-400"
+                      title="Date de fin"
+                    >
+                      <svg
+                        class="fill-current"
+                        width="16"
+                        height="16"
+                        viewBox="0 0 16 16"
+                        fill="none"
+                        xmlns="http://www.w3.org/2000/svg"
+                      >
+                        <path
+                          fill-rule="evenodd"
+                          clip-rule="evenodd"
+                          d="M5.33329 1.0835C5.74751 1.0835 6.08329 1.41928 6.08329 1.8335V2.25016L9.91663 2.25016V1.8335C9.91663 1.41928 10.2524 1.0835 10.6666 1.0835C11.0808 1.0835 11.4166 1.41928 11.4166 1.8335V2.25016L12.3333 2.25016C13.2998 2.25016 14.0833 3.03366 14.0833 4.00016V12.6668C14.0833 13.6333 13.2998 14.4168 12.3333 14.4168L3.66663 14.4168C2.70013 14.4168 1.91663 13.6333 1.91663 12.6668V4.00016C1.91663 3.03366 2.70013 2.25016 3.66663 2.25016L4.58329 2.25016V1.8335C4.58329 1.41928 4.91908 1.0835 5.33329 1.0835ZM5.33329 3.75016L3.66663 3.75016C3.52855 3.75016 3.41663 3.86209 3.41663 4.00016V5.25016L12.5833 5.25016V4.00016C12.5833 3.86209 12.4714 3.75016 12.3333 3.75016L10.6666 3.75016L5.33329 3.75016ZM12.5833 6.75016L3.41663 6.75016L3.41663 12.6668C3.41663 12.8049 3.52855 12.9168 3.66663 12.9168L12.3333 12.9168C12.4714 12.9168 12.5833 12.8049 12.5833 12.6668L12.5833 6.75016Z"
+                          fill=""
+                        />
+                      </svg>
+                      Fin: {{ task.dueDate|date('d/m/Y') }}
+                    </span>
+                    {% endif %}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          {% else %}
           <div class="p-5 bg-gray-50 border border-gray-200 rounded-xl dark:bg-white/[0.02] dark:border-gray-800 text-center">
             <p class="text-sm text-gray-400 dark:text-gray-500">Aucune tâche</p>
-                      </div>
+          </div>
           {% endfor %}
-                </div>
+        </div>
 
         <!-- Progress list -->
         <div class="flex flex-col gap-4 swim-lane">
@@ -567,16 +628,275 @@
               class="flex items-center gap-3 text-base font-medium text-gray-800 dark:text-white/90"
             >
               En cours
-                    <span
+              <span
                 class="inline-flex rounded-full bg-warning-50 px-2 py-0.5 text-theme-xs font-medium text-warning-700 dark:bg-warning-500/15 dark:text-orange-400"
               >
                 {{ tasks.in_progress|length }}
-                    </span>
+              </span>
             </h3>
-                  </div>
+          </div>
 
           {% for task in tasks.in_progress %}
-            {{ _self.renderTask(task, objective) }}
+          <!-- task item -->
+          <div
+            draggable="true"
+            class="p-5 bg-white border border-gray-200 task rounded-xl shadow-theme-sm dark:border-gray-800 dark:bg-white/5"
+          >
+            <div
+              class="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between"
+            >
+              <div class="flex items-start w-full gap-4">
+                <span class="text-gray-400">
+                  <svg
+                    class="fill-current"
+                    width="20"
+                    height="20"
+                    viewBox="0 0 20 20"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      fill-rule="evenodd"
+                      clip-rule="evenodd"
+                      d="M2.43311 5.0001C2.43311 4.50304 2.83605 4.1001 3.33311 4.1001L16.6664 4.1001C17.1635 4.1001 17.5664 4.50304 17.5664 5.0001C17.5664 5.49715 17.1635 5.9001 16.6664 5.9001L3.33311 5.9001C2.83605 5.9001 2.43311 5.49716 2.43311 5.0001ZM2.43311 15.0001C2.43311 14.503 2.83605 14.1001 3.33311 14.1001L16.6664 14.1001C17.1635 14.1001 17.5664 14.503 17.5664 15.0001C17.5664 15.4972 17.1635 15.9001 16.6664 15.9001L3.33311 15.9001C2.83605 15.9001 2.43311 15.4972 2.43311 15.0001ZM3.33311 9.1001C2.83605 9.1001 2.43311 9.50304 2.43311 10.0001C2.43311 10.4972 2.83605 10.9001 3.33311 10.9001L16.6664 10.9001C17.1635 10.9001 17.5664 10.4972 17.5664 10.0001C17.5664 9.50304 17.1635 9.1001 16.6664 9.1001L3.33311 9.1001Z"
+                      fill=""
+                    />
+                  </svg>
+                </span>
+
+                <label
+                  for="taskCheckbox{{ task.id }}"
+                  class="w-full cursor-pointer"
+                  @click.stop
+                >
+                  <div class="relative flex items-start">
+                    <input
+                      type="checkbox"
+                      id="taskCheckbox{{ task.id }}"
+                      class="sr-only taskCheckbox"
+                      data-task-id="{{ task.id }}"
+                      checked
+                      data-task-id="{{ task.id }}"
+                      data-task-title="{{ task.title|escape }}"
+                      data-task-status="{{ task.status }}"
+                      {% if task.status != 'completed' %}@change.stop="openProofModalFromCheckbox($event)"{% endif %}
+                      {% if task.status == 'completed' %}disabled{% endif %}
+                      @click.stop
+                    />
+                    <div
+                      class="flex items-center justify-center w-full h-5 mr-3 border border-gray-300 rounded-md box max-w-5 bg-brand-500 dark:bg-brand-400"
+                    >
+                      <span>
+                        <svg
+                          width="14"
+                          height="14"
+                          viewBox="0 0 14 14"
+                          fill="none"
+                          xmlns="http://www.w3.org/2000/svg"
+                        >
+                          <path
+                            d="M11.6668 3.5L5.25016 9.91667L2.3335 7"
+                            stroke="white"
+                            stroke-width="1.94437"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                          />
+                        </svg>
+                      </span>
+                    </div>
+                    <p
+                      class="-mt-0.5 text-base text-gray-800 dark:text-white/90"
+                    >
+                      {{ task.title }}
+                    </p>
+                  </div>
+                </label>
+              </div>
+
+              <div
+                class="flex flex-col-reverse items-start justify-end w-full gap-3 xl:flex-row xl:items-center xl:gap-5"
+              >
+                <div class="flex items-center gap-2">
+                  {% if task.requiresProof %}
+                  <span
+                    class="inline-flex rounded-full bg-brand-50 px-2 py-0.5 text-theme-xs font-medium text-brand-500 dark:bg-brand-500/15 dark:text-brand-400"
+                  >
+                    Preuve requise
+                  </span>
+                  {% endif %}
+                  {% if task.assignedType == 'student' and task.assignedTo %}
+                  <span
+                    class="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2 py-0.5 text-theme-xs font-medium text-blue-600 dark:bg-blue-500/15 dark:text-blue-400"
+                    title="À qui est affectée la tâche"
+                  >
+                    <svg class="fill-current" width="12" height="12" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M8 8a3 3 0 100-6 3 3 0 000 6zM8 9.5c-2.5 0-4.5 1.25-4.5 2.75V13.5h9V12.25c0-1.5-2-2.75-4.5-2.75z" fill="currentColor"/>
+                    </svg>
+                    {{ task.assignedTo.pseudo|default(task.assignedTo.firstName ~ ' ' ~ task.assignedTo.lastName) }}
+                  </span>
+                  {% elseif task.assignedType == 'parent' and task.assignedTo %}
+                  <span
+                    class="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2 py-0.5 text-theme-xs font-medium text-blue-600 dark:bg-blue-500/15 dark:text-blue-400"
+                    title="À qui est affectée la tâche"
+                  >
+                    <svg class="fill-current" width="12" height="12" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M8 8a3 3 0 100-6 3 3 0 000 6zM8 9.5c-2.5 0-4.5 1.25-4.5 2.75V13.5h9V12.25c0-1.5-2-2.75-4.5-2.75z" fill="currentColor"/>
+                    </svg>
+                    {{ task.assignedTo.firstName ~ ' ' ~ task.assignedTo.lastName }}
+                  </span>
+                  {% elseif task.assignedType == 'specialist' and task.assignedTo %}
+                  <span
+                    class="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2 py-0.5 text-theme-xs font-medium text-blue-600 dark:bg-blue-500/15 dark:text-blue-400"
+                    title="À qui est affectée la tâche"
+                  >
+                    <svg class="fill-current" width="12" height="12" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M8 8a3 3 0 100-6 3 3 0 000 6zM8 9.5c-2.5 0-4.5 1.25-4.5 2.75V13.5h9V12.25c0-1.5-2-2.75-4.5-2.75z" fill="currentColor"/>
+                    </svg>
+                    {{ task.assignedTo.firstName ~ ' ' ~ task.assignedTo.lastName }}
+                  </span>
+                  {% else %}
+                  <span
+                    class="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2 py-0.5 text-theme-xs font-medium text-blue-600 dark:bg-blue-500/15 dark:text-blue-400"
+                    title="À qui est affectée la tâche"
+                  >
+                    <svg class="fill-current" width="12" height="12" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M8 8a3 3 0 100-6 3 3 0 000 6zM8 9.5c-2.5 0-4.5 1.25-4.5 2.75V13.5h9V12.25c0-1.5-2-2.75-4.5-2.75z" fill="currentColor"/>
+                    </svg>
+                    Coach
+                  </span>
+                  {% endif %}
+                  <div class="relative" x-data="{ open{{ task.id }}: false }">
+                    <button
+                      @click="open{{ task.id }} = !open{{ task.id }}"
+                      class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-gray-50 text-gray-500 hover:bg-gray-100 dark:bg-white/[0.02] dark:text-gray-400 dark:hover:bg-white/[0.03]"
+                      title="Actions"
+                    >
+                      <svg class="fill-current" width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M8 4.5a1.5 1.5 0 100 3 1.5 1.5 0 000-3zM8 1.5a1.5 1.5 0 100 3 1.5 1.5 0 000-3zM8 7.5a1.5 1.5 0 100 3 1.5 1.5 0 000-3z" fill="currentColor"/>
+                      </svg>
+                    </button>
+                    <div
+                      x-show="open{{ task.id }}"
+                      @click.away="open{{ task.id }} = false"
+                      x-transition:enter="transition ease-out duration-100"
+                      x-transition:enter-start="transform opacity-0 scale-95"
+                      x-transition:enter-end="transform opacity-100 scale-100"
+                      x-transition:leave="transition ease-in duration-75"
+                      x-transition:leave-start="transform opacity-100 scale-100"
+                      x-transition:leave-end="transform opacity-0 scale-95"
+                      class="absolute right-0 z-10 mt-2 w-48 rounded-lg bg-white shadow-lg ring-1 ring-black ring-opacity-5 dark:bg-gray-800 dark:ring-white/10"
+                      style="display: none;"
+                    >
+                      <div class="py-1">
+                        <button
+                          data-task-id="{{ task.id }}"
+                          data-task-proofs="{{ task.proofs|json_encode|e('html_attr') }}"
+                          data-task-title="{{ task.title|e('html_attr') }}"
+                          @click="showProofHistoryFromButton($event); open{{ task.id }} = false"
+                          class="flex w-full items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
+                        >
+                          <svg class="fill-current" width="14" height="14" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M8 1C4.134 1 1 4.134 1 8s3.134 7 7 7 7-3.134 7-7-3.134-7-7-7zm0 12.5c-3.032 0-5.5-2.468-5.5-5.5S4.968 2.5 8 2.5 13.5 4.968 13.5 8 11.032 13.5 8 13.5z" fill=""/>
+                            <path d="M8 4.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7zm0 6a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5z" fill=""/>
+                          </svg>
+                          Historique{% if task.proofs|length > 0 %} ({{ task.proofs|length }}){% endif %}
+                        </button>
+                        <button
+                          data-task-id="{{ task.id }}"
+                          data-task-status="{{ task.status }}"
+                          data-task-frequency="{{ task.frequency|default('none') }}"
+                          data-task-requires-proof="{{ task.requiresProof ? 'true' : 'false' }}"
+                          data-task-title="{{ task.title|e('html_attr') }}"
+                          data-task-description="{{ task.description|e('html_attr') }}"
+                          data-task-assigned-type="{{ task.assignedType|default('coach') }}"
+                          data-task-student-id="{{ task.student ? task.student.id : '' }}"
+                          data-task-parent-id="{{ task.parent ? task.parent.id : '' }}"
+                          data-task-specialist-id="{{ task.specialist ? task.specialist.id : '' }}"
+                          data-task-activity-id="{{ task.activity ? task.activity.id : '' }}"
+                          data-task-created-at="{{ task.createdAt|default('') }}"
+                          data-task-due-date="{{ task.dueDate|default('') }}"
+                          @click="openTaskConfig($event); open{{ task.id }} = false"
+                          {% if not objective.canModifyTasks %}disabled{% endif %}
+                          class="flex w-full items-center gap-2 px-4 py-2 text-sm {% if objective.canModifyTasks %}text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700{% else %}text-gray-400 cursor-not-allowed dark:text-gray-600{% endif %}"
+                        >
+                          <svg class="fill-current" width="14" height="14" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M11.334 2.666a2.667 2.667 0 0 1 3.771 3.772l-8 8a2.667 2.667 0 0 1-1.886.781l-2.89.111a.667.667 0 0 1-.687-.687l.111-2.89a2.667 2.667 0 0 1 .78-1.886l8-8Zm2.39 2.39a1.333 1.333 0 0 0-1.886-1.886L10.667 4.61l1.886 1.886 1.171-1.44Z" fill=""/>
+                          </svg>
+                          Configurer
+                        </button>
+                        {% if objective.canModifyTasks and task.status != 'completed' %}
+                        <button
+                          data-task-id="{{ task.id }}"
+                          data-task-status="{{ task.status }}"
+                          @click="deleteTask({{ task.id }}, '{{ task.status }}'); open{{ task.id }} = false"
+                          class="flex w-full items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-500/15"
+                        >
+                          <svg class="fill-current" width="14" height="14" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M5.33333 2.66667V1.33333C5.33333 0.979711 5.47381 0.640573 5.72386 0.390524C5.97391 0.140476 6.31305 0 6.66667 0H9.33333C9.68696 0 10.0261 0.140476 10.2761 0.390524C10.5262 0.640573 10.6667 0.979711 10.6667 1.33333V2.66667H14.6667C15.0333 2.66667 15.3333 2.96667 15.3333 3.33333C15.3333 3.7 15.0333 4 14.6667 4H13.3333V14C13.3333 14.7072 12.7472 15.3333 12 15.3333H4C3.25281 15.3333 2.66667 14.7072 2.66667 14V4H1.33333C0.966667 4 0.666667 3.7 0.666667 3.33333C0.666667 2.96667 0.966667 2.66667 1.33333 2.66667H5.33333ZM6.66667 1.33333V2.66667H9.33333V1.33333H6.66667Z" fill="currentColor"/>
+                          </svg>
+                          Supprimer
+                        </button>
+                        {% endif %}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div
+                  class="flex items-center justify-between w-full gap-5 xl:w-auto xl:justify-normal"
+                >
+                  <div class="flex items-center gap-3">
+                    {% if task.createdAt %}
+                    <span
+                      class="flex items-center gap-1 text-sm text-gray-500 cursor-pointer dark:text-gray-400"
+                      title="Date de début"
+                    >
+                      <svg
+                        class="fill-current"
+                        width="16"
+                        height="16"
+                        viewBox="0 0 16 16"
+                        fill="none"
+                        xmlns="http://www.w3.org/2000/svg"
+                      >
+                        <path
+                          fill-rule="evenodd"
+                          clip-rule="evenodd"
+                          d="M5.33329 1.0835C5.74751 1.0835 6.08329 1.41928 6.08329 1.8335V2.25016L9.91663 2.25016V1.8335C9.91663 1.41928 10.2524 1.0835 10.6666 1.0835C11.0808 1.0835 11.4166 1.41928 11.4166 1.8335V2.25016L12.3333 2.25016C13.2998 2.25016 14.0833 3.03366 14.0833 4.00016V12.6668C14.0833 13.6333 13.2998 14.4168 12.3333 14.4168L3.66663 14.4168C2.70013 14.4168 1.91663 13.6333 1.91663 12.6668V4.00016C1.91663 3.03366 2.70013 2.25016 3.66663 2.25016L4.58329 2.25016V1.8335C4.58329 1.41928 4.91908 1.0835 5.33329 1.0835ZM5.33329 3.75016L3.66663 3.75016C3.52855 3.75016 3.41663 3.86209 3.41663 4.00016V5.25016L12.5833 5.25016V4.00016C12.5833 3.86209 12.4714 3.75016 12.3333 3.75016L10.6666 3.75016L5.33329 3.75016ZM12.5833 6.75016L3.41663 6.75016L3.41663 12.6668C3.41663 12.8049 3.52855 12.9168 3.66663 12.9168L12.3333 12.9168C12.4714 12.9168 12.5833 12.8049 12.5833 12.6668L12.5833 6.75016Z"
+                          fill=""
+                        />
+                      </svg>
+                      Début: {{ task.createdAt|date('d/m/Y') }}
+                    </span>
+                    {% endif %}
+                    {% if task.dueDate %}
+                    <span
+                      class="flex items-center gap-1 text-sm text-gray-500 cursor-pointer dark:text-gray-400"
+                      title="Date de fin"
+                    >
+                      <svg
+                        class="fill-current"
+                        width="16"
+                        height="16"
+                        viewBox="0 0 16 16"
+                        fill="none"
+                        xmlns="http://www.w3.org/2000/svg"
+                      >
+                        <path
+                          fill-rule="evenodd"
+                          clip-rule="evenodd"
+                          d="M5.33329 1.0835C5.74751 1.0835 6.08329 1.41928 6.08329 1.8335V2.25016L9.91663 2.25016V1.8335C9.91663 1.41928 10.2524 1.0835 10.6666 1.0835C11.0808 1.0835 11.4166 1.41928 11.4166 1.8335V2.25016L12.3333 2.25016C13.2998 2.25016 14.0833 3.03366 14.0833 4.00016V12.6668C14.0833 13.6333 13.2998 14.4168 12.3333 14.4168L3.66663 14.4168C2.70013 14.4168 1.91663 13.6333 1.91663 12.6668V4.00016C1.91663 3.03366 2.70013 2.25016 3.66663 2.25016L4.58329 2.25016V1.8335C4.58329 1.41928 4.91908 1.0835 5.33329 1.0835ZM5.33329 3.75016L3.66663 3.75016C3.52855 3.75016 3.41663 3.86209 3.41663 4.00016V5.25016L12.5833 5.25016V4.00016C12.5833 3.86209 12.4714 3.75016 12.3333 3.75016L10.6666 3.75016L5.33329 3.75016ZM12.5833 6.75016L3.41663 6.75016L3.41663 12.6668C3.41663 12.8049 3.52855 12.9168 3.66663 12.9168L12.3333 12.9168C12.4714 12.9168 12.5833 12.8049 12.5833 12.6668L12.5833 6.75016Z"
+                          fill=""
+                        />
+                      </svg>
+                      Fin: {{ task.dueDate|date('d/m/Y') }}
+                    </span>
+                    {% endif %}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
           {% else %}
           <div class="p-5 bg-gray-50 border border-gray-200 rounded-xl dark:bg-white/[0.02] dark:border-gray-800 text-center">
             <p class="text-sm text-gray-400 dark:text-gray-500">Aucune tâche</p>
@@ -600,7 +920,202 @@
           </div>
 
           {% for task in tasks.completed %}
-            {{ _self.renderTask(task, objective) }}
+          <!-- task item -->
+          <div
+            draggable="true"
+            class="p-5 bg-white border border-gray-200 task rounded-xl shadow-theme-sm dark:border-gray-800 dark:bg-white/5 opacity-75"
+          >
+            <div
+              class="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between"
+            >
+              <div class="flex items-start w-full gap-4">
+                <span class="text-gray-400">
+                  <svg
+                    class="fill-current"
+                    width="20"
+                    height="20"
+                    viewBox="0 0 20 20"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      fill-rule="evenodd"
+                      clip-rule="evenodd"
+                      d="M2.43311 5.0001C2.43311 4.50304 2.83605 4.1001 3.33311 4.1001L16.6664 4.1001C17.1635 4.1001 17.5664 4.50304 17.5664 5.0001C17.5664 5.49715 17.1635 5.9001 16.6664 5.9001L3.33311 5.9001C2.83605 5.9001 2.43311 5.49716 2.43311 5.0001ZM2.43311 15.0001C2.43311 14.503 2.83605 14.1001 3.33311 14.1001L16.6664 14.1001C17.1635 14.1001 17.5664 14.503 17.5664 15.0001C17.5664 15.4972 17.1635 15.9001 16.6664 15.9001L3.33311 15.9001C2.83605 15.9001 2.43311 15.4972 2.43311 15.0001ZM3.33311 9.1001C2.83605 9.1001 2.43311 9.50304 2.43311 10.0001C2.43311 10.4972 2.83605 10.9001 3.33311 10.9001L16.6664 10.9001C17.1635 10.9001 17.5664 10.4972 17.5664 10.0001C17.5664 9.50304 17.1635 9.1001 16.6664 9.1001L3.33311 9.1001Z"
+                      fill=""
+                    />
+                  </svg>
+                </span>
+
+                <label
+                  for="taskCheckbox{{ task.id }}"
+                  class="w-full cursor-pointer"
+                  @click.stop
+                >
+                  <div class="relative flex items-start">
+                    <input
+                      type="checkbox"
+                      id="taskCheckbox{{ task.id }}"
+                      class="sr-only taskCheckbox"
+                      data-task-id="{{ task.id }}"
+                      checked
+                      data-task-id="{{ task.id }}"
+                      data-task-title="{{ task.title|escape }}"
+                      data-task-status="{{ task.status }}"
+                      {% if task.status != 'completed' %}@change.stop="openProofModalFromCheckbox($event)"{% endif %}
+                      {% if task.status == 'completed' %}disabled{% endif %}
+                      @click.stop
+                    />
+                    <div
+                      class="flex items-center justify-center w-full h-5 mr-3 border border-gray-300 rounded-md box max-w-5 bg-success-500 dark:bg-success-400"
+                    >
+                      <span>
+                        <svg
+                          width="14"
+                          height="14"
+                          viewBox="0 0 14 14"
+                          fill="none"
+                          xmlns="http://www.w3.org/2000/svg"
+                        >
+                          <path
+                            d="M11.6668 3.5L5.25016 9.91667L2.3335 7"
+                            stroke="white"
+                            stroke-width="1.94437"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                          />
+                        </svg>
+                      </span>
+                    </div>
+                    <p
+                      class="-mt-0.5 text-base text-gray-800 dark:text-white/90 line-through"
+                    >
+                      {{ task.title }}
+                    </p>
+                  </div>
+                </label>
+              </div>
+
+              <div
+                class="flex flex-col-reverse items-start justify-end w-full gap-3 xl:flex-row xl:items-center xl:gap-5"
+              >
+                <div class="flex items-center gap-2">
+                  <span
+                    class="inline-flex rounded-full bg-brand-50 px-2 py-0.5 text-theme-xs font-medium text-brand-500 dark:bg-brand-500/15 dark:text-brand-400"
+                  >
+                    Preuve requise
+                  </span>
+                  <button
+                    data-task-id="{{ task.id }}"
+                    data-task-proofs="{{ task.proofs|json_encode|e('html_attr') }}"
+                    data-task-title="{{ task.title|e('html_attr') }}"
+                    @click="showProofHistoryFromButton($event)"
+                    class="inline-flex items-center gap-1 rounded-full {% if task.proofs|length > 0 %}bg-gray-100 px-2 py-0.5 text-theme-xs font-medium text-gray-700 hover:bg-gray-200 dark:bg-white/[0.03] dark:text-white/80 dark:hover:bg-white/[0.05]{% else %}bg-gray-50 px-2 py-0.5 text-theme-xs font-medium text-gray-500 hover:bg-gray-100 dark:bg-white/[0.02] dark:text-gray-400 dark:hover:bg-white/[0.03]{% endif %}"
+                    title="Voir l'historique des preuves"
+                  >
+                    <svg class="fill-current" width="14" height="14" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M8 1C4.134 1 1 4.134 1 8s3.134 7 7 7 7-3.134 7-7-3.134-7-7-7zm0 12.5c-3.032 0-5.5-2.468-5.5-5.5S4.968 2.5 8 2.5 13.5 4.968 13.5 8 11.032 13.5 8 13.5z" fill=""/>
+                      <path d="M8 4.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7zm0 6a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5z" fill=""/>
+                    </svg>
+                    {% if task.proofs|length > 0 %}
+                      {{ task.proofs|length }} Historique(s)
+                    {% else %}
+                      Aucun Historique
+                    {% endif %}
+                  </button>
+                  <button
+                    data-task-id="{{ task.id }}"
+                    data-task-status="{{ task.status }}"
+                    data-task-frequency="{{ task.frequency|default('none') }}"
+                    data-task-requires-proof="{{ task.requiresProof ? 'true' : 'false' }}"
+                    data-task-title="{{ task.title|e('html_attr') }}"
+                    data-task-description="{{ task.description|e('html_attr') }}"
+                    data-task-assigned-type="{{ task.assignedType|default('coach') }}"
+                    data-task-student-id="{{ task.student ? task.student.id : '' }}"
+                    data-task-parent-id="{{ task.parent ? task.parent.id : '' }}"
+                    data-task-specialist-id="{{ task.specialist ? task.specialist.id : '' }}"
+                    data-task-created-at="{{ task.createdAt|default('') }}"
+                    data-task-due-date="{{ task.dueDate|default('') }}"
+                    @click="openTaskConfig($event)"
+                    class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-theme-xs font-medium bg-gray-50 text-gray-500 hover:bg-gray-100 dark:bg-white/[0.02] dark:text-gray-400 dark:hover:bg-white/[0.03]"
+                    title="Configurer la tâche"
+                  >
+                    <svg class="fill-current" width="14" height="14" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M11.334 2.666a2.667 2.667 0 0 1 3.771 3.772l-8 8a2.667 2.667 0 0 1-1.886.781l-2.89.111a.667.667 0 0 1-.687-.687l.111-2.89a2.667 2.667 0 0 1 .78-1.886l8-8Zm2.39 2.39a1.333 1.333 0 0 0-1.886-1.886L10.667 4.61l1.886 1.886 1.171-1.44Z" fill=""/>
+                    </svg>
+                    Configurer
+                  </button>
+                  {% if objective.canModifyTasks and task.status != 'completed' %}
+                  <button
+                    data-task-id="{{ task.id }}"
+                    data-task-status="{{ task.status }}"
+                    @click="deleteTask({{ task.id }}, '{{ task.status }}')"
+                    class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-theme-xs font-medium bg-red-50 text-red-500 hover:bg-red-100 dark:bg-red-500/15 dark:text-red-400 dark:hover:bg-red-500/25"
+                    title="Supprimer la tâche"
+                  >
+                    <svg class="fill-current" width="14" height="14" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M5.33333 2.66667V1.33333C5.33333 0.979711 5.47381 0.640573 5.72386 0.390524C5.97391 0.140476 6.31305 0 6.66667 0H9.33333C9.68696 0 10.0261 0.140476 10.2761 0.390524C10.5262 0.640573 10.6667 0.979711 10.6667 1.33333V2.66667H14.6667C15.0333 2.66667 15.3333 2.96667 15.3333 3.33333C15.3333 3.7 15.0333 4 14.6667 4H13.3333V14C13.3333 14.7072 12.7472 15.3333 12 15.3333H4C3.25281 15.3333 2.66667 14.7072 2.66667 14V4H1.33333C0.966667 4 0.666667 3.7 0.666667 3.33333C0.666667 2.96667 0.966667 2.66667 1.33333 2.66667H5.33333ZM6.66667 1.33333V2.66667H9.33333V1.33333H6.66667Z" fill="currentColor"/>
+                    </svg>
+                    Supprimer
+                  </button>
+                  {% endif %}
+                </div>
+
+                <div
+                  class="flex items-center justify-between w-full gap-5 xl:w-auto xl:justify-normal"
+                >
+                  <div class="flex items-center gap-3">
+                    {% if task.createdAt %}
+                    <span
+                      class="flex items-center gap-1 text-sm text-gray-500 cursor-pointer dark:text-gray-400"
+                      title="Date de début"
+                    >
+                      <svg
+                        class="fill-current"
+                        width="16"
+                        height="16"
+                        viewBox="0 0 16 16"
+                        fill="none"
+                        xmlns="http://www.w3.org/2000/svg"
+                      >
+                        <path
+                          fill-rule="evenodd"
+                          clip-rule="evenodd"
+                          d="M5.33329 1.0835C5.74751 1.0835 6.08329 1.41928 6.08329 1.8335V2.25016L9.91663 2.25016V1.8335C9.91663 1.41928 10.2524 1.0835 10.6666 1.0835C11.0808 1.0835 11.4166 1.41928 11.4166 1.8335V2.25016L12.3333 2.25016C13.2998 2.25016 14.0833 3.03366 14.0833 4.00016V12.6668C14.0833 13.6333 13.2998 14.4168 12.3333 14.4168L3.66663 14.4168C2.70013 14.4168 1.91663 13.6333 1.91663 12.6668V4.00016C1.91663 3.03366 2.70013 2.25016 3.66663 2.25016L4.58329 2.25016V1.8335C4.58329 1.41928 4.91908 1.0835 5.33329 1.0835ZM5.33329 3.75016L3.66663 3.75016C3.52855 3.75016 3.41663 3.86209 3.41663 4.00016V5.25016L12.5833 5.25016V4.00016C12.5833 3.86209 12.4714 3.75016 12.3333 3.75016L10.6666 3.75016L5.33329 3.75016ZM12.5833 6.75016L3.41663 6.75016L3.41663 12.6668C3.41663 12.8049 3.52855 12.9168 3.66663 12.9168L12.3333 12.9168C12.4714 12.9168 12.5833 12.8049 12.5833 12.6668L12.5833 6.75016Z"
+                          fill=""
+                        />
+                      </svg>
+                      Début: {{ task.createdAt|date('d/m/Y') }}
+                    </span>
+                    {% endif %}
+                    {% if task.dueDate %}
+                    <span
+                      class="flex items-center gap-1 text-sm text-gray-500 cursor-pointer dark:text-gray-400"
+                      title="Date de fin"
+                    >
+                      <svg
+                        class="fill-current"
+                        width="16"
+                        height="16"
+                        viewBox="0 0 16 16"
+                        fill="none"
+                        xmlns="http://www.w3.org/2000/svg"
+                      >
+                        <path
+                          fill-rule="evenodd"
+                          clip-rule="evenodd"
+                          d="M5.33329 1.0835C5.74751 1.0835 6.08329 1.41928 6.08329 1.8335V2.25016L9.91663 2.25016V1.8335C9.91663 1.41928 10.2524 1.0835 10.6666 1.0835C11.0808 1.0835 11.4166 1.41928 11.4166 1.8335V2.25016L12.3333 2.25016C13.2998 2.25016 14.0833 3.03366 14.0833 4.00016V12.6668C14.0833 13.6333 13.2998 14.4168 12.3333 14.4168L3.66663 14.4168C2.70013 14.4168 1.91663 13.6333 1.91663 12.6668V4.00016C1.91663 3.03366 2.70013 2.25016 3.66663 2.25016L4.58329 2.25016V1.8335C4.58329 1.41928 4.91908 1.0835 5.33329 1.0835ZM5.33329 3.75016L3.66663 3.75016C3.52855 3.75016 3.41663 3.86209 3.41663 4.00016V5.25016L12.5833 5.25016V4.00016C12.5833 3.86209 12.4714 3.75016 12.3333 3.75016L10.6666 3.75016L5.33329 3.75016ZM12.5833 6.75016L3.41663 6.75016L3.41663 12.6668C3.41663 12.8049 3.52855 12.9168 3.66663 12.9168L12.3333 12.9168C12.4714 12.9168 12.5833 12.8049 12.5833 12.6668L12.5833 6.75016Z"
+                          fill=""
+                        />
+                      </svg>
+                      Fin: {{ task.dueDate|date('d/m/Y') }}
+                    </span>
+                    {% endif %}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
           {% else %}
           <div class="p-5 bg-gray-50 border border-gray-200 rounded-xl dark:bg-white/[0.02] dark:border-gray-800 text-center">
             <p class="text-sm text-gray-400 dark:text-gray-500">Aucune tâche</p>
@@ -608,8 +1123,8 @@
           {% endfor %}
         </div>
       </div>
+      <!-- Task wrapper End -->
     </div>
-  </main>
 
     <!-- Comments Section -->
     <div class="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03] mt-6">
@@ -663,36 +1178,2110 @@
         </div>
         
         <!-- Liste des commentaires -->
+        {% if comments|length > 0 %}
         <div class="space-y-4">
           {% for comment in comments %}
-          <div class="rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-white/[0.02]">
+          <div class="p-4 bg-gray-50 rounded-lg dark:bg-white/[0.02] border border-gray-200 dark:border-gray-800" data-comment-id="{{ comment.id }}">
             <div class="flex items-start justify-between mb-2">
-              <div class="flex items-center gap-2">
-                <span class="text-sm font-medium text-gray-800 dark:text-white/90">
-                  {{ comment.author.firstName }} {{ comment.author.lastName }}
-                </span>
-                <span class="text-xs text-gray-500 dark:text-gray-400">
-                  {{ comment.createdAt|date('d/m/Y à H:i') }}
-                </span>
+              <div class="flex-1">
+                <p class="text-sm font-medium text-gray-800 dark:text-white/90">
+                  {% if comment.author %}
+                    {{ comment.author.firstName }} {{ comment.author.lastName }}
+                  {% else %}
+                    Anonyme
+                  {% endif %}
+                </p>
+                <p class="text-xs text-gray-500 dark:text-gray-400">
+                  {% if comment.createdAt %}
+                    {{ comment.createdAt|date('d/m/Y \\à H:i') }}
+                  {% endif %}
+                </p>
               </div>
-              {% if app.user.id == comment.author.id %}
-              <button
-                @click="editComment({{ comment.id }}, '{{ comment.content|e('js') }}')"
-                class="text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
-              >
-                Modifier
-              </button>
-              {% endif %}
+              <div class="flex items-center gap-2">
+                {% if comment.author and comment.author.userType %}
+                <span class="inline-flex rounded-full bg-brand-50 px-2 py-0.5 text-xs font-medium text-brand-500 dark:bg-brand-500/15 dark:text-brand-400">
+                  {{ comment.author.userType|capitalize }}
+                </span>
+                {% endif %}
+                {% if comment.author and (comment.author.userType == 'coach' or userType == 'coach') %}
+                <button
+                  @click="openCommentEdit({{ comment.id }}, '{{ comment.content|e('js') }}')"
+                  class="inline-flex items-center gap-1 rounded-lg bg-gray-100 px-2 py-1 text-xs font-medium text-gray-700 hover:bg-gray-200 dark:bg-white/[0.03] dark:text-white/80 dark:hover:bg-white/[0.05]"
+                  title="Modifier"
+                >
+                  <svg class="fill-current" width="12" height="12" viewBox="0 0 16 16" fill="none">
+                    <path d="M11.333 2.00004C11.5084 1.82467 11.7163 1.68607 11.9447 1.59233C12.1731 1.49859 12.4173 1.45178 12.6637 1.4549C12.91 1.45802 13.153 1.51102 13.3785 1.61042C13.6041 1.70982 13.8073 1.85368 13.9767 2.03307C14.1461 2.21246 14.278 2.42372 14.3649 2.65428C14.4518 2.88484 14.4917 3.12993 14.4822 3.37571C14.4727 3.62149 14.4139 3.86285 14.3092 4.08589C14.2045 4.30893 14.0562 4.50922 13.8733 4.67537L13.3333 5.21537L10.7847 2.66671L11.333 2.00004ZM9.78467 3.54837L2.33333 11H0.666667V9.33337L8.118 1.88204L9.78467 3.54837Z" fill="currentColor"/>
+                  </svg>
+                </button>
+                <button
+                  @click="deleteComment({{ comment.id }})"
+                  class="inline-flex items-center gap-1 rounded-lg bg-error-50 px-2 py-1 text-xs font-medium text-error-600 hover:bg-error-100 dark:bg-error-900/30 dark:text-error-400 dark:hover:bg-error-900/50"
+                  title="Supprimer"
+                >
+                  <svg class="fill-current" width="12" height="12" viewBox="0 0 16 16" fill="none">
+                    <path d="M5.33333 2.66667V1.33333C5.33333 0.979711 5.47381 0.640573 5.72386 0.390524C5.97391 0.140476 6.31305 0 6.66667 0H9.33333C9.68696 0 10.0261 0.140476 10.2761 0.390524C10.5262 0.640573 10.6667 0.979711 10.6667 1.33333V2.66667H14.6667C15.0333 2.66667 15.3333 2.96667 15.3333 3.33333C15.3333 3.7 15.0333 4 14.6667 4H13.3333V14C13.3333 14.7072 12.7472 15.3333 12 15.3333H4C3.25281 15.3333 2.66667 14.7072 2.66667 14V4H1.33333C0.966667 4 0.666667 3.7 0.666667 3.33333C0.666667 2.96667 0.966667 2.66667 1.33333 2.66667H5.33333ZM6.66667 1.33333V2.66667H9.33333V1.33333H6.66667Z" fill="currentColor"/>
+                  </svg>
+                </button>
+                {% endif %}
+              </div>
             </div>
-            <p class="text-sm text-gray-700 dark:text-gray-300">{{ comment.content }}</p>
+            <div x-show="!commentEditMode || currentCommentId !== {{ comment.id }}">
+              <p class="text-base text-gray-600 dark:text-gray-400 whitespace-pre-wrap">{{ comment.content }}</p>
+            </div>
           </div>
-          {% else %}
-          <p class="text-sm text-gray-500 dark:text-gray-400 text-center">Aucun commentaire</p>
           {% endfor %}
         </div>
+        {% else %}
+        <div class="p-5 bg-gray-50 border border-gray-200 rounded-xl dark:bg-white/[0.02] dark:border-gray-800 text-center">
+          <p class="text-sm text-gray-400 dark:text-gray-500">Aucun commentaire</p>
+        </div>
+        {% endif %}
       </div>
     </div>
   </div>
-</main>
-{% endblock %}
 
+  <!-- Right Sheet Overlay - Ajouter une preuve -->
+  <template x-if="true">
+    <div
+      x-show="proofSheetOpen"
+      @click="closeProofSheet()"
+      x-transition:enter="transition-opacity ease-out duration-300"
+      x-transition:enter-start="opacity-0"
+      x-transition:enter-end="opacity-100"
+      x-transition:leave="transition-opacity ease-in duration-200"
+      x-transition:leave-start="opacity-100"
+      x-transition:leave-end="opacity-0"
+      class="fixed inset-0 z-[100000] bg-black/50 backdrop-blur-sm"
+      style="z-index: 100000;"
+    ></div>
+  </template>
+
+  <!-- Right Sheet Panel - Ajouter une preuve -->
+  <template x-if="true">
+    <div
+      x-show="proofSheetOpen"
+      @click.away="closeProofSheet()"
+      x-transition:enter="transition-transform ease-out duration-300"
+      x-transition:enter-start="translate-x-full"
+      x-transition:enter-end="translate-x-0"
+      x-transition:leave="transition-transform ease-in duration-200"
+      x-transition:leave-start="translate-x-0"
+      x-transition:leave-end="translate-x-full"
+      class="fixed right-0 top-0 h-full w-full max-w-md overflow-y-auto bg-white shadow-2xl dark:bg-gray-900"
+      style="z-index: 100001;"
+    >
+      <div class="flex h-full flex-col">
+        <!-- Header -->
+        <div class="sticky top-0 z-10 border-b border-gray-200 bg-white px-6 py-4 dark:border-gray-800 dark:bg-gray-900">
+          <div class="flex items-center justify-between">
+            <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">
+              Ajouter une preuve
+            </h3>
+            <button
+              @click="closeProofSheet()"
+              class="rounded-lg p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-300"
+            >
+              <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+          <p class="text-sm text-gray-500 dark:text-gray-400 mt-1" x-text="currentTaskTitle"></p>
+        </div>
+
+        <!-- Content -->
+        <div class="flex-1 overflow-y-auto p-6">
+          <div x-show="currentTaskStatus === 'completed'" class="mb-4 rounded-lg bg-red-50 border border-red-200 p-4 dark:bg-red-500/15 dark:border-red-500/30">
+            <p class="text-sm text-red-600 dark:text-red-400">
+              ⚠️ Impossible d'ajouter une preuve à une tâche terminée. Veuillez modifier le statut de la tâche pour pouvoir ajouter des preuves.
+            </p>
+          </div>
+          <form @submit.prevent="submitProof()" class="space-y-4" x-bind:class="{ 'opacity-50 pointer-events-none': currentTaskStatus === 'completed' }">
+            <!-- Description -->
+            <div>
+              <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Description
+              </label>
+              <textarea
+                x-model="proofFormData.description"
+                rows="3"
+                placeholder="Description de la preuve"
+                class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+              ></textarea>
+            </div>
+
+            <!-- File Upload (Photo) -->
+            <div>
+              <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Prendre une photo <span class="text-error-500">*</span>
+              </label>
+              <input
+                type="file"
+                accept="image/*"
+                @change="handleFileSelect($event)"
+                required
+                class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+              />
+              <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                Formats acceptés : JPG, PNG, GIF
+              </p>
+              <div x-show="proofFormData.filePreview" class="mt-3">
+                <img
+                  :src="proofFormData.filePreview"
+                  alt="Preview"
+                  class="max-h-48 rounded-lg border border-gray-200 dark:border-gray-700"
+                />
+              </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="flex gap-3 pt-4 border-t border-gray-200 dark:border-gray-800">
+              <button
+                type="button"
+                @click="closeProofSheet()"
+                class="flex-1 rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+              >
+                Annuler
+              </button>
+              <button
+                type="submit"
+                :disabled="proofSubmitting"
+                class="flex-1 rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white shadow-theme-xs hover:bg-brand-600 disabled:opacity-50"
+              >
+                <span x-show="!proofSubmitting">Envoyer une preuve</span>
+                <span x-show="proofSubmitting">Envoi en cours...</span>
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </template>
+
+  <!-- Right Sheet Overlay -->
+  <template x-if="true">
+    <div
+      x-show="rightSheetOpen"
+      @click="closeSheet()"
+      x-transition:enter="transition-opacity ease-out duration-300"
+      x-transition:enter-start="opacity-0"
+      x-transition:enter-end="opacity-100"
+      x-transition:leave="transition-opacity ease-in duration-200"
+      x-transition:leave-start="opacity-100"
+      x-transition:leave-end="opacity-0"
+      class="fixed inset-0 bg-black/50 backdrop-blur-sm"
+      style="z-index: 100000;"
+    ></div>
+  </template>
+
+  <!-- Right Sheet Panel - Historique des preuves -->
+  <template x-if="true">
+    <div
+      x-show="rightSheetOpen"
+      @click.away="closeSheet()"
+      x-transition:enter="transition-transform ease-out duration-300"
+      x-transition:enter-start="translate-x-full"
+      x-transition:enter-end="translate-x-0"
+      x-transition:leave="transition-transform ease-in duration-200"
+      x-transition:leave-start="translate-x-0"
+      x-transition:leave-end="translate-x-full"
+      class="fixed right-0 top-0 h-full w-full max-w-md overflow-y-auto bg-white shadow-2xl dark:bg-gray-900"
+      style="z-index: 100001;"
+    >
+    <div class="flex h-full flex-col">
+      <!-- Header -->
+      <div class="sticky top-0 z-10 border-b border-gray-200 bg-white px-6 py-4 dark:border-gray-800 dark:bg-gray-900">
+        <div class="flex items-center justify-between">
+          <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">
+            Historique des preuves
+          </h3>
+          <button
+            @click="closeSheet()"
+            class="rounded-lg p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-300"
+          >
+            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        <p class="text-sm text-gray-500 dark:text-gray-400 mt-1" x-text="currentTaskTitle"></p>
+      </div>
+
+      <!-- Content -->
+      <div class="flex-1 overflow-y-auto p-6">
+        <template x-if="currentTaskProofs.length === 0">
+          <div class="text-center py-8">
+            <p class="text-gray-500 dark:text-gray-400">Aucune preuve enregistrée</p>
+          </div>
+        </template>
+        
+        <div class="space-y-4" x-show="currentTaskProofs.length > 0">
+          <template x-for="(proof, index) in currentTaskProofs" :key="index">
+            <div class="rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-800 dark:bg-white/[0.02]">
+              <div class="flex items-start justify-between mb-3">
+                <div class="flex-1">
+                  <h4 class="text-base font-semibold text-gray-800 dark:text-white/90" x-text="proof.title"></h4>
+                  <p class="text-xs text-gray-500 dark:text-gray-400 mt-1" x-text="formatDate(proof.createdAt)"></p>
+                </div>
+                <span class="inline-flex rounded-full bg-brand-50 px-2 py-0.5 text-xs font-medium text-brand-500 dark:bg-brand-500/15 dark:text-brand-400" x-text="proof.type"></span>
+              </div>
+              
+              <template x-if="proof.description">
+                <p class="text-sm text-gray-600 dark:text-gray-400 mb-3" x-text="proof.description"></p>
+              </template>
+              
+              <template x-if="proof.type === 'text' && proof.content">
+                <div class="bg-white rounded-lg p-3 mb-3 dark:bg-gray-800">
+                  <p class="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap" x-text="proof.content"></p>
+                </div>
+              </template>
+              
+              <template x-if="(proof.type === 'photo' || proof.type === 'image') && proof.fileUrl">
+                <div class="mb-3">
+                  <img
+                    :src="proof.fileUrl"
+                    :alt="proof.fileName || 'Preuve'"
+                    @click="openImageModal(proof.fileUrl, proof.fileName || 'Preuve')"
+                    class="max-w-full h-auto rounded-lg border border-gray-200 dark:border-gray-700 cursor-pointer hover:opacity-90 transition-opacity"
+                    @error="$el.src = '/tailadmin/src/images/default-image.png'"
+                  />
+                  <p class="text-xs text-gray-500 dark:text-gray-400 mt-1" x-text="proof.fileName"></p>
+                  <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">Cliquez sur l'image pour l'agrandir</p>
+                </div>
+              </template>
+              
+              <template x-if="proof.submittedBy">
+                <p class="text-xs text-gray-500 dark:text-gray-400">
+                  Soumis par : <span x-text="proof.submittedBy.firstName + ' ' + proof.submittedBy.lastName"></span>
+                </p>
+              </template>
+            </div>
+          </template>
+        </div>
+      </div>
+    </div>
+  </template>
+
+  <!-- Right Sheet Overlay - Configuration -->
+  <template x-if="true">
+    <div
+      x-show="configSheetOpen"
+      @click="closeConfigSheet()"
+      x-transition:enter="transition-opacity ease-out duration-300"
+      x-transition:enter-start="opacity-0"
+      x-transition:enter-end="opacity-100"
+      x-transition:leave="transition-opacity ease-in duration-200"
+      x-transition:leave-start="opacity-100"
+      x-transition:leave-end="opacity-0"
+      class="fixed inset-0 bg-black/50 backdrop-blur-sm"
+      style="z-index: 100000;"
+    ></div>
+  </template>
+
+  <!-- Right Sheet Panel - Configuration de la tâche -->
+  <template x-if="true">
+    <div
+      x-show="configSheetOpen"
+      @click.away="closeConfigSheet()"
+      x-transition:enter="transition-transform ease-out duration-300"
+      x-transition:enter-start="translate-x-full"
+      x-transition:enter-end="translate-x-0"
+      x-transition:leave="transition-transform ease-in duration-200"
+      x-transition:leave-start="translate-x-0"
+      x-transition:leave-end="translate-x-full"
+      class="fixed right-0 top-0 h-full w-full max-w-md overflow-y-auto bg-white shadow-2xl dark:bg-gray-900"
+      style="z-index: 100001;"
+    >
+    <div class="flex h-full flex-col">
+      <!-- Header -->
+      <div class="sticky top-0 z-10 border-b border-gray-200 bg-white px-6 py-4 dark:border-gray-800 dark:bg-gray-900">
+        <div class="flex items-center justify-between">
+          <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">
+            <span x-show="!taskConfig.isNew">Configuration de la tâche</span>
+            <span x-show="taskConfig.isNew">Nouvelle tâche</span>
+          </h3>
+          <button
+            @click="closeConfigSheet()"
+            class="rounded-lg p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-300"
+          >
+            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        <p class="text-sm text-gray-500 dark:text-gray-400 mt-1" x-show="!taskConfig.isNew" x-text="configTaskTitle"></p>
+      </div>
+
+      <!-- Content -->
+      <div class="flex-1 overflow-y-auto p-6" x-show="taskConfig">
+        <form @submit.prevent="saveTaskConfig()" class="space-y-6">
+          <!-- Titre -->
+          <div>
+            <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+              Titre <span class="text-error-500">*</span>
+            </label>
+            <input
+              type="text"
+              x-model="taskConfig.title"
+              required
+              class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+              placeholder="Titre de la tâche"
+            />
+          </div>
+
+          <!-- Description -->
+          <div>
+            <div class="mb-2 flex items-center justify-between">
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Description
+              </label>
+              <button
+                type="button"
+                x-show="taskConfig.isNew && canUseAI"
+                @click="generateSmartTasks()"
+                :disabled="generatingTasks"
+                class="inline-flex items-center gap-2 rounded-lg border border-brand-500 bg-brand-50 px-3 py-1.5 text-xs font-medium text-brand-600 shadow-theme-xs hover:bg-brand-100 disabled:opacity-50 disabled:cursor-not-allowed dark:border-brand-400 dark:bg-brand-500/15 dark:text-brand-400 dark:hover:bg-brand-500/25"
+                title="Générer des suggestions de tâches intelligentes avec l'IA"
+              >
+                <svg x-show="!generatingTasks" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                </svg>
+                <svg x-show="generatingTasks" class="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <span x-show="!generatingTasks">IA</span>
+                <span x-show="generatingTasks">Génération...</span>
+              </button>
+            </div>
+            <textarea
+              x-model="taskConfig.description"
+              rows="4"
+              class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+              placeholder="Description de la tâche"
+            ></textarea>
+          </div>
+
+          <!-- Statut -->
+          <div>
+            <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+              Statut
+            </label>
+            <select
+              x-model="taskConfig.status"
+              class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+            >
+              <option value="pending">À faire</option>
+              <option value="in_progress">En cours</option>
+              <option value="completed">Terminé</option>
+            </select>
+          </div>
+
+          <!-- Dates -->
+          <div class="grid grid-cols-2 gap-4">
+            <!-- Date de début -->
+            <div>
+              <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Date de début
+              </label>
+              <input
+                type="date"
+                x-model="taskConfig.createdAt"
+                class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+              />
+            </div>
+            <!-- Date de fin -->
+            <div>
+              <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Date de fin
+              </label>
+              <input
+                type="date"
+                x-model="taskConfig.dueDate"
+                class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+              />
+            </div>
+          </div>
+
+          <!-- Affectation -->
+          <div>
+            <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+              Affectation
+            </label>
+            <select
+              x-model="taskConfig.assignedType"
+              @change="onAssignedTypeChange()"
+              class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90 mb-3"
+            >
+              <option value="coach">Coach</option>
+              <option value="student">Élève</option>
+              <option value="parent">Parent</option>
+              <option value="specialist">Spécialiste</option>
+            </select>
+            
+            <!-- Sélecteur d'élève -->
+            <select
+              x-show="taskConfig.assignedType === 'student'"
+              x-model="taskConfig.studentId"
+              class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+            >
+              <option value="">Sélectionner un élève</option>
+              <template x-for="student in students" :key="student.id">
+                <option :value="student.id" x-text="student.firstName + ' ' + student.lastName"></option>
+              </template>
+            </select>
+            
+            <!-- Sélecteur de parent -->
+            <select
+              x-show="taskConfig.assignedType === 'parent'"
+              x-model="taskConfig.parentId"
+              class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+            >
+              <option value="">Sélectionner un parent</option>
+              <template x-for="parent in parents" :key="parent.id">
+                <option :value="parent.id" x-text="parent.firstName + ' ' + parent.lastName"></option>
+              </template>
+            </select>
+            
+            <!-- Sélecteur de spécialiste -->
+            <select
+              x-show="taskConfig.assignedType === 'specialist'"
+              x-model="taskConfig.specialistId"
+              class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+            >
+              <option value="">Sélectionner un spécialiste</option>
+              <template x-for="specialist in specialists" :key="specialist.id">
+                <option :value="specialist.id" x-text="specialist.firstName + ' ' + specialist.lastName"></option>
+              </template>
+            </select>
+          </div>
+
+          <!-- Preuves -->
+          <div>
+            <label class="mb-3 flex items-center gap-3">
+              <input
+                type="checkbox"
+                x-model="taskConfig.requiresProof"
+                class="h-4 w-4 rounded border-gray-300 text-brand-500 focus:ring-brand-500 dark:border-gray-700"
+              />
+              <span class="text-sm font-medium text-gray-700 dark:text-gray-300">
+                Demander une preuve
+              </span>
+            </label>
+            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+              Si activé, l'utilisateur devra fournir une preuve (texte, photo, etc.) pour valider la tâche.
+            </p>
+          </div>
+
+          <!-- Temporalité -->
+          <div>
+            <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+              Temporalité
+            </label>
+            <select
+              x-model="taskConfig.frequency"
+              class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+            >
+              <option value="none">Aucune</option>
+              <option value="hourly">Toutes les heures</option>
+              <option value="daily">Quotidienne</option>
+              <option value="half_day">Une demi-journée</option>
+              <option value="every_2_days">Tous les 2 jours</option>
+              <option value="weekly">Hebdomadaire</option>
+              <option value="monthly">Mensuelle</option>
+              <option value="yearly">Annuelle</option>
+            </select>
+            <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
+              <span x-show="taskConfig.frequency === 'none'">
+                La tâche peut être validée autant de fois que souhaité.
+              </span>
+              <span x-show="taskConfig.frequency !== 'none'">
+                Une seule validation est autorisée selon la période sélectionnée. La tâche sera réinitialisée automatiquement à la fin de la période.
+              </span>
+            </p>
+          </div>
+
+          <!-- Activité liée -->
+          <div class="space-y-4">
+            <!-- Activité normale -->
+            <div>
+              <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Activité liée (optionnel)
+              </label>
+              <select
+                id="regular-activity-select"
+                x-ref="regularActivitySelect"
+                class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+              >
+                <option value="">Aucune activité</option>
+                <template x-for="activity in regularActivities" :key="activity.id">
+                  <option :value="activity.id" x-text="activity.title"></option>
+                </template>
+              </select>
+            </div>
+            
+            <!-- Activité scolaire -->
+            <div>
+              <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Activité scolaire liée (optionnel)
+              </label>
+              <select
+                id="school-activity-select"
+                x-ref="schoolActivitySelect"
+                class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+              >
+                <option value="">Aucune activité scolaire</option>
+                <template x-for="activity in schoolActivities" :key="activity.id">
+                  <option :value="activity.id" x-text="activity.title"></option>
+                </template>
+              </select>
+            </div>
+            
+            <p class="text-xs text-gray-500 dark:text-gray-400">
+              Vous pouvez lier cette tâche à une activité normale ou à une activité scolaire, mais pas aux deux en même temps.
+            </p>
+          </div>
+
+          <!-- Footer -->
+          <div class="flex gap-3 pt-4 border-t border-gray-200 dark:border-gray-800">
+            <button
+              type="button"
+              @click="closeConfigSheet()"
+              class="flex-1 rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+            >
+              Annuler
+            </button>
+            <button
+              type="submit"
+              :disabled="configSubmitting"
+              class="flex-1 rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white shadow-theme-xs hover:bg-brand-600 disabled:opacity-50"
+            >
+              <span x-show="!configSubmitting && !taskConfig.isNew">Enregistrer</span>
+              <span x-show="!configSubmitting && taskConfig.isNew">Créer</span>
+              <span x-show="configSubmitting && !taskConfig.isNew">Enregistrement...</span>
+              <span x-show="configSubmitting && taskConfig.isNew">Création...</span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </template>
+
+  <!-- Modal pour agrandir l'image -->
+  <template x-if="true">
+    <div
+      x-show="imageModalOpen"
+      @click="closeImageModal()"
+      x-transition:enter="transition-opacity ease-out duration-300"
+      x-transition:enter-start="opacity-0"
+      x-transition:enter-end="opacity-100"
+      x-transition:leave="transition-opacity ease-in duration-200"
+      x-transition:leave-start="opacity-100"
+      x-transition:leave-end="opacity-0"
+      class="fixed inset-0 flex items-center justify-center bg-black/90 backdrop-blur-sm p-4"
+      style="z-index: 100002;"
+      @keydown.escape.window="closeImageModal()"
+    >
+      <div
+        class="relative max-w-7xl max-h-full w-full h-full flex items-center justify-center"
+      >
+        <!-- Bouton fermer -->
+        <button
+          @click.stop="closeImageModal()"
+          class="absolute top-4 right-4 z-10 rounded-full bg-black/50 p-3 text-white hover:bg-black/70 transition-colors"
+          title="Fermer (Échap)"
+        >
+          <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+        
+        <!-- Image agrandie - cliquable pour réduire -->
+        <img
+          x-show="enlargedImageUrl"
+          :src="enlargedImageUrl"
+          :alt="enlargedImageAlt"
+          class="max-w-full max-h-full object-contain rounded-lg shadow-2xl cursor-pointer hover:opacity-90 transition-opacity"
+          @click.stop="closeImageModal()"
+          title="Cliquez pour réduire"
+        />
+        
+        <!-- Titre de l'image -->
+        <div
+          x-show="enlargedImageAlt"
+          class="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-black/50 text-white px-4 py-2 rounded-lg text-sm pointer-events-none"
+        >
+          <p x-text="enlargedImageAlt"></p>
+        </div>
+      </div>
+    </template>
+
+    <!-- Right Sheet Overlay - Modification Objectif -->
+    <div
+      x-show="objectiveEditSheetOpen"
+      @click="closeObjectiveEditSheet()"
+      x-transition:enter="transition-opacity ease-out duration-300"
+      x-transition:enter-start="opacity-0"
+      x-transition:enter-end="opacity-100"
+      x-transition:leave="transition-opacity ease-in duration-200"
+      x-transition:leave-start="opacity-100"
+      x-transition:leave-end="opacity-0"
+      class="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm"
+      style="display: none;"
+    ></div>
+
+    <!-- Right Sheet Panel - Modification Objectif -->
+    <div
+      x-show="objectiveEditSheetOpen"
+      @click.away="closeObjectiveEditSheet()"
+      x-transition:enter="transition-transform ease-out duration-300"
+      x-transition:enter-start="translate-x-full"
+      x-transition:enter-end="translate-x-0"
+      x-transition:leave="transition-transform ease-in duration-200"
+      x-transition:leave-start="translate-x-0"
+      x-transition:leave-end="translate-x-full"
+      class="fixed right-0 top-0 z-50 h-full w-full max-w-md overflow-y-auto bg-white shadow-2xl dark:bg-gray-900"
+      style="display: none;"
+    >
+      <div class="flex h-full flex-col">
+        <!-- Header -->
+        <div class="sticky top-0 z-10 border-b border-gray-200 bg-white px-6 py-4 dark:border-gray-800 dark:bg-gray-900">
+          <div class="flex items-center justify-between">
+            <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">
+              Modifier Objectif
+            </h3>
+            <button
+              @click="closeObjectiveEditSheet()"
+              class="rounded-lg p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-300"
+            >
+              <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Content -->
+        <div class="flex-1 p-6">
+          <form @submit.prevent="saveObjective()" class="space-y-6">
+            <div>
+              <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Titre *</label>
+              <input
+                type="text"
+                x-model="objectiveFormData.title"
+                required
+                class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+              />
+            </div>
+            <div>
+              <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Description *</label>
+              <textarea
+                x-model="objectiveFormData.description"
+                required
+                rows="4"
+                class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+              ></textarea>
+            </div>
+            <div>
+              <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Catégorie *</label>
+              <select
+                x-model="objectiveFormData.category"
+                required
+                class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+              >
+                <option value="">Sélectionner...</option>
+                <option value="academic">Académique</option>
+                <option value="Comportement">Comportement</option>
+                <option value="Autonomie">Autonomie</option>
+                <option value="Social">Social</option>
+                <option value="Émotionnel">Émotionnel</option>
+              </select>
+            </div>
+            {% if app.user.isCoach() %}
+            <div>
+              <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Statut *</label>
+              <select
+                x-model="objectiveFormData.status"
+                required
+                class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+              >
+                <option value="modification">En cours de Modification</option>
+                <option value="pending_validation">Attente de Validation par Coach</option>
+                <option value="validated">Validé par le coach</option>
+                <option value="in_action">En Action</option>
+                <option value="completed">Terminé</option>
+                <option value="paused">En pause</option>
+              </select>
+            </div>
+            {% endif %}
+            <div>
+              <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Progression (%)</label>
+              <input
+                type="number"
+                x-model="objectiveFormData.progress"
+                min="0"
+                max="100"
+                class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+              />
+            </div>
+            <!-- Dates -->
+            <div class="grid grid-cols-2 gap-4">
+              <!-- Date de début -->
+              <div>
+                <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Date de début</label>
+                <input
+                  type="date"
+                  x-model="objectiveFormData.createdAt"
+                  class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+                />
+              </div>
+              <!-- Date de fin -->
+              <div>
+                <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Date de fin</label>
+                <input
+                  type="date"
+                  x-model="objectiveFormData.deadline"
+                  class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+                />
+              </div>
+            </div>
+            <div>
+              <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Élève *</label>
+              <select
+                x-model="objectiveFormData.studentId"
+                required
+                class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+              >
+                <option value="">Sélectionner un élève...</option>
+                <template x-for="student in studentsData" :key="student.id">
+                  <option :value="student.id" x-text="student.firstName + ' ' + student.lastName"></option>
+                </template>
+              </select>
+            </div>
+          </form>
+        </div>
+
+        <!-- Footer -->
+        <div class="sticky bottom-0 border-t border-gray-200 bg-white px-6 py-4 dark:border-gray-800 dark:bg-gray-900">
+          <div class="flex gap-3">
+            <button
+              @click="closeObjectiveEditSheet()"
+              class="flex-1 rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+            >
+              Annuler
+            </button>
+            <button
+              @click="saveObjective()"
+              class="flex-1 rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white shadow-theme-xs hover:bg-brand-600"
+            >
+              Enregistrer
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+<!-- ===== Main Content End ===== -->
+
+<style>
+  [x-cloak] { display: none !important; }
+</style>
+
+<script>
+function taskManager() {
+  return {
+    proofSheetOpen: false,
+    rightSheetOpen: false,
+    configSheetOpen: false,
+    objectiveEditSheetOpen: false,
+    imageModalOpen: false,
+    enlargedImageUrl: null,
+    enlargedImageAlt: '',
+    currentTaskId: null,
+    currentTaskTitle: '',
+    currentTaskStatus: null,
+    currentTaskProofs: [],
+    objectiveFormData: {
+      title: '',
+      description: '',
+      category: '',
+      status: 'modification',
+      progress: 0,
+      createdAt: '',
+      deadline: '',
+      studentId: '',
+    },
+    proofSubmitting: false,
+    proofFormData: {
+      type: 'photo',
+      description: '',
+      fileBase64: null,
+      fileName: null,
+      fileSize: null,
+      mimeType: null,
+      filePreview: null,
+    },
+    configSubmitting: false,
+    configTaskTitle: '',
+    generatingTasks: false,
+    generatingFromOrigin: false,
+    students: [],
+    parents: [],
+    specialists: [],
+    regularActivities: [],
+    schoolActivities: [],
+    regularActivityChoicesInstance: null,
+    schoolActivityChoicesInstance: null,
+    taskConfig: {
+      isNew: false,
+      title: '',
+      description: '',
+      status: 'pending',
+      requiresProof: true,
+      frequency: 'none',
+      assignedType: 'coach',
+      studentId: '',
+      parentId: '',
+      specialistId: '',
+    },
+    commentFormOpen: false,
+    commentEditMode: false,
+    currentCommentId: null,
+    commentSubmitting: false,
+    commentFormData: {
+      content: '',
+    },
+    objectiveId: {{ objective.id }},
+    objective: null,
+    studentsData: [],
+    canUseAI: {{ canUseAI ? 'true' : 'false' }},
+    
+    init() {
+      const studentsJson = this.$el.getAttribute('data-students');
+      const parentsJson = this.$el.getAttribute('data-parents');
+      const specialistsJson = this.$el.getAttribute('data-specialists');
+      const objectiveJson = this.$el.getAttribute('data-objective');
+      const regularActivitiesJson = this.$el.getAttribute('data-regular-activities');
+      const schoolActivitiesJson = this.$el.getAttribute('data-school-activities');
+      
+      if (studentsJson) {
+        this.students = JSON.parse(studentsJson);
+        this.studentsData = JSON.parse(studentsJson);
+      }
+      if (parentsJson) {
+        this.parents = JSON.parse(parentsJson);
+      }
+      if (specialistsJson) {
+        this.specialists = JSON.parse(specialistsJson);
+      }
+      if (objectiveJson) {
+        this.objective = JSON.parse(objectiveJson);
+      }
+      if (regularActivitiesJson) {
+        this.regularActivities = JSON.parse(regularActivitiesJson);
+      }
+      if (schoolActivitiesJson) {
+        this.schoolActivities = JSON.parse(schoolActivitiesJson);
+      }
+    },
+    initActivityChoices() {
+      // Charger Choices.js si pas déjà chargé
+      if (typeof Choices === 'undefined') {
+        const script = document.createElement('script');
+        script.src = 'https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js';
+        const link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.href = 'https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css';
+        document.head.appendChild(link);
+        script.onload = () => {
+          this.$nextTick(() => {
+            this.initActivityChoices();
+          });
+        };
+        document.head.appendChild(script);
+        return;
+      }
+      
+      // Attendre que le sheet soit visible dans le DOM
+      this.$nextTick(() => {
+        // Détruire les instances existantes si elles existent
+        if (this.regularActivityChoicesInstance) {
+          try {
+            this.regularActivityChoicesInstance.destroy();
+          } catch (e) {
+            console.warn('Erreur lors de la destruction de ChoiceJS (activités):', e);
+          }
+          this.regularActivityChoicesInstance = null;
+        }
+        
+        if (this.schoolActivityChoicesInstance) {
+          try {
+            this.schoolActivityChoicesInstance.destroy();
+          } catch (e) {
+            console.warn('Erreur lors de la destruction de ChoiceJS (activités scolaires):', e);
+          }
+          this.schoolActivityChoicesInstance = null;
+        }
+        
+        // Initialiser ChoiceJS sur le select des activités normales
+        const regularActivitySelect = document.getElementById('regular-activity-select');
+        if (regularActivitySelect && this.regularActivities && this.regularActivities.length > 0) {
+          try {
+            this.regularActivityChoicesInstance = new Choices(regularActivitySelect, {
+              searchEnabled: true,
+              searchChoices: true,
+              searchFields: ['label', 'value'],
+              placeholder: true,
+              placeholderValue: 'Sélectionner une activité',
+              shouldSort: false,
+              itemSelectText: '',
+            });
+            
+            // Synchroniser avec Alpine.js
+            this.regularActivityChoicesInstance.passedElement.element.addEventListener('change', () => {
+              const value = this.regularActivityChoicesInstance.getValue(true);
+              this.taskConfig.activityId = value || '';
+              // Réinitialiser l'autre select si une valeur est sélectionnée
+              if (value && this.schoolActivityChoicesInstance) {
+                this.schoolActivityChoicesInstance.setChoiceByValue('');
+              }
+            });
+          } catch (e) {
+            console.error('Erreur lors de l\'initialisation de ChoiceJS (activités):', e);
+          }
+        }
+        
+        // Initialiser ChoiceJS sur le select des activités scolaires
+        const schoolActivitySelect = document.getElementById('school-activity-select');
+        if (schoolActivitySelect && this.schoolActivities && this.schoolActivities.length > 0) {
+          try {
+            this.schoolActivityChoicesInstance = new Choices(schoolActivitySelect, {
+              searchEnabled: true,
+              searchChoices: true,
+              searchFields: ['label', 'value'],
+              placeholder: true,
+              placeholderValue: 'Sélectionner une activité scolaire',
+              shouldSort: false,
+              itemSelectText: '',
+            });
+            
+            // Synchroniser avec Alpine.js
+            this.schoolActivityChoicesInstance.passedElement.element.addEventListener('change', () => {
+              const value = this.schoolActivityChoicesInstance.getValue(true);
+              this.taskConfig.activityId = value || '';
+              // Réinitialiser l'autre select si une valeur est sélectionnée
+              if (value && this.regularActivityChoicesInstance) {
+                this.regularActivityChoicesInstance.setChoiceByValue('');
+              }
+            });
+          } catch (e) {
+            console.error('Erreur lors de l\'initialisation de ChoiceJS (activités scolaires):', e);
+          }
+        }
+        
+        // Mettre à jour les valeurs si elles sont déjà définies
+        if (this.taskConfig.activityId) {
+          setTimeout(() => {
+            try {
+              // Vérifier si c'est une activité normale ou scolaire
+              const isRegular = this.regularActivities.some(a => a.id == this.taskConfig.activityId);
+              const isSchool = this.schoolActivities.some(a => a.id == this.taskConfig.activityId);
+              
+              if (isRegular && this.regularActivityChoicesInstance) {
+                this.regularActivityChoicesInstance.setChoiceByValue(String(this.taskConfig.activityId));
+              } else if (isSchool && this.schoolActivityChoicesInstance) {
+                this.schoolActivityChoicesInstance.setChoiceByValue(String(this.taskConfig.activityId));
+              }
+            } catch (e) {
+              console.warn('Erreur lors de la mise à jour initiale de ChoiceJS:', e);
+            }
+          }, 50);
+        }
+      });
+    },
+    openObjectiveEdit() {
+      // Remplir le formulaire avec les données de l'objectif actuel
+      this.objectiveFormData = {
+        title: this.objective?.title || '',
+        description: this.objective?.description || '',
+        category: this.objective?.category || '',
+        status: this.objective?.status || 'modification',
+        progress: this.objective?.progress || 0,
+        createdAt: this.objective?.createdAt || '',
+        deadline: this.objective?.deadline || '',
+        studentId: this.objective?.student?.id || '',
+      };
+      this.objectiveEditSheetOpen = true;
+    },
+    closeObjectiveEditSheet() {
+      this.objectiveEditSheetOpen = false;
+    },
+    async saveObjective() {
+      try {
+        const response = await fetch(`/admin/objectives/${this.objectiveId}/update`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest',
+          },
+          body: JSON.stringify(this.objectiveFormData),
+        });
+        
+        let result;
+        try {
+          result = await response.json();
+        } catch (e) {
+          result = { success: false, message: 'Erreur lors de la lecture de la réponse' };
+        }
+        
+        if (response.ok && result.success) {
+          if (window.showToast) {
+            window.showToast('Objectif mis à jour avec succès', 'success');
+          } else {
+            alert('Objectif mis à jour avec succès');
+          }
+          this.closeObjectiveEditSheet();
+          setTimeout(() => {
+            window.location.reload();
+          }, 500);
+        } else {
+          const errorMessage = result.message || 'Erreur lors de la mise à jour';
+          if (window.showToast) {
+            window.showToast(errorMessage, 'error');
+          } else {
+            alert(errorMessage);
+          }
+        }
+      } catch (error) {
+        console.error('Erreur:', error);
+        const errorMessage = 'Une erreur est survenue lors de la mise à jour de l\'objectif';
+        if (window.showToast) {
+          window.showToast(errorMessage, 'error');
+        } else {
+          alert(errorMessage);
+        }
+      }
+    },
+    
+    openProofModal(event, taskId, taskTitle) {
+      // Récupérer la checkbox par taskId si event.target n'est pas disponible
+      let checkbox = event?.target;
+      if (!checkbox && taskId) {
+        checkbox = document.querySelector(`input[data-task-id="${taskId}"]`);
+      }
+      
+      const isChecked = checkbox ? checkbox.checked : false;
+      console.log('openProofModal appelé', { taskId, taskTitle, checked: isChecked, checkbox });
+      
+      // Empêcher la propagation de l'événement
+      if (event) {
+        event.stopPropagation();
+        event.preventDefault();
+      }
+      
+      if (!checkbox) {
+        console.error('Checkbox non trouvée pour la tâche', taskId);
+        return;
+      }
+      
+      // Récupérer le statut de la tâche depuis la checkbox
+      const taskStatus = checkbox.getAttribute('data-task-status');
+      
+      // Vérifier que la tâche n'est pas terminée - on ne peut ajouter des preuves que si la tâche est "pending" ou "in_progress"
+      if (taskStatus === 'completed') {
+        if (window.showToast) {
+          window.showToast('Impossible d\'ajouter une preuve à une tâche terminée', 'error');
+        }
+        // Remettre la checkbox dans son état précédent
+        checkbox.checked = false;
+        return;
+      }
+      
+      // Fermer les autres rightSheets s'ils sont ouverts
+      this.rightSheetOpen = false;
+      this.configSheetOpen = false;
+      
+      if (isChecked) {
+        // Ouvrir le rightSheet pour ajouter une preuve
+        console.log('Ouverture du rightSheet de preuve');
+        this.currentTaskId = taskId;
+        this.currentTaskTitle = taskTitle;
+        this.currentTaskStatus = taskStatus;
+        this.proofSheetOpen = true;
+        // Réinitialiser le formulaire
+        this.proofFormData = {
+          type: 'photo',
+          description: '',
+          fileBase64: null,
+          fileName: null,
+          fileSize: null,
+          mimeType: null,
+          filePreview: null,
+        };
+      } else {
+        // Décocher sans action (la tâche reste completed jusqu'à la réinitialisation par période)
+        console.log('Décocher sans action');
+      }
+    },
+    
+    openProofModalFromCheckbox(event) {
+      // Empêcher la propagation de l'événement
+      event.stopPropagation();
+      event.preventDefault();
+      
+      const checkbox = event.target;
+      const taskId = parseInt(checkbox.getAttribute('data-task-id'));
+      const taskTitle = checkbox.getAttribute('data-task-title') || 'Tâche #' + taskId;
+      const taskStatus = checkbox.getAttribute('data-task-status');
+      
+      // Vérifier que la tâche n'est pas terminée - on ne peut ajouter des preuves que si la tâche est "pending" ou "in_progress"
+      if (taskStatus === 'completed') {
+        if (window.showToast) {
+          window.showToast('Impossible d\'ajouter une preuve à une tâche terminée', 'error');
+        }
+        // Remettre la checkbox dans son état précédent
+        checkbox.checked = false;
+        return;
+      }
+      
+      // Cocher la checkbox manuellement (car preventDefault empêche le comportement par défaut)
+      // On vérifiera les permissions côté serveur lors de la soumission
+      checkbox.checked = true;
+      
+      // Stocker le statut avant d'ouvrir le modal
+      checkbox.setAttribute('data-task-status', taskStatus);
+      
+      // Créer un nouvel événement avec checked = true pour openProofModal
+      const syntheticEvent = {
+        target: checkbox,
+        stopPropagation: () => {},
+        preventDefault: () => {}
+      };
+      this.openProofModal(syntheticEvent, taskId, taskTitle);
+    },
+    
+    handleFileSelect(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      
+      // Vérifier le type
+        if (!file.type.startsWith('image/')) {
+          if (window.showToast) {
+            window.showToast('Veuillez sélectionner un fichier image', 'error');
+          }
+          event.target.value = '';
+          return;
+        }
+        
+        // Vérifier la taille (max 5MB)
+        if (file.size > 5 * 1024 * 1024) {
+          if (window.showToast) {
+            window.showToast('Le fichier est trop volumineux (max 5MB)', 'error');
+          }
+          event.target.value = '';
+          return;
+        }
+      
+      // Lire le fichier en base64
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const base64 = e.target.result;
+        this.proofFormData.fileBase64 = base64.split(',')[1]; // Retirer le préfixe data:image/...
+        this.proofFormData.fileName = file.name;
+        this.proofFormData.fileSize = file.size;
+        this.proofFormData.mimeType = file.type;
+        this.proofFormData.filePreview = base64;
+      };
+      reader.readAsDataURL(file);
+    },
+    
+    async submitProof() {
+      if (!this.currentTaskId) return;
+      
+      // Vérifier que la tâche n'est pas terminée - double sécurité
+      if (this.currentTaskStatus === 'completed') {
+        if (window.showToast) {
+          window.showToast('Impossible d\'ajouter une preuve à une tâche terminée', 'error');
+        }
+        this.proofSheetOpen = false;
+        return;
+      }
+      
+      this.proofSubmitting = true;
+      
+      try {
+        // Vérifier qu'un fichier a été sélectionné
+        if (!this.proofFormData.fileBase64) {
+          if (window.showToast) {
+            window.showToast('Veuillez sélectionner une photo', 'error');
+          }
+          this.proofSubmitting = false;
+          return;
+        }
+        
+        // Préparer les données
+        const data = {
+          type: 'photo',
+          title: `Preuve - ${this.currentTaskTitle}`,
+          description: this.proofFormData.description || null,
+          fileBase64: this.proofFormData.fileBase64,
+          fileName: this.proofFormData.fileName,
+          fileSize: this.proofFormData.fileSize,
+          mimeType: this.proofFormData.mimeType,
+        };
+        
+        // Envoyer la preuve
+        const response = await fetch(`/admin/tasks/${this.currentTaskId}/proofs/create`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(data),
+        });
+        
+        let result;
+        try {
+          result = await response.json();
+        } catch (e) {
+          result = { success: false, message: 'Erreur lors de la lecture de la réponse' };
+        }
+        
+        if (response.ok && result.success) {
+          // La checkbox est déjà cochée, on la garde cochée
+          // Afficher un message de succès
+          if (window.showToast) {
+            window.showToast(result.message || 'Preuve envoyée avec succès', 'success');
+          } else {
+            alert(result.message || 'Preuve envoyée avec succès');
+          }
+          
+          // Fermer le rightSheet
+          this.proofSheetOpen = false;
+          
+          // Recharger la page pour mettre à jour l'affichage
+          setTimeout(() => {
+            window.location.reload();
+          }, 1000);
+        } else {
+          // Afficher un message d'erreur
+          const errorMessage = result.message || 'Erreur lors de l\'envoi de la preuve';
+          if (window.showToast) {
+            window.showToast(errorMessage, 'error');
+          } else {
+            alert(errorMessage);
+          }
+          
+          // Décocher la checkbox en cas d'erreur
+          const taskCheckbox = document.querySelector(`input[data-task-id="${this.currentTaskId}"]`);
+          if (taskCheckbox) {
+            taskCheckbox.checked = false;
+          }
+          
+          // Fermer le rightSheet
+          this.proofSheetOpen = false;
+        }
+      } catch (error) {
+        console.error('Erreur lors de l\'envoi de la preuve:', error);
+        if (window.showToast) {
+          window.showToast('Une erreur est survenue', 'error');
+        }
+        
+        // Décocher la checkbox en cas d'erreur
+        const taskCheckbox = document.querySelector(`input[data-task-id="${this.currentTaskId}"]`);
+        if (taskCheckbox) {
+          taskCheckbox.checked = false;
+        }
+        
+        // Fermer le rightSheet
+        this.proofSheetOpen = false;
+      } finally {
+        this.proofSubmitting = false;
+      }
+    },
+    
+    showProofHistory(taskId, proofs, taskTitle) {
+      console.log('showProofHistory appelé', { taskId, proofs, taskTitle });
+      
+      // Fermer les autres rightSheets s'ils sont ouverts
+      this.proofSheetOpen = false;
+      this.configSheetOpen = false;
+      
+      this.currentTaskId = taskId;
+      this.currentTaskProofs = Array.isArray(proofs) ? proofs : [];
+      // Récupérer le titre de la tâche
+      if (taskTitle) {
+        this.currentTaskTitle = taskTitle;
+      } else {
+        // Essayer de récupérer depuis le DOM
+        const taskCheckbox = document.querySelector(`input[data-task-id="${taskId}"]`);
+        if (taskCheckbox) {
+          const taskCard = taskCheckbox.closest('.task') || taskCheckbox.closest('[class*="task"]');
+          if (taskCard) {
+            // Chercher le titre dans la structure de la carte
+            const titleElement = taskCard.querySelector('h4, h3, .task-title, [class*="title"]');
+            if (titleElement) {
+              this.currentTaskTitle = titleElement.textContent.trim();
+            }
+          }
+        }
+      }
+      if (!this.currentTaskTitle) {
+        this.currentTaskTitle = 'Tâche #' + taskId;
+      }
+      console.log('Ouverture du rightSheet - avant:', { rightSheetOpen: this.rightSheetOpen, currentTaskProofs: this.currentTaskProofs });
+      this.rightSheetOpen = true;
+      console.log('Ouverture du rightSheet - après:', { rightSheetOpen: this.rightSheetOpen });
+      
+      // Forcer le re-render
+      setTimeout(() => {
+        console.log('After timeout:', { rightSheetOpen: this.rightSheetOpen });
+        const sheet = document.querySelector('[x-show="rightSheetOpen"]');
+        if (sheet) {
+          console.log('RightSheet trouvé dans le DOM:', sheet);
+        } else {
+          console.error('RightSheet non trouvé dans le DOM');
+        }
+      }, 100);
+    },
+    
+    showProofHistoryFromButton(event) {
+      event.preventDefault();
+      event.stopPropagation();
+      
+      // S'assurer que les autres rightSheets sont fermés
+      this.proofSheetOpen = false;
+      
+      const button = event.currentTarget || event.target.closest('button');
+      const taskId = parseInt(button.getAttribute('data-task-id'));
+      const proofsJson = button.getAttribute('data-task-proofs');
+      const taskTitle = button.getAttribute('data-task-title');
+      
+      let proofs = [];
+      try {
+        if (proofsJson) {
+          proofs = JSON.parse(proofsJson);
+        }
+      } catch (e) {
+        console.error('Erreur lors du parsing des preuves:', e);
+        proofs = [];
+      }
+      
+      console.log('showProofHistoryFromButton - Données:', { taskId, proofs, taskTitle });
+      this.showProofHistory(taskId, proofs, taskTitle);
+    },
+    
+    closeSheet() {
+      console.log('Fermer');
+      this.rightSheetOpen = false;
+    },
+    
+    closeProofSheet() {
+      this.proofSheetOpen = false;
+      // Réinitialiser le formulaire
+      this.proofFormData = {
+        type: 'photo',
+        description: '',
+        fileBase64: null,
+        fileName: null,
+        fileSize: null,
+        mimeType: null,
+        filePreview: null,
+      };
+    },
+    
+    openImageModal(imageUrl, imageAlt) {
+      this.enlargedImageUrl = imageUrl;
+      this.enlargedImageAlt = imageAlt;
+      this.imageModalOpen = true;
+      // Empêcher le scroll du body quand la modal est ouverte
+      document.body.style.overflow = 'hidden';
+    },
+    
+    closeImageModal() {
+      this.imageModalOpen = false;
+      this.enlargedImageUrl = null;
+      this.enlargedImageAlt = '';
+      // Réactiver le scroll du body
+      document.body.style.overflow = '';
+    },
+    
+    openTaskConfig(event) {
+      console.log('openTaskConfig appelé', event);
+      event.preventDefault();
+      event.stopPropagation();
+      
+      // Vérifier si on peut modifier des tâches
+      if (!this.objective || !this.objective.canModifyTasks) {
+        if (window.showToast) {
+          window.showToast(this.objective?.statusMessage || 'Impossible de modifier cette tâche', 'error');
+        }
+        return;
+      }
+      
+      // Fermer les autres rightSheets
+      this.proofSheetOpen = false;
+      this.rightSheetOpen = false;
+      
+      const button = event.currentTarget || event.target.closest('button');
+      if (!button) {
+        console.error('Bouton non trouvé');
+        return;
+      }
+      
+      const taskId = parseInt(button.getAttribute('data-task-id'));
+      const taskStatus = button.getAttribute('data-task-status');
+      const taskFrequency = button.getAttribute('data-task-frequency') || 'none';
+      const taskRequiresProof = button.getAttribute('data-task-requires-proof') === 'true';
+      const taskTitle = button.getAttribute('data-task-title');
+      const taskDescription = button.getAttribute('data-task-description') || '';
+      const taskAssignedType = button.getAttribute('data-task-assigned-type') || 'coach';
+      const taskStudentId = button.getAttribute('data-task-student-id') || '';
+      const taskParentId = button.getAttribute('data-task-parent-id') || '';
+      const taskSpecialistId = button.getAttribute('data-task-specialist-id') || '';
+      const taskCreatedAt = button.getAttribute('data-task-created-at') || '';
+      const taskDueDate = button.getAttribute('data-task-due-date') || '';
+      const taskActivityId = button.getAttribute('data-task-activity-id') || '';
+      
+      console.log('Données de la tâche:', { taskId, taskStatus, taskFrequency, taskRequiresProof, taskTitle, taskDescription, taskAssignedType, taskCreatedAt, taskDueDate, taskActivityId });
+      
+      this.currentTaskId = taskId;
+      this.configTaskTitle = taskTitle || 'Tâche #' + taskId;
+      this.taskConfig = {
+        isNew: false,
+        title: taskTitle || '',
+        description: taskDescription || '',
+        status: taskStatus || 'pending',
+        requiresProof: taskRequiresProof,
+        frequency: taskFrequency || 'none',
+        assignedType: taskAssignedType,
+        studentId: taskStudentId,
+        parentId: taskParentId,
+        specialistId: taskSpecialistId,
+        activityId: taskActivityId,
+        createdAt: taskCreatedAt ? taskCreatedAt.split(' ')[0] : '', // Format YYYY-MM-DD pour input date
+        dueDate: taskDueDate ? taskDueDate.split(' ')[0] : '', // Format YYYY-MM-DD pour input date
+      };
+      
+      console.log('Ouverture du configSheet - avant:', { configSheetOpen: this.configSheetOpen, taskConfig: this.taskConfig });
+      this.configSheetOpen = true;
+      console.log('Ouverture du configSheet - après:', { configSheetOpen: this.configSheetOpen });
+      
+      // Initialiser ChoiceJS après l'ouverture du sheet
+      setTimeout(() => {
+        this.initActivityChoices();
+        
+        // Mettre à jour ChoiceJS avec la valeur sélectionnée après initialisation
+        if (taskActivityId) {
+          setTimeout(() => {
+            try {
+              // Vérifier si c'est une activité normale ou scolaire
+              const isRegular = this.regularActivities.some(a => a.id == taskActivityId);
+              const isSchool = this.schoolActivities.some(a => a.id == taskActivityId);
+              
+              if (isRegular && this.regularActivityChoicesInstance) {
+                this.regularActivityChoicesInstance.setChoiceByValue(String(taskActivityId));
+              } else if (isSchool && this.schoolActivityChoicesInstance) {
+                this.schoolActivityChoicesInstance.setChoiceByValue(String(taskActivityId));
+              }
+            } catch (e) {
+              console.warn('Erreur lors de la mise à jour de ChoiceJS:', e);
+            }
+          }, 100);
+        }
+      }, 200);
+      
+      // Forcer le re-render
+      setTimeout(() => {
+        console.log('After timeout configSheet:', { configSheetOpen: this.configSheetOpen });
+        const sheet = document.querySelector('[x-show="configSheetOpen"]');
+        if (sheet) {
+          console.log('ConfigSheet trouvé dans le DOM:', sheet);
+        } else {
+          console.error('ConfigSheet non trouvé dans le DOM');
+        }
+      }, 100);
+    },
+    
+    openTaskCreate() {
+      // Vérifier si on peut créer des tâches
+      if (!this.objective || !this.objective.canModifyTasks) {
+        if (window.showToast) {
+          window.showToast(this.objective?.statusMessage || 'Impossible de créer une tâche pour cet objectif', 'error');
+        }
+        return;
+      }
+      
+      // Fermer les autres rightSheets
+      this.proofSheetOpen = false;
+      this.rightSheetOpen = false;
+      
+      this.currentTaskId = null;
+      this.configTaskTitle = '';
+      this.taskConfig = {
+        isNew: true,
+        title: '',
+        description: '',
+        status: 'pending',
+        requiresProof: true,
+        frequency: 'none',
+        assignedType: 'coach',
+        studentId: '',
+        parentId: '',
+        specialistId: '',
+        activityId: '',
+        createdAt: '',
+        dueDate: '',
+      };
+      
+      this.configSheetOpen = true;
+      
+      // Initialiser ChoiceJS après l'ouverture du sheet
+      setTimeout(() => {
+        this.initActivityChoices();
+      }, 200);
+    },
+    
+    onAssignedTypeChange() {
+      // Réinitialiser tous les IDs d'affectation
+      this.taskConfig.studentId = '';
+      this.taskConfig.parentId = '';
+      this.taskConfig.specialistId = '';
+      
+      // Définir les valeurs par défaut selon le type d'affectation
+      if (this.taskConfig.assignedType === 'student' && this.objective?.student?.id) {
+        // Si "Élève" est sélectionné, définir l'élève de l'objectif par défaut
+        this.taskConfig.studentId = this.objective.student.id;
+      } else if (this.taskConfig.assignedType === 'parent' && this.objective?.parent?.id) {
+        // Si "Parent" est sélectionné, définir le parent de l'élève de l'objectif par défaut
+        this.taskConfig.parentId = this.objective.parent.id;
+      }
+      // Pour "specialist", on laisse vide (pas de valeur par défaut)
+    },
+    
+    async generateSmartTasks() {
+      if (!this.objectiveId) {
+        if (window.showToast) {
+          window.showToast('Erreur: ID de l\'objectif manquant', 'error');
+        }
+        return;
+      }
+
+      this.generatingTasks = true;
+
+      try {
+        const response = await fetch(`/admin/objectives/${this.objectiveId}/generate-tasks`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({}),
+        });
+
+        let result;
+        try {
+          result = await response.json();
+        } catch (e) {
+          result = { success: false, message: 'Erreur lors de la lecture de la réponse' };
+        }
+
+        if (response.ok && result.success && result.tasks && result.tasks.length > 0) {
+          // Prendre la première tâche suggérée et remplir le formulaire
+          const firstTask = result.tasks[0];
+          
+          this.taskConfig.title = firstTask.title || '';
+          this.taskConfig.description = firstTask.description || '';
+          this.taskConfig.frequency = firstTask.frequency || 'none';
+          this.taskConfig.requiresProof = firstTask.requiresProof !== undefined ? firstTask.requiresProof : true;
+          
+          if (firstTask.proofType) {
+            // Note: proofType n'est pas directement dans taskConfig, mais peut être utilisé plus tard
+            // On peut l'ajouter si nécessaire
+          }
+
+          const successMessage = `${result.tasks.length} tâche(s) suggérée(s). Première tâche chargée.`;
+          if (window.showToast) {
+            window.showToast(successMessage, 'success');
+          } else {
+            alert(successMessage);
+          }
+
+          // Optionnel: afficher toutes les suggestions dans une modal ou permettre de naviguer entre elles
+          // Pour l'instant, on charge juste la première
+        } else {
+          const errorMessage = result.message || 'Aucune tâche suggérée';
+          if (window.showToast) {
+            window.showToast(errorMessage, 'error');
+          } else {
+            alert(errorMessage);
+          }
+        }
+      } catch (error) {
+        console.error('Erreur lors de la génération des tâches:', error);
+        const errorMessage = 'Erreur lors de la génération des suggestions';
+        if (window.showToast) {
+          window.showToast(errorMessage, 'error');
+        } else {
+          alert(errorMessage);
+        }
+      } finally {
+        this.generatingTasks = false;
+      }
+    },
+    
+    async generateFromOrigin() {
+      if (!this.objectiveId) {
+        if (window.showToast) {
+          window.showToast('Erreur: ID de l\'objectif manquant', 'error');
+        }
+        return;
+      }
+
+      this.generatingFromOrigin = true;
+
+      try {
+        const response = await fetch(`/admin/objectives/${this.objectiveId}/generate-from-origin`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({}),
+        });
+
+        let result;
+        try {
+          result = await response.json();
+        } catch (e) {
+          result = { success: false, message: 'Erreur lors de la lecture de la réponse' };
+        }
+
+        if (response.ok && result.success) {
+          // Mettre à jour la description si elle a été générée
+          if (result.description) {
+            // Recharger la page pour afficher la nouvelle description
+            window.location.reload();
+          }
+          
+          // Si des tâches ont été générées, les afficher
+          if (result.tasks && result.tasks.length > 0) {
+            const successMessage = `${result.tasks.length} tâche(s) générée(s) et description mise à jour.`;
+            if (window.showToast) {
+              window.showToast(successMessage, 'success');
+            }
+            // Recharger la page pour afficher les nouvelles tâches
+            setTimeout(() => {
+              window.location.reload();
+            }, 1000);
+          } else {
+            const successMessage = result.message || 'Description mise à jour avec succès.';
+            if (window.showToast) {
+              window.showToast(successMessage, 'success');
+            }
+            // Recharger la page pour afficher la nouvelle description
+            setTimeout(() => {
+              window.location.reload();
+            }, 1000);
+          }
+        } else {
+          const errorMessage = result.message || 'Erreur lors de la génération';
+          if (window.showToast) {
+            window.showToast(errorMessage, 'error');
+          } else {
+            alert(errorMessage);
+          }
+        }
+      } catch (error) {
+        console.error('Erreur lors de la génération depuis l\'original:', error);
+        const errorMessage = 'Erreur lors de la génération';
+        if (window.showToast) {
+          window.showToast(errorMessage, 'error');
+        } else {
+          alert(errorMessage);
+        }
+      } finally {
+        this.generatingFromOrigin = false;
+      }
+    },
+    
+    closeConfigSheet() {
+      // Détruire ChoiceJS avant de fermer
+      if (this.regularActivityChoicesInstance) {
+        try {
+          this.regularActivityChoicesInstance.destroy();
+          this.regularActivityChoicesInstance = null;
+        } catch (e) {
+          console.warn('Erreur lors de la destruction de ChoiceJS (activités):', e);
+        }
+      }
+      
+      if (this.schoolActivityChoicesInstance) {
+        try {
+          this.schoolActivityChoicesInstance.destroy();
+          this.schoolActivityChoicesInstance = null;
+        } catch (e) {
+          console.warn('Erreur lors de la destruction de ChoiceJS (activités scolaires):', e);
+        }
+      }
+      
+      this.configSheetOpen = false;
+      this.currentTaskId = null;
+      this.configTaskTitle = '';
+      this.taskConfig = {
+        isNew: false,
+        title: '',
+        description: '',
+        status: 'pending',
+        requiresProof: true,
+        frequency: 'none',
+        assignedType: 'coach',
+        studentId: '',
+        parentId: '',
+        specialistId: '',
+        createdAt: '',
+        dueDate: '',
+      };
+    },
+    
+    async saveTaskConfig() {
+      // Validation du titre
+      if (!this.taskConfig.title || this.taskConfig.title.trim() === '') {
+        if (window.showToast) {
+          window.showToast('Le titre est requis', 'error');
+        }
+        this.configSubmitting = false;
+        return;
+      }
+      
+      // Validation : en mode édition, currentTaskId doit être défini
+      if (!this.taskConfig.isNew && !this.currentTaskId) {
+        if (window.showToast) {
+          window.showToast('Erreur : ID de tâche manquant', 'error');
+        }
+        this.configSubmitting = false;
+        return;
+      }
+      
+      this.configSubmitting = true;
+      
+      try {
+        // Préparer les données à envoyer
+        const dataToSend = {
+          title: this.taskConfig.title,
+          description: this.taskConfig.description || '',
+          status: this.taskConfig.status,
+          requiresProof: this.taskConfig.requiresProof,
+          frequency: this.taskConfig.frequency,
+          assignedType: this.taskConfig.assignedType,
+        };
+        
+        // Ajouter les dates si elles sont définies
+        if (this.taskConfig.createdAt) {
+          dataToSend.createdAt = this.taskConfig.createdAt;
+        }
+        if (this.taskConfig.dueDate) {
+          dataToSend.dueDate = this.taskConfig.dueDate;
+        }
+        
+        // Ajouter l'ID selon le type d'affectation
+        if (this.taskConfig.assignedType === 'student' && this.taskConfig.studentId) {
+          dataToSend.studentId = parseInt(this.taskConfig.studentId);
+        } else if (this.taskConfig.assignedType === 'parent' && this.taskConfig.parentId) {
+          dataToSend.parentId = parseInt(this.taskConfig.parentId);
+        } else if (this.taskConfig.assignedType === 'specialist' && this.taskConfig.specialistId) {
+          dataToSend.specialistId = parseInt(this.taskConfig.specialistId);
+        }
+        
+        // Ajouter l'activité liée si fournie
+        if (this.taskConfig.activityId) {
+          dataToSend.activityId = parseInt(this.taskConfig.activityId);
+        }
+        
+        // Déterminer l'URL selon le mode (création ou édition)
+        const url = this.taskConfig.isNew 
+          ? `/admin/objectives/${this.objectiveId}/tasks/create`
+          : `/admin/tasks/${this.currentTaskId}/update`;
+        
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(dataToSend),
+        });
+        
+        let result;
+        try {
+          result = await response.json();
+        } catch (e) {
+          result = { success: false, message: 'Erreur lors de la lecture de la réponse' };
+        }
+        
+        if (response.ok && result.success) {
+          const message = this.taskConfig.isNew 
+            ? (result.message || 'Tâche créée avec succès')
+            : (result.message || 'Configuration enregistrée avec succès');
+          if (window.showToast) {
+            window.showToast(message, 'success');
+          } else {
+            alert(message);
+          }
+          
+          // Fermer le rightSheet
+          this.closeConfigSheet();
+          
+          // Recharger la page pour mettre à jour l'affichage
+          setTimeout(() => {
+            window.location.reload();
+          }, 1000);
+        } else {
+          const errorMessage = result.message || (this.taskConfig.isNew 
+            ? 'Erreur lors de la création de la tâche'
+            : 'Erreur lors de l\'enregistrement de la configuration');
+          if (window.showToast) {
+            window.showToast(errorMessage, 'error');
+          } else {
+            alert(errorMessage);
+          }
+          this.configSubmitting = false;
+        }
+      } catch (error) {
+        console.error('Erreur lors de l\'enregistrement:', error);
+        const errorMessage = this.taskConfig.isNew 
+          ? 'Erreur lors de la création de la tâche'
+          : 'Erreur lors de l\'enregistrement de la configuration';
+        if (window.showToast) {
+          window.showToast(errorMessage, 'error');
+        } else {
+          alert(errorMessage);
+        }
+      } finally {
+        this.configSubmitting = false;
+      }
+    },
+    
+    formatDate(dateString) {
+      if (!dateString) return '';
+      const date = new Date(dateString);
+      return date.toLocaleDateString('fr-FR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    },
+    
+    // Fonctions pour les commentaires
+    openCommentCreate() {
+      this.commentFormOpen = true;
+      this.commentEditMode = false;
+      this.currentCommentId = null;
+      this.commentFormData = {
+        content: '',
+      };
+    },
+    
+    openCommentEdit(commentId, content) {
+      this.commentFormOpen = true;
+      this.commentEditMode = true;
+      this.currentCommentId = commentId;
+      this.commentFormData = {
+        content: content,
+      };
+    },
+    
+    closeCommentForm() {
+      this.commentFormOpen = false;
+      this.commentEditMode = false;
+      this.currentCommentId = null;
+      this.commentFormData = {
+        content: '',
+      };
+    },
+    
+    async saveComment() {
+      if (!this.commentFormData.content || this.commentFormData.content.trim() === '') {
+        if (window.showToast) {
+          window.showToast('Le commentaire ne peut pas être vide', 'error');
+        }
+        return;
+      }
+      
+      this.commentSubmitting = true;
+      
+      try {
+        const url = this.commentEditMode
+          ? `/admin/objectives/${this.objectiveId}/comments/${this.currentCommentId}/update`
+          : `/admin/objectives/${this.objectiveId}/comments/create`;
+        
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest',
+          },
+          body: JSON.stringify(this.commentFormData),
+        });
+        
+        let result;
+        try {
+          result = await response.json();
+        } catch (e) {
+          result = { success: false, message: 'Erreur lors de la lecture de la réponse' };
+        }
+        
+        if (response.ok && result.success) {
+          if (window.showToast) {
+            window.showToast(result.message || 'Commentaire enregistré avec succès', 'success');
+          } else {
+            alert(result.message || 'Commentaire enregistré avec succès');
+          }
+          
+          // Fermer le formulaire
+          this.closeCommentForm();
+          
+          // Recharger la page pour mettre à jour l'affichage
+          setTimeout(() => {
+            window.location.reload();
+          }, 500);
+        } else {
+          const errorMessage = result.message || 'Erreur lors de l\'enregistrement du commentaire';
+          if (window.showToast) {
+            window.showToast(errorMessage, 'error');
+          } else {
+            alert(errorMessage);
+          }
+        }
+      } catch (error) {
+        console.error('Erreur lors de l\'enregistrement du commentaire:', error);
+        const errorMessage = 'Une erreur est survenue lors de l\'enregistrement du commentaire';
+        if (window.showToast) {
+          window.showToast(errorMessage, 'error');
+        } else {
+          alert(errorMessage);
+        }
+      } finally {
+        this.commentSubmitting = false;
+      }
+    },
+    
+    async deleteTask(taskId, taskStatus = null) {
+      // Vérifier que l'objectif peut être modifié avant de permettre la suppression
+      const canModify = this.objective?.canModifyTasks !== false;
+      
+      if (!canModify) {
+        if (window.showToast) {
+          window.showToast('Impossible de supprimer cette tâche. L\'objectif est validé par le coach.', 'error');
+        }
+        return;
+      }
+      
+      // Vérifier que la tâche n'est pas terminée
+      // Les tâches terminées ne peuvent pas être supprimées
+      if (taskStatus === 'completed') {
+        if (window.showToast) {
+          window.showToast('Impossible de supprimer une tâche terminée.', 'error');
+        }
+        return;
+      }
+      
+      if (!confirm('Êtes-vous sûr de vouloir supprimer cette tâche ?')) {
+        return;
+      }
+      
+      try {
+        const response = await fetch(`/admin/tasks/${taskId}/delete`, {
+          method: 'DELETE',
+          headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+          },
+        });
+        
+        let result;
+        try {
+          result = await response.json();
+        } catch (e) {
+          result = { success: false, message: 'Erreur lors de la lecture de la réponse' };
+        }
+        
+        if (response.ok && result.success) {
+          if (window.showToast) {
+            window.showToast(result.message || 'Tâche supprimée avec succès', 'success');
+          } else {
+            alert(result.message || 'Tâche supprimée avec succès');
+          }
+          
+          // Recharger la page pour mettre à jour l'affichage
+          setTimeout(() => {
+            window.location.reload();
+          }, 500);
+        } else {
+          const errorMessage = result.message || 'Erreur lors de la suppression de la tâche';
+          if (window.showToast) {
+            window.showToast(errorMessage, 'error');
+          } else {
+            alert(errorMessage);
+          }
+        }
+      } catch (error) {
+        console.error('Erreur lors de la suppression de la tâche:', error);
+        const errorMessage = 'Une erreur est survenue lors de la suppression de la tâche';
+        if (window.showToast) {
+          window.showToast(errorMessage, 'error');
+        } else {
+          alert(errorMessage);
+        }
+      }
+    },
+    
+    async deleteComment(commentId) {
+      if (!confirm('Êtes-vous sûr de vouloir supprimer ce commentaire ?')) {
+        return;
+      }
+      
+      try {
+        const response = await fetch(`/admin/objectives/${this.objectiveId}/comments/${commentId}/delete`, {
+          method: 'DELETE',
+          headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+          },
+        });
+        
+        let result;
+        try {
+          result = await response.json();
+        } catch (e) {
+          result = { success: false, message: 'Erreur lors de la lecture de la réponse' };
+        }
+        
+        if (response.ok && result.success) {
+          if (window.showToast) {
+            window.showToast(result.message || 'Commentaire supprimé avec succès', 'success');
+          } else {
+            alert(result.message || 'Commentaire supprimé avec succès');
+          }
+          
+          // Recharger la page pour mettre à jour l'affichage
+          setTimeout(() => {
+            window.location.reload();
+          }, 500);
+        } else {
+          const errorMessage = result.message || 'Erreur lors de la suppression du commentaire';
+          if (window.showToast) {
+            window.showToast(errorMessage, 'error');
+          } else {
+            alert(errorMessage);
+          }
+        }
+      } catch (error) {
+        console.error('Erreur lors de la suppression du commentaire:', error);
+        const errorMessage = 'Une erreur est survenue lors de la suppression du commentaire';
+        if (window.showToast) {
+          window.showToast(errorMessage, 'error');
+        } else {
+          alert(errorMessage);
+        }
+      }
+    },
+  };
+}
+</script>
+{% endblock %}
