@@ -275,13 +275,39 @@
             <div class="flex-1 p-6">
                 <form @submit.prevent="saveRequest()" class="space-y-6">
                     <div>
-                        <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Titre *</label>
-                        <input
-                            type="text"
+                        <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                            Type de demande <span class="text-error-500">*</span>
+                        </label>
+                        <select
                             x-model="formData.title"
+                            @change="updateFieldsFromTitle()"
                             required
                             class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
-                        />
+                        >
+                            <option value="">Sélectionner un type...</option>
+                            {% if app.user.isCoach() %}
+                                <option value="Demande d'aide scolaire pour un élève">Demande d'aide scolaire pour un élève</option>
+                                <option value="Demande d'échange avec un parent">Demande d'échange avec un parent</option>
+                                <option value="Demande d'échange avec un élève">Demande d'échange avec un élève</option>
+                                <option value="Demande d'échange avec un spécialiste">Demande d'échange avec un spécialiste</option>
+                            {% elseif app.user.isParent() %}
+                                <option value="Demande d'aide scolaire pour mon enfant">Demande d'aide scolaire pour mon enfant</option>
+                                <option value="Demande d'échange avec mon coach">Demande d'échange avec mon coach</option>
+                            {% elseif app.user.isSpecialist() %}
+                                <option value="Demande d'échange avec un élève">Demande d'échange avec un élève</option>
+                                <option value="Demande d'échange avec mon coach">Demande d'échange avec mon coach</option>
+                            {% elseif app.user.isStudent() %}
+                                <option value="Demande d'échange avec un spécialiste">Demande d'échange avec un spécialiste</option>
+                                <option value="Demande d'échange avec mon coach">Demande d'échange avec mon coach</option>
+                            {% endif %}
+                        </select>
+                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400" x-show="formData.title">
+                            <span x-show="formData.title === 'Demande d\'aide scolaire pour un élève' || formData.title === 'Demande d\'aide scolaire pour mon enfant'">Sélectionnez un élève et un spécialiste pour cette demande</span>
+                            <span x-show="formData.title === 'Demande d\'échange avec un parent'">Sélectionnez un parent pour cette demande</span>
+                            <span x-show="formData.title === 'Demande d\'échange avec un élève'">Sélectionnez un élève pour cette demande</span>
+                            <span x-show="formData.title === 'Demande d\'échange avec un spécialiste'">Sélectionnez un spécialiste pour cette demande</span>
+                            <span x-show="formData.title === 'Demande d\'échange avec mon coach'">Votre coach sera automatiquement assigné</span>
+                        </p>
                     </div>
                     <div>
                         <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Description *</label>
@@ -291,21 +317,6 @@
                             rows="4"
                             class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
                         ></textarea>
-                    </div>
-                    <div>
-                        <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Type *</label>
-                        <select
-                            x-model="formData.type"
-                            required
-                            class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
-                        >
-                            <option value="">Sélectionner...</option>
-                            <option value="general">Général</option>
-                            <option value="consultation">Consultation</option>
-                            <option value="aide">Aide</option>
-                            <option value="question">Question</option>
-                            <option value="specialiste">Spécialiste</option>
-                        </select>
                     </div>
                     <div>
                         <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Statut *</label>
@@ -332,10 +343,14 @@
                             <option value="high">Haute</option>
                         </select>
                     </div>
-                    <div>
-                        <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Élève</label>
+                    <!-- Champ Élève - Affiché conditionnellement -->
+                    <div x-show="shouldShowStudentField()">
+                        <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                            Élève <span class="text-error-500" x-show="isStudentFieldRequired()">*</span>
+                        </label>
                         <select
                             x-model="formData.studentId"
+                            :required="isStudentFieldRequired()"
                             class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
                         >
                             <option value="">Sélectionner un élève...</option>
@@ -344,16 +359,38 @@
                             </template>
                         </select>
                     </div>
-                    {% if app.user.isCoach() %}
-                    <div>
-                        <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Spécialiste</label>
+                    
+                    <!-- Champ Spécialiste - Affiché conditionnellement -->
+                    <div x-show="shouldShowSpecialistField()">
+                        <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                            Spécialiste <span class="text-error-500" x-show="isSpecialistFieldRequired()">*</span>
+                        </label>
                         <select
                             x-model="formData.specialistId"
+                            :required="isSpecialistFieldRequired()"
                             class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
                         >
                             <option value="">Sélectionner un spécialiste...</option>
                             <template x-for="specialist in specialistsData" :key="specialist.id">
                                 <option :value="specialist.id" x-text="specialist.firstName + ' ' + specialist.lastName"></option>
+                            </template>
+                        </select>
+                    </div>
+                    
+                    <!-- Champ Parent - Affiché conditionnellement (pour les coaches) -->
+                    {% if app.user.isCoach() %}
+                    <div x-show="shouldShowParentField()">
+                        <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                            Parent <span class="text-error-500" x-show="isParentFieldRequired()">*</span>
+                        </label>
+                        <select
+                            x-model="formData.parentId"
+                            :required="isParentFieldRequired()"
+                            class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+                        >
+                            <option value="">Sélectionner un parent...</option>
+                            <template x-for="parent in parentsData" :key="parent.id">
+                                <option :value="parent.id" x-text="parent.firstName + ' ' + parent.lastName"></option>
                             </template>
                         </select>
                     </div>
@@ -400,11 +437,13 @@ function requestManager() {
             priority: 'medium',
             studentId: '',
             specialistId: '',
+            parentId: '',
         },
         requestsData: [],
         familiesData: [],
         studentsData: [],
         specialistsData: [],
+        parentsData: [],
         init() {
             const requestsJson = this.$el.getAttribute('data-requests');
             const familiesJson = this.$el.getAttribute('data-families');
@@ -425,7 +464,10 @@ function requestManager() {
                 this.specialistsData = JSON.parse(specialistsJson);
                 this.specialists = JSON.parse(specialistsJson);
             }
-            if (parentsJson) this.parents = JSON.parse(parentsJson);
+            if (parentsJson) {
+                this.parents = JSON.parse(parentsJson);
+                this.parentsData = JSON.parse(parentsJson);
+            }
             if (coachesJson) this.coaches = JSON.parse(coachesJson);
         },
         openCreate() {
@@ -439,8 +481,49 @@ function requestManager() {
                 priority: 'medium',
                 studentId: '',
                 specialistId: '',
+                parentId: '',
             };
             this.rightSheetOpen = true;
+        },
+        updateFieldsFromTitle() {
+            // Réinitialiser les champs conditionnels quand le titre change
+            if (!this.shouldShowStudentField()) {
+                this.formData.studentId = '';
+            }
+            if (!this.shouldShowSpecialistField()) {
+                this.formData.specialistId = '';
+            }
+            if (!this.shouldShowParentField()) {
+                this.formData.parentId = '';
+            }
+        },
+        shouldShowStudentField() {
+            if (!this.formData.title) return false;
+            const title = this.formData.title;
+            return title === 'Demande d\'aide scolaire pour un élève' ||
+                   title === 'Demande d\'aide scolaire pour mon enfant' ||
+                   title === 'Demande d\'échange avec un élève';
+        },
+        shouldShowSpecialistField() {
+            if (!this.formData.title) return false;
+            const title = this.formData.title;
+            // Le champ spécialiste est affiché uniquement pour "Demande d'aide scolaire pour un élève"
+            // (car seul le coach peut assigner un spécialiste dans ce cas)
+            // Pour "Demande d'échange avec un spécialiste", le spécialiste est assigné automatiquement pour les élèves
+            return title === 'Demande d\'aide scolaire pour un élève';
+        },
+        shouldShowParentField() {
+            if (!this.formData.title) return false;
+            return this.formData.title === 'Demande d\'échange avec un parent';
+        },
+        isStudentFieldRequired() {
+            return this.shouldShowStudentField();
+        },
+        isSpecialistFieldRequired() {
+            return this.formData.title === 'Demande d\'aide scolaire pour un élève';
+        },
+        isParentFieldRequired() {
+            return this.shouldShowParentField();
         },
         openEdit(id) {
             const request = this.requestsData.find(r => r.id === id);

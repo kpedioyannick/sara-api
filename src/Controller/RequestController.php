@@ -49,6 +49,52 @@ class RequestController extends AbstractController
     ) {
     }
 
+    /**
+     * Mappe le titre de la demande vers son type selon le rôle de l'utilisateur
+     */
+    private function mapTitleToType(string $title, string $userRole): string
+    {
+        $titleToTypeMapping = [
+            'coach' => [
+                'Demande d\'aide scolaire pour un élève' => 'student_to_specialist',
+                'Demande d\'échange avec un parent' => 'parent',
+                'Demande d\'échange avec un élève' => 'student',
+                'Demande d\'échange avec un spécialiste' => 'specialist',
+            ],
+            'parent' => [
+                'Demande d\'aide scolaire pour mon enfant' => 'student_help',
+                'Demande d\'échange avec mon coach' => 'coach',
+            ],
+            'specialist' => [
+                'Demande d\'échange avec un élève' => 'student',
+                'Demande d\'échange avec mon coach' => 'coach',
+            ],
+            'student' => [
+                'Demande d\'échange avec un spécialiste' => 'specialist',
+                'Demande d\'échange avec mon coach' => 'coach',
+            ],
+        ];
+
+        return $titleToTypeMapping[$userRole][$title] ?? 'general';
+    }
+
+    /**
+     * Détermine le rôle de l'utilisateur pour le mapping
+     */
+    private function getUserRole(\App\Entity\User $user): string
+    {
+        if ($user instanceof \App\Entity\Coach) {
+            return 'coach';
+        } elseif ($user instanceof \App\Entity\ParentUser) {
+            return 'parent';
+        } elseif ($user instanceof \App\Entity\Specialist) {
+            return 'specialist';
+        } elseif ($user instanceof \App\Entity\Student) {
+            return 'student';
+        }
+        return 'coach'; // Fallback
+    }
+
     #[Route('/admin/requests', name: 'admin_requests_list')]
     #[IsGranted('ROLE_USER')]
     public function list(HttpRequest $request): Response
@@ -317,9 +363,18 @@ class RequestController extends AbstractController
         $requestEntity->setCreator($creator);
         $requestEntity->setRecipient($coach);
         
-        if (isset($data['title'])) $requestEntity->setTitle($data['title']);
+        if (isset($data['title'])) {
+            $requestEntity->setTitle($data['title']);
+            // Mapper le titre vers le type automatiquement
+            $userRole = $this->getUserRole($user);
+            $type = $this->mapTitleToType($data['title'], $userRole);
+            $requestEntity->setType($type);
+        }
         if (isset($data['description'])) $requestEntity->setDescription($data['description']);
-        if (isset($data['type'])) $requestEntity->setType($data['type']);
+        // Le type peut aussi être fourni directement (pour compatibilité avec l'ancien système)
+        if (isset($data['type']) && !isset($data['title'])) {
+            $requestEntity->setType($data['type']);
+        }
         if (isset($data['status'])) $requestEntity->setStatus($data['status']);
         // Priorité par défaut : 'medium' si non fournie
         $requestEntity->setPriority($data['priority'] ?? 'medium');
@@ -332,6 +387,14 @@ class RequestController extends AbstractController
             if ($student) {
                 $requestEntity->setStudent($student);
                 $requestEntity->setParent($student->getFamily()?->getParent());
+            }
+        }
+        
+        // Gérer l'assignation directe d'un parent (pour les coaches)
+        if (isset($data['parentId']) && $user instanceof \App\Entity\Coach) {
+            $parent = $this->em->getRepository(\App\Entity\ParentUser::class)->find($data['parentId']);
+            if ($parent) {
+                $requestEntity->setParent($parent);
             }
         }
         

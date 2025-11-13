@@ -584,15 +584,7 @@ class SeedDatabaseCommand extends Command
                         $comment = new Comment();
                         $comment->setContent($commentData['content']);
                         $comment->setObjective($commentData['objective']);
-                        $comment->setAuthorType($commentData['type']);
-                        
-                        if ($commentData['type'] === 'coach') {
-                            $comment->setCoach($commentData['author']);
-                        } elseif ($commentData['type'] === 'specialist') {
-                            $comment->setSpecialist($commentData['author']);
-                        } elseif ($commentData['type'] === 'parent') {
-                            $comment->setParent($commentData['author']);
-                        }
+                        $comment->setAuthor($commentData['author']);
                         
                         $this->em->persist($comment);
                     }

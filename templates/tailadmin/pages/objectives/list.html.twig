@@ -1411,7 +1411,21 @@ function objectiveManager() {
                 }
                 if (data.success) {
                     this.showMessage(data.message || (this.isEdit ? 'Objectif modifié avec succès' : 'Objectif créé avec succès'), 'success');
-                    setTimeout(() => location.reload(), 1000);
+                    
+                    if (this.isEdit) {
+                        // En mode édition, recharger la page après un court délai
+                        setTimeout(() => location.reload(), 1000);
+                    } else {
+                        // En mode création, rediriger vers la page de détail de l'objectif créé
+                        if (data.id) {
+                            setTimeout(() => {
+                                window.location.href = `/admin/objectives/${data.id}`;
+                            }, 500);
+                        } else {
+                            // Fallback si pas d'ID (ne devrait pas arriver)
+                            setTimeout(() => location.reload(), 1000);
+                        }
+                    }
                 } else {
                     this.showMessage(data.message || data.error || (this.isEdit ? 'Erreur lors de la modification' : 'Erreur lors de la création'), 'error');
                 }

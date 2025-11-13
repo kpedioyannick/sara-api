@@ -19,15 +19,15 @@
                 </div>
                 {% if app.user.isCoach() or app.user.isSpecialist() %}
                 <div class="flex items-center gap-3">
-                    <button
-                        @click="openCreate()"
+                    <a
+                        href="{{ path('admin_activities_new') }}"
                         class="inline-flex items-center gap-2 rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white shadow-theme-xs hover:bg-brand-600"
                     >
                         <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
                         </svg>
                         Nouvelle Activité
-                    </button>
+                    </a>
                 </div>
                 {% endif %}
             </div>
@@ -84,7 +84,7 @@
                     <div class="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] sm:p-6 hover:shadow-lg transition-shadow cursor-pointer"
                          @click="viewActivity(activity.id)">
                         <div class="mb-4 flex items-center justify-between">
-                            <span class="text-theme-xs font-medium text-gray-500 dark:text-gray-400" x-text="activity.category.name"></span>
+                            <span class="text-theme-xs font-medium text-gray-500 dark:text-gray-400" x-text="activity.category && activity.category.name ? activity.category.name : 'Sans catégorie'"></span>
                             <span class="inline-flex items-center rounded-full bg-brand-100 px-2.5 py-0.5 text-xs font-medium text-brand-600 dark:bg-brand-900/30 dark:text-brand-400"
                                   x-text="activity.typeLabel"></span>
                         </div>
@@ -149,272 +149,7 @@
         </div>
     </div>
 
-    <!-- Right Sheet Overlay -->
-    <div
-        x-show="rightSheetOpen"
-        @click="closeSheet()"
-        x-transition:enter="transition-opacity ease-out duration-300"
-        x-transition:enter-start="opacity-0"
-        x-transition:enter-end="opacity-100"
-        x-transition:leave="transition-opacity ease-in duration-200"
-        x-transition:leave-start="opacity-100"
-        x-transition:leave-end="opacity-0"
-        class="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm"
-        style="display: none;"
-    ></div>
-
-    <!-- Right Sheet Panel -->
-    <div
-        x-show="rightSheetOpen"
-        @click.away="closeSheet()"
-        x-transition:enter="transition-transform ease-out duration-300"
-        x-transition:enter-start="translate-x-full"
-        x-transition:enter-end="translate-x-0"
-        x-transition:leave="transition-transform ease-in duration-200"
-        x-transition:leave-start="translate-x-0"
-        x-transition:leave-end="translate-x-full"
-        class="fixed right-0 top-0 z-50 h-full w-full max-w-md overflow-y-auto bg-white shadow-2xl dark:bg-gray-900"
-        style="display: none;"
-    >
-        <div class="flex h-full flex-col">
-            <!-- Header -->
-            <div class="sticky top-0 z-10 border-b border-gray-200 bg-white px-6 py-4 dark:border-gray-800 dark:bg-gray-900">
-                <div class="flex items-center justify-between">
-                    <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">
-                        <span x-text="editingActivity ? 'Modifier l\'activité' : 'Nouvelle activité'"></span>
-                    </h3>
-                    <button
-                        @click="closeSheet()"
-                        class="rounded-lg p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-300"
-                    >
-                        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                    </button>
-                </div>
-            </div>
-
-            <!-- Content -->
-            <div class="flex-1 overflow-y-auto p-6">
-                <form @submit.prevent="saveActivity()" class="space-y-4">
-                <!-- Titre -->
-                <div>
-                    <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                        Titre <span class="text-error-500">*</span>
-                    </label>
-                    <input
-                        type="text"
-                        x-model="activityForm.title"
-                        required
-                        class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
-                        placeholder="Titre de l'activité"
-                    />
-                </div>
-
-                <!-- Description -->
-                <div>
-                    <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                        Description <span class="text-error-500">*</span>
-                    </label>
-                    <textarea
-                        x-model="activityForm.description"
-                        required
-                        rows="4"
-                        class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
-                        placeholder="Description de l'activité"
-                    ></textarea>
-                </div>
-
-                <!-- Durée -->
-                <div>
-                    <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                        Durée <span class="text-error-500">*</span>
-                    </label>
-                    <select
-                        x-model="activityForm.duration"
-                        required
-                        class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
-                    >
-                        <option value="">Sélectionner une durée</option>
-                        <option value="15 minutes">15 minutes</option>
-                        <option value="30 minutes">30 minutes</option>
-                        <option value="45 minutes">45 minutes</option>
-                        <option value="1 heure">1 heure</option>
-                        <option value="1h30">1h30</option>
-                        <option value="2 heures">2 heures</option>
-                        <option value="15-30 minutes">15-30 minutes</option>
-                        <option value="30-45 minutes">30-45 minutes</option>
-                        <option value="45-60 minutes">45-60 minutes</option>
-                    </select>
-                </div>
-
-                <!-- Tranche d'âges -->
-                <div>
-                    <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                        Tranche d'âges <span class="text-error-500">*</span>
-                    </label>
-                    <select
-                        x-model="activityForm.ageRange"
-                        required
-                        class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
-                    >
-                        <option value="">Sélectionner une tranche d'âges</option>
-                        <option value="3-5 ans">3-5 ans</option>
-                        <option value="6-8 ans">6-8 ans</option>
-                        <option value="9-11 ans">9-11 ans</option>
-                        <option value="12-14 ans">12-14 ans</option>
-                        <option value="15-17 ans">15-17 ans</option>
-                        <option value="18+ ans">18+ ans</option>
-                        <option value="Tous âges">Tous âges</option>
-                    </select>
-                </div>
-
-                <!-- Type -->
-                <div>
-                    <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                        Type <span class="text-error-500">*</span>
-                    </label>
-                    <select
-                        x-model="activityForm.type"
-                        required
-                        class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
-                    >
-                        <option value="">Sélectionner un type</option>
-                        <option value="individual">Individuel</option>
-                        <option value="with_adult">Avec un adulte</option>
-                    </select>
-                </div>
-
-                <!-- Catégorie -->
-                <div>
-                    <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                        Catégorie <span class="text-error-500">*</span>
-                    </label>
-                    <select
-                        x-model="activityForm.categoryId"
-                        @change="onCategoryChange()"
-                        required
-                        class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
-                    >
-                        <option value="">Sélectionner une catégorie</option>
-                        <template x-for="category in categories" :key="category.id">
-                            <option :value="category.id" x-text="category.name"></option>
-                        </template>
-                    </select>
-                </div>
-
-                <!-- Sous-catégorie -->
-
-                <!-- Objectifs -->
-                <div>
-                    <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                        Objectifs
-                    </label>
-                    <div class="space-y-2">
-                        <template x-for="(objective, index) in activityForm.objectives" :key="index">
-                            <div class="flex gap-2">
-                                <select
-                                    x-model="activityForm.objectives[index]"
-                                    class="flex-1 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
-                                >
-                                    <option value="">Sélectionner un objectif...</option>
-                                    <option value="Gestion du stress">Gestion du stress</option>
-                                    <option value="Confiance en soi">Confiance en soi</option>
-                                    <option value="Concentration">Concentration</option>
-                                    <option value="Motivation">Motivation</option>
-                                    <option value="Organisation">Organisation</option>
-                                    <option value="Autonomie">Autonomie</option>
-                                    <option value="Communication">Communication</option>
-                                    <option value="Créativité">Créativité</option>
-                                    <option value="Mémoire">Mémoire</option>
-                                    <option value="Résolution de problèmes">Résolution de problèmes</option>
-                                    <option value="custom">+ Autre objectif personnalisé</option>
-                                </select>
-                                <template x-if="activityForm.objectives[index] === 'custom'">
-                                    <input
-                                        type="text"
-                                        x-model="activityForm.objectives[index]"
-                                        class="flex-1 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
-                                        placeholder="Entrez un objectif personnalisé"
-                                    />
-                                </template>
-                                <button
-                                    type="button"
-                                    @click="removeObjective(index)"
-                                    class="rounded-lg border border-error-500 bg-error-50 px-3 py-2 text-sm text-error-600 hover:bg-error-100 dark:border-error-400 dark:bg-error-900/30 dark:text-error-400"
-                                >
-                                    Supprimer
-                                </button>
-                            </div>
-                        </template>
-                        <button
-                            type="button"
-                            @click="addObjective()"
-                            class="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"
-                        >
-                            + Ajouter un objectif
-                        </button>
-                    </div>
-                </div>
-
-                {# Points travaillés - Masqué dans cette version #}
-                {# <div>
-                    <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                        Points travaillés
-                    </label>
-                    <div class="space-y-2">
-                        <template x-for="(point, index) in activityForm.workedPoints" :key="index">
-                            <div class="flex gap-2">
-                                <input
-                                    type="text"
-                                    x-model="activityForm.workedPoints[index]"
-                                    class="flex-1 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
-                                    placeholder="Point travaillé"
-                                />
-                                <button
-                                    type="button"
-                                    @click="removeWorkedPoint(index)"
-                                    class="rounded-lg border border-error-500 bg-error-50 px-3 py-2 text-sm text-error-600 hover:bg-error-100 dark:border-error-400 dark:bg-error-900/30 dark:text-error-400"
-                                >
-                                    Supprimer
-                                </button>
-                            </div>
-                        </template>
-                        <button
-                            type="button"
-                            @click="addWorkedPoint()"
-                            class="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"
-                        >
-                            + Ajouter un point travaillé
-                        </button>
-                    </div>
-                </div> #}
-
-                </form>
-            </div>
-
-            <!-- Footer -->
-            <div class="sticky bottom-0 border-t border-gray-200 bg-white px-6 py-4 dark:border-gray-800 dark:bg-gray-900">
-                <div class="flex gap-3">
-                    <button
-                        type="button"
-                        @click="closeSheet()"
-                        class="flex-1 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
-                    >
-                        Annuler
-                    </button>
-                    <button
-                        @click="saveActivity()"
-                        :disabled="saving"
-                        class="flex-1 rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white shadow-theme-xs hover:bg-brand-600 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                        <span x-show="!saving" x-text="editingActivity ? 'Modifier' : 'Créer'"></span>
-                        <span x-show="saving">Enregistrement...</span>
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
+    <!-- Interface de création déplacée vers une page dédiée -->
 </div>
 
 <script>
@@ -422,50 +157,29 @@ function activityManager() {
     return {
         activities: [],
         categories: [],
-        
-        // Filtres
         searchQuery: '',
         selectedCategoryId: '',
         selectedType: '',
         
-        // Right Sheet
-        rightSheetOpen: false,
-        editingActivity: null,
-        saving: false,
-        
-        // Formulaire
-        activityForm: {
-            title: '',
-            description: '',
-            duration: '30 minutes',
-            ageRange: '6-8 ans',
-            type: '',
-            categoryId: '',
-            objectives: [],
-            workedPoints: []
-        },
-        
         init() {
-            // Initialiser les données depuis les attributs data
             this.activities = JSON.parse(this.$el.dataset.activities || '[]');
             this.categories = JSON.parse(this.$el.dataset.categories || '[]');
         },
         
-        // Computed
         get filteredActivities() {
             let filtered = [...this.activities];
             
             if (this.searchQuery) {
                 const query = this.searchQuery.toLowerCase();
-                filtered = filtered.filter(a => 
+                filtered = filtered.filter(a =>
                     (a.title || '').toLowerCase().includes(query) ||
                     (a.description || '').toLowerCase().includes(query) ||
-                    (a.category?.name || '').toLowerCase().includes(query)
+                    (a.category && a.category.name ? a.category.name.toLowerCase().includes(query) : false)
                 );
             }
             
             if (this.selectedCategoryId) {
-                filtered = filtered.filter(a => a.category?.id == this.selectedCategoryId);
+                filtered = filtered.filter(a => a.category && a.category.id == this.selectedCategoryId);
             }
             
             if (this.selectedType) {
@@ -475,93 +189,12 @@ function activityManager() {
             return filtered;
         },
         
-        get availableCategories() {
-            return this.categories || [];
-        },
-        
-        // Méthodes
         applyFilters() {
-            // Les filtres sont appliqués automatiquement via computed
+            // Les filtres sont appliqués automatiquement via filteredActivities
         },
         
         onCategoryChange() {
-            // Méthode appelée lors du changement de catégorie
-            // Peut être utilisée pour des actions supplémentaires si nécessaire
-        },
-        
-        openCreate() {
-            this.editingActivity = null;
-            this.activityForm = {
-                title: '',
-                description: '',
-                duration: '30 minutes',
-                ageRange: '6-8 ans',
-                type: '',
-                categoryId: '',
-                objectives: [],
-                workedPoints: []
-            };
-            this.rightSheetOpen = true;
-        },
-        
-        closeSheet() {
-            this.rightSheetOpen = false;
-            this.editingActivity = null;
-        },
-        
-        addObjective() {
-            this.activityForm.objectives.push('');
-        },
-        
-        removeObjective(index) {
-            this.activityForm.objectives.splice(index, 1);
-        },
-        
-        addWorkedPoint() {
-            this.activityForm.workedPoints.push('');
-        },
-        
-        removeWorkedPoint(index) {
-            this.activityForm.workedPoints.splice(index, 1);
-        },
-        
-        async saveActivity() {
-            this.saving = true;
-            try {
-                const url = this.editingActivity 
-                    ? `/admin/activities/${this.editingActivity}/update`
-                    : '/admin/activities/create';
-                
-                const response = await fetch(url, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(this.activityForm),
-                });
-                
-                const result = await response.json();
-                
-                if (result.success) {
-                    if (window.showToast) {
-                        window.showToast(result.message, 'success');
-                    }
-                    this.closeSheet();
-                    // Recharger la page pour voir les nouvelles données
-                    window.location.reload();
-                } else {
-                    if (window.showToast) {
-                        window.showToast(result.message, 'error');
-                    }
-                }
-            } catch (error) {
-                console.error('Erreur:', error);
-                if (window.showToast) {
-                    window.showToast('Erreur lors de l\'enregistrement', 'error');
-                }
-            } finally {
-                this.saving = false;
-            }
+            // Point d'extension éventuel
         },
         
         viewActivity(id) {

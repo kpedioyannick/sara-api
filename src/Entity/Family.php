@@ -223,6 +223,7 @@ class Family
                 'lastName' => $student->getLastName(),
                 'pseudo' => $student->getPseudo(),
                 'class' => $student->getClass(),
+                'schoolName' => $student->getSchoolName(),
                 'points' => $student->getPoints(),
                 'specialists' => array_map(fn($s) => [
                     'id' => $s->getId(),

@@ -90,6 +90,29 @@ class ActivityController extends AbstractController
         ]);
     }
 
+    #[Route('/admin/activities/new', name: 'admin_activities_new')]
+    #[IsGranted('ROLE_USER')]
+    public function new(): Response
+    {
+        $user = $this->getUser();
+        if (!$user) {
+            throw $this->createAccessDeniedException('Vous devez être connecté');
+        }
+
+        if (!$user->isCoach() && !$user->isSpecialist()) {
+            throw $this->createAccessDeniedException('Vous n\'avez pas le droit de créer des activités');
+        }
+
+        return $this->render('tailadmin/pages/activities/create.html.twig', [
+            'pageTitle' => 'Nouvelle Activité | TailAdmin',
+            'pageName' => 'activities',
+            'breadcrumbs' => [
+                ['label' => 'Dashboard', 'url' => $this->generateUrl('admin_dashboard')],
+                ['label' => 'Activités', 'url' => $this->generateUrl('admin_activities_list')],
+            ],
+        ]);
+    }
+
     #[Route('/admin/activities/create', name: 'admin_activities_create', methods: ['POST'])]
     #[IsGranted('ROLE_USER')]
     public function create(Request $request): JsonResponse
@@ -132,14 +155,12 @@ class ActivityController extends AbstractController
             if (empty($data['type'])) {
                 return new JsonResponse(['success' => false, 'message' => 'Le type est requis'], 400);
             }
-            if (empty($data['categoryId'])) {
-                return new JsonResponse(['success' => false, 'message' => 'La catégorie est requise'], 400);
-            }
-
-            // Récupérer la catégorie
-            $category = $this->categoryRepository->find($data['categoryId']);
-            if (!$category) {
-                return new JsonResponse(['success' => false, 'message' => 'Catégorie non trouvée'], 400);
+            $category = null;
+            if (!empty($data['categoryId'])) {
+                $category = $this->categoryRepository->find($data['categoryId']);
+                if (!$category) {
+                    return new JsonResponse(['success' => false, 'message' => 'Catégorie non trouvée'], 400);
+                }
             }
 
             // Créer l'activité
@@ -355,10 +376,14 @@ class ActivityController extends AbstractController
             }
 
             // Mettre à jour la catégorie si nécessaire
-            if (isset($data['categoryId'])) {
-                $category = $this->categoryRepository->find($data['categoryId']);
-                if ($category) {
-                    $activity->setCategory($category);
+            if (array_key_exists('categoryId', $data)) {
+                if ($data['categoryId']) {
+                    $category = $this->categoryRepository->find($data['categoryId']);
+                    if ($category) {
+                        $activity->setCategory($category);
+                    }
+                } else {
+                    $activity->setCategory(null);
                 }
             }
 

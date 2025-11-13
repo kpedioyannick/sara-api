@@ -6,8 +6,7 @@
 
 {% block content %}
 <div 
-    x-data="activityEditManager()"
-    data-activity='{{ activity|json_encode|e('html_attr') }}'
+    x-data="activityCreateManager()"
     class="p-4 mx-auto max-w-(--breakpoint-2xl) md:p-6"
 >
     {% include 'tailadmin/components/breadcrumb.html.twig' %}
@@ -15,8 +14,8 @@
     <div class="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
         <div class="px-6 py-5 border-b border-gray-100 dark:border-gray-800">
             <div class="flex items-center justify-between">
-                <h3 class="text-base font-medium text-gray-800 dark:text-white/90">Modifier l'activité</h3>
-                <a href="{{ path('admin_activities_detail', {id: activity.id}) }}" class="inline-flex items-center gap-2 rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-white/[0.03]">
+                <h3 class="text-base font-medium text-gray-800 dark:text-white/90">Créer une activité</h3>
+                <a href="{{ path('admin_activities_list') }}" class="inline-flex items-center gap-2 rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-white/[0.03]">
                     <svg class="fill-current" width="20" height="20" viewBox="0 0 20 20" fill="none">
                         <path fill-rule="evenodd" clip-rule="evenodd" d="M9.70711 16.7071C9.31658 17.0976 8.68342 17.0976 8.29289 16.7071L2.29289 10.7071C1.90237 10.3166 1.90237 9.68342 2.29289 9.29289L8.29289 3.29289C8.68342 2.90237 9.31658 2.90237 9.70711 3.29289C10.0976 3.68342 10.0976 4.31658 9.70711 4.70711L5.41421 9H17C17.5523 9 18 9.44772 18 10C18 10.5523 17.5523 11 17 11H5.41421L9.70711 15.2929C10.0976 15.6834 10.0976 16.3166 9.70711 16.7071Z" fill=""/>
                     </svg>
@@ -25,7 +24,7 @@
             </div>
         </div>
 
-        <form @submit.prevent="updateActivity()" class="p-6 space-y-6">
+        <form @submit.prevent="createActivity()" class="p-6 space-y-6">
             <!-- Titre -->
             <div>
                 <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -33,7 +32,7 @@
                 </label>
                 <input
                     type="text"
-                    x-model="editForm.title"
+                    x-model="createForm.title"
                     required
                     class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
                     placeholder="Titre de l'activité"
@@ -49,7 +48,7 @@
                     x-ref="descriptionEditor"
                     class="min-h-[400px] rounded-lg border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800"
                 ></div>
-                <input type="hidden" x-model="editForm.description" id="description-hidden">
+                <input type="hidden" x-model="createForm.description" id="description-hidden">
             </div>
 
             <!-- Durée -->
@@ -58,7 +57,7 @@
                     Durée <span class="text-error-500">*</span>
                 </label>
                 <select
-                    x-model="editForm.duration"
+                    x-model="createForm.duration"
                     required
                     class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
                 >
@@ -81,7 +80,7 @@
                     Niveau scolaire <span class="text-error-500">*</span>
                 </label>
                 <select
-                    x-model="editForm.ageRange"
+                    x-model="createForm.ageRange"
                     required
                     class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
                 >
@@ -99,7 +98,7 @@
                     Type <span class="text-error-500">*</span>
                 </label>
                 <select
-                    x-model="editForm.type"
+                    x-model="createForm.type"
                     required
                     class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
                 >
@@ -115,17 +114,17 @@
                     Objectifs
                 </label>
                 <div class="space-y-2">
-                    <template x-for="(objective, index) in (editForm.objectives || [])" :key="index">
+                    <template x-for="(objective, index) in (createForm.objectives || [])" :key="index">
                         <div class="flex gap-2">
                             <input
                                 type="text"
-                                x-model="editForm.objectives[index]"
+                                x-model="createForm.objectives[index]"
                                 class="flex-1 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
                                 placeholder="Objectif"
                             />
                             <button
                                 type="button"
-                                @click="editForm.objectives.splice(index, 1)"
+                                @click="createForm.objectives.splice(index, 1)"
                                 class="rounded-lg border border-error-500 bg-error-50 px-3 py-2 text-sm text-error-600 hover:bg-error-100 dark:border-error-400 dark:bg-error-900/30 dark:text-error-400"
                             >
                                 Supprimer
@@ -134,7 +133,7 @@
                     </template>
                     <button
                         type="button"
-                        @click="editForm.objectives = editForm.objectives || []; editForm.objectives.push('')"
+                        @click="createForm.objectives = createForm.objectives || []; createForm.objectives.push('')"
                         class="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"
                     >
                         + Ajouter un objectif
@@ -144,7 +143,7 @@
 
             <!-- Boutons d'action -->
             <div class="flex gap-3 justify-end pt-4 border-t border-gray-200 dark:border-gray-800">
-                <a href="{{ path('admin_activities_detail', {id: activity.id}) }}" class="rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700">
+                <a href="{{ path('admin_activities_list') }}" class="rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700">
                     Annuler
                 </a>
                 <button
@@ -152,7 +151,7 @@
                     :disabled="saving"
                     class="rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white shadow-theme-xs hover:bg-brand-600 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                    <span x-show="!saving">Enregistrer</span>
+                    <span x-show="!saving">Créer</span>
                     <span x-show="saving">Enregistrement...</span>
                 </button>
             </div>
@@ -161,65 +160,41 @@
 </div>
 
 <script>
-function activityEditManager() {
+function activityCreateManager() {
     return {
-        activity: {},
-        editForm: {},
+        createForm: {
+            title: '',
+            description: '',
+            duration: '30 minutes',
+            ageRange: 'Primaire',
+            type: '',
+            objectives: []
+        },
         quillEditor: null,
         quillLoaded: false,
         saving: false,
-        
+
         init() {
-            // Initialiser les données depuis les attributs data
-            this.activity = JSON.parse(this.$el.dataset.activity || '{}');
-            this.editForm = { ...this.activity };
-
-            const ageRangeMap = {
-                '3-5 ans': 'Maternelle',
-                '6-8 ans': 'Primaire',
-                '9-11 ans': 'Primaire',
-                '12-14 ans': 'Collège',
-                '15-17 ans': 'Lycée',
-                '18+ ans': 'Lycée',
-                'Tous âges': 'Maternelle'
-            };
-
-            if (!this.editForm.ageRange) {
-                this.editForm.ageRange = 'Primaire';
-            } else if (ageRangeMap[this.editForm.ageRange]) {
-                this.editForm.ageRange = ageRangeMap[this.editForm.ageRange];
-            }
-            
-            // Charger Quill.js si pas déjà chargé
             if (typeof Quill === 'undefined') {
                 const script = document.createElement('script');
                 script.src = 'https://cdn.quilljs.com/1.3.6/quill.js';
                 script.onload = () => {
                     this.quillLoaded = true;
-                    this.$nextTick(() => {
-                        this.initQuillEditor();
-                    });
+                    this.$nextTick(() => this.initQuillEditor());
                 };
                 document.head.appendChild(script);
             } else {
                 this.quillLoaded = true;
-                this.$nextTick(() => {
-                    this.initQuillEditor();
-                });
+                this.$nextTick(() => this.initQuillEditor());
             }
         },
-        
+
         initQuillEditor() {
             const editorElement = this.$refs.descriptionEditor;
-            if (!editorElement) {
+            if (!editorElement || typeof Quill === 'undefined') {
                 return;
             }
-            
-            if (typeof Quill === 'undefined') {
-                console.error('Quill.js n\'est pas chargé');
-                return;
-            }
-            
+
             this.quillEditor = new Quill(editorElement, {
                 theme: 'snow',
                 modules: {
@@ -238,65 +213,63 @@ function activityEditManager() {
                 },
                 placeholder: 'Rédigez la description de l\'activité...'
             });
-            
-            // Charger le contenu initial
-            if (this.editForm.description) {
-                this.quillEditor.root.innerHTML = this.editForm.description;
-            }
-            
-            // Mettre à jour editForm.description quand le contenu change
+
             this.quillEditor.on('text-change', () => {
-                this.editForm.description = this.quillEditor.root.innerHTML;
+                this.createForm.description = this.quillEditor.root.innerHTML;
             });
         },
-        
-        async updateActivity() {
-            // Récupérer le contenu HTML de l'éditeur Quill
+
+        async createActivity() {
             if (this.quillEditor) {
-                this.editForm.description = this.quillEditor.root.innerHTML;
+                this.createForm.description = this.quillEditor.root.innerHTML;
             }
-            
+
+            if (!this.createForm.description || this.createForm.description.trim() === '<p><br></p>') {
+                if (window.showToast) {
+                    window.showToast('La description est requise', 'error');
+                }
+                return;
+            }
+
             this.saving = true;
             try {
                 const payload = {
-                    title: this.editForm.title,
-                    description: this.editForm.description,
-                    duration: this.editForm.duration,
-                    ageRange: this.editForm.ageRange,
-                    type: this.editForm.type,
-                    objectives: this.editForm.objectives || []
+                    title: this.createForm.title,
+                    description: this.createForm.description,
+                    duration: this.createForm.duration,
+                    ageRange: this.createForm.ageRange,
+                    type: this.createForm.type,
+                    objectives: this.createForm.objectives || []
                 };
-                
-                const response = await fetch(`/admin/activities/${this.activity.id}/update`, {
+
+                const response = await fetch('/admin/activities/create', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
                     body: JSON.stringify(payload),
                 });
-                
-                if (response.redirected) {
-                    // Si redirection, suivre la redirection
-                    window.location.href = response.url;
-                    return;
-                }
-                
+
                 const result = await response.json();
-                
+
                 if (result.success) {
                     if (window.showToast) {
-                        window.showToast('Activité mise à jour avec succès', 'success');
+                        window.showToast(result.message || 'Activité créée avec succès', 'success');
                     }
-                    window.location.href = `/admin/activities/${this.activity.id}`;
+                    if (result.id) {
+                        window.location.href = `/admin/activities/${result.id}`;
+                    } else {
+                        window.location.href = '{{ path('admin_activities_list') }}';
+                    }
                 } else {
                     if (window.showToast) {
-                        window.showToast(result.message, 'error');
+                        window.showToast(result.message || 'Erreur lors de la création', 'error');
                     }
                 }
             } catch (error) {
                 console.error('Erreur:', error);
                 if (window.showToast) {
-                    window.showToast('Erreur lors de la mise à jour', 'error');
+                    window.showToast('Erreur lors de la création', 'error');
                 }
             } finally {
                 this.saving = false;
@@ -306,4 +279,5 @@ function activityEditManager() {
 }
 </script>
 {% endblock %}
+
 

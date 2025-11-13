@@ -68,7 +68,7 @@ class Activity
     private ?\DateTimeImmutable $updatedAt = null;
 
     #[ORM\ManyToOne(inversedBy: 'activities')]
-    #[ORM\JoinColumn(nullable: false)]
+    #[ORM\JoinColumn(nullable: true)]
     private ?ActivityCategory $category = null;
 
     #[ORM\ManyToOne]
@@ -342,7 +342,7 @@ class Activity
         return self::STATUSES[$this->getStatus()] ?? $this->getStatus();
     }
 
-    public static function create(array $data, User $createdBy, ActivityCategory $category): self
+    public static function create(array $data, User $createdBy, ?ActivityCategory $category = null): self
     {
         $activity = new self();
         $activity->setTitle($data['title'] ?? '');
