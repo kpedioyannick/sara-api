@@ -9,8 +9,10 @@
         <div class="p-4 xl:p-6">
             <div class="flex items-start justify-between mb-4">
                 <div class="flex-1">
-                    <h3 class="text-2xl font-semibold text-gray-800 dark:text-white/90 mb-2">
-                        {{ request.title }}
+                    <h3 class="text-2xl font-semibold mb-2">
+                        <span class="inline-block rounded-lg bg-blue-100 dark:bg-blue-900/30 px-4 py-2 text-gray-800 dark:text-white/90">
+                            {{ request.title }}
+                        </span>
                     </h3>
                     <div class="flex flex-wrap items-center gap-3 mb-4">
                         <span class="inline-flex rounded-full bg-brand-50 px-3 py-1 text-sm font-medium text-brand-500 dark:bg-brand-500/15 dark:text-brand-400">
@@ -61,7 +63,9 @@
                     </div>
                     <div>
                         <p class="text-sm text-gray-500 dark:text-gray-400">Créée par</p>
-                        <p class="text-base font-medium text-gray-800 dark:text-white/90">{{ request.creatorName }}</p>
+                        <p class="text-base font-medium">
+                            <span class="inline-block rounded-md bg-purple-100 dark:bg-purple-900/30 px-2.5 py-0.5 text-purple-700 dark:text-purple-300">{{ request.creatorName }}</span>
+                        </p>
                     </div>
                 </div>
                 <div class="flex items-center gap-3">
@@ -72,20 +76,26 @@
                     </div>
                     <div>
                         <p class="text-sm text-gray-500 dark:text-gray-400">Destinataire</p>
-                        <p class="text-base font-medium text-gray-800 dark:text-white/90">{{ request.recipientName }}</p>
+                        <p class="text-base font-medium">
+                            <span class="inline-block rounded-md bg-indigo-100 dark:bg-indigo-900/30 px-2.5 py-0.5 text-indigo-700 dark:text-indigo-300">{{ request.recipientName }}</span>
+                        </p>
                     </div>
                 </div>
             </div>
 
             <div class="mb-4">
                 <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Description</h4>
-                <p class="text-base text-gray-600 dark:text-gray-400 whitespace-pre-wrap">{{ request.description }}</p>
+                <p class="text-base whitespace-pre-wrap">
+                    <span class="inline-block rounded-lg bg-gray-100 dark:bg-gray-800 px-3 py-2 text-gray-700 dark:text-gray-300">{{ request.description }}</span>
+                </p>
             </div>
 
             {% if request.response %}
             <div class="mt-4">
                 <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Réponse</h4>
-                <p class="text-base text-gray-600 dark:text-gray-400 whitespace-pre-wrap">{{ request.response }}</p>
+                <p class="text-base whitespace-pre-wrap">
+                    <span class="inline-block rounded-lg bg-green-100 dark:bg-green-900/30 px-3 py-2 text-green-700 dark:text-green-300">{{ request.response }}</span>
+                </p>
             </div>
             {% endif %}
         </div>

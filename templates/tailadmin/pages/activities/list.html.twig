@@ -110,21 +110,23 @@
                         </div>
 
                         <div class="mb-3">
-                            <h4 class="text-base font-semibold text-gray-800 dark:text-white/90 mb-2" x-text="activity.title || 'Sans titre'"></h4>
+                            <h4 class="text-base font-semibold mb-2">
+                                <span class="inline-block rounded-lg bg-blue-100 dark:bg-blue-900/30 px-3 py-1.5 text-gray-800 dark:text-white/90" x-text="activity.title || 'Sans titre'"></span>
+                            </h4>
                         </div>
 
                         <div class="mb-4 space-y-2">
-                            <div class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-                                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <div class="flex items-center gap-2 text-sm">
+                                <svg class="h-4 w-4 text-gray-500 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                                 </svg>
-                                <span x-text="activity.duration"></span>
+                                <span class="inline-block rounded-md bg-amber-100 dark:bg-amber-900/30 px-2 py-0.5 text-amber-700 dark:text-amber-300 font-medium" x-text="activity.duration"></span>
                             </div>
-                            <div class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-                                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <div class="flex items-center gap-2 text-sm">
+                                <svg class="h-4 w-4 text-gray-500 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                                 </svg>
-                                <span x-text="activity.ageRange"></span>
+                                <span class="inline-block rounded-md bg-orange-100 dark:bg-orange-900/30 px-2 py-0.5 text-orange-700 dark:text-orange-300 font-medium" x-text="activity.ageRange"></span>
                             </div>
                         </div>
 

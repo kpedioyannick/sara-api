@@ -115,6 +115,8 @@ Affichage visuel : les tâches doivent-elles être différenciées des événeme
   - lieu (string, nullable)
   - enfant (ManyToMany Student)
 
+  Dans le planning afficher les tahce de couleur différentes en fontion des types 
+
 Dans le moeur de recherche si un élève sort de la liste , un petit bouton à coté dépliant  , on peut ajoure une nore sans rehcertger la page ou sans just dans la iste des reusltat ? as tu des questions ? 
 
  http://localhost:8000/admin/activities => ajouter des bg avec des couleurs comem sur notion  
@@ -123,6 +125,7 @@ Dans le moeur de recherche si un élève sort de la liste , un petit bouton à c
 Design  notion 
 Bilans et notes pour élèves 
 cacher ent 
+Sur toutes les pages, list , detail rigthseet , je veux  de bg sur sur des textes comme sur notion
 
 Notes enfant image et et etex 
 

@@ -25,23 +25,33 @@
             <div class="space-y-6">
                 <div>
                     <label class="text-sm font-medium text-gray-500 dark:text-gray-400">Prénom</label>
-                    <p class="mt-1 text-base text-gray-800 dark:text-white/90">{{ student.firstName }}</p>
+                    <p class="mt-1 text-base">
+                        <span class="inline-block rounded-md bg-blue-100 dark:bg-blue-900/30 px-2.5 py-0.5 text-blue-700 dark:text-blue-300 font-medium">{{ student.firstName }}</span>
+                    </p>
                 </div>
                 <div>
                     <label class="text-sm font-medium text-gray-500 dark:text-gray-400">Nom</label>
-                    <p class="mt-1 text-base text-gray-800 dark:text-white/90">{{ student.lastName }}</p>
+                    <p class="mt-1 text-base">
+                        <span class="inline-block rounded-md bg-indigo-100 dark:bg-indigo-900/30 px-2.5 py-0.5 text-indigo-700 dark:text-indigo-300 font-medium">{{ student.lastName }}</span>
+                    </p>
                 </div>
                 <div>
                     <label class="text-sm font-medium text-gray-500 dark:text-gray-400">Pseudo</label>
-                    <p class="mt-1 text-base text-gray-800 dark:text-white/90">{{ student.pseudo ?: 'Non renseigné' }}</p>
+                    <p class="mt-1 text-base">
+                        <span class="inline-block rounded-md bg-cyan-100 dark:bg-cyan-900/30 px-2.5 py-0.5 text-cyan-700 dark:text-cyan-300 font-medium">{{ student.pseudo ?: 'Non renseigné' }}</span>
+                    </p>
                 </div>
                 <div>
                     <label class="text-sm font-medium text-gray-500 dark:text-gray-400">Classe</label>
-                    <p class="mt-1 text-base text-gray-800 dark:text-white/90">{{ student.class ?: 'Non renseignée' }}</p>
+                    <p class="mt-1 text-base">
+                        <span class="inline-block rounded-md bg-amber-100 dark:bg-amber-900/30 px-2.5 py-0.5 text-amber-700 dark:text-amber-300 font-medium">{{ student.class ?: 'Non renseignée' }}</span>
+                    </p>
                 </div>
                 <div>
                     <label class="text-sm font-medium text-gray-500 dark:text-gray-400">Nom de l'établissement</label>
-                    <p class="mt-1 text-base text-gray-800 dark:text-white/90">{{ student.schoolName ?: 'Non renseigné' }}</p>
+                    <p class="mt-1 text-base">
+                        <span class="inline-block rounded-md bg-teal-100 dark:bg-teal-900/30 px-2.5 py-0.5 text-teal-700 dark:text-teal-300 font-medium">{{ student.schoolName ?: 'Non renseigné' }}</span>
+                    </p>
                 </div>
                 <div>
                     <label class="text-sm font-medium text-gray-500 dark:text-gray-400">Tags des besoins</label>
@@ -78,15 +88,15 @@
                     <div class="mt-2 space-y-2">
                         <div class="flex items-center justify-between">
                             <span class="text-sm text-gray-600 dark:text-gray-400">Objectifs</span>
-                            <span class="text-base font-semibold text-gray-800 dark:text-white/90">{{ objectivesCount }}</span>
+                            <span class="inline-block rounded-md bg-blue-100 dark:bg-blue-900/30 px-2.5 py-0.5 text-base font-semibold text-blue-700 dark:text-blue-300">{{ objectivesCount }}</span>
                         </div>
                         <div class="flex items-center justify-between">
                             <span class="text-sm text-gray-600 dark:text-gray-400">Demandes</span>
-                            <span class="text-base font-semibold text-gray-800 dark:text-white/90">{{ requestsCount }}</span>
+                            <span class="inline-block rounded-md bg-purple-100 dark:bg-purple-900/30 px-2.5 py-0.5 text-base font-semibold text-purple-700 dark:text-purple-300">{{ requestsCount }}</span>
                         </div>
                         <div class="flex items-center justify-between">
                             <span class="text-sm text-gray-600 dark:text-gray-400">Événements planning</span>
-                            <span class="text-base font-semibold text-gray-800 dark:text-white/90">{{ planningsCount }}</span>
+                            <span class="inline-block rounded-md bg-indigo-100 dark:bg-indigo-900/30 px-2.5 py-0.5 text-base font-semibold text-indigo-700 dark:text-indigo-300">{{ planningsCount }}</span>
                         </div>
                     </div>
                 </div>

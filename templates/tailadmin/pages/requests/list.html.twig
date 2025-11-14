@@ -141,7 +141,7 @@
                 <div>
                     <div class="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-white/[0.03] sm:p-5">
                         <div class="mb-3 flex items-center justify-between">
-                            <span class="text-xs font-medium text-gray-500 dark:text-gray-400">{{ request.type|upper }}</span>
+                            <span class="inline-block rounded-md bg-cyan-100 dark:bg-cyan-900/30 px-2.5 py-0.5 text-xs font-medium text-cyan-700 dark:text-cyan-300">{{ request.type|upper }}</span>
                             <div class="flex items-center gap-1.5">
                                 {% if request.priority == 'high' %}
                                 <span class="inline-flex items-center rounded-full bg-error-100 px-2 py-0.5 text-xs font-medium text-error-600 dark:bg-error-900/30 dark:text-error-400">
@@ -172,22 +172,26 @@
                             </div>
                         </div>
 
-                        <h4 class="mb-2 text-base font-medium text-gray-800 dark:text-white/90">
-                            {{ request.title }}
+                        <h4 class="mb-2 text-base font-medium">
+                            <span class="inline-block rounded-lg bg-blue-100 dark:bg-blue-900/30 px-3 py-1.5 text-gray-800 dark:text-white/90">
+                                {{ request.title }}
+                            </span>
                         </h4>
 
-                        <div class="mb-3 space-y-1 text-sm">
-                            <div class="text-gray-600 dark:text-gray-400">
-                                <span class="font-medium">De:</span> {{ request.creatorName }}
+                        <div class="mb-3 space-y-1.5 text-sm">
+                            <div class="flex items-center gap-2">
+                                <span class="text-gray-600 dark:text-gray-400 font-medium">De:</span>
+                                <span class="inline-block rounded-md bg-purple-100 dark:bg-purple-900/30 px-2 py-0.5 text-purple-700 dark:text-purple-300 font-medium">{{ request.creatorName }}</span>
                             </div>
-                            <div class="text-gray-600 dark:text-gray-400">
-                                <span class="font-medium">Pour:</span> {{ request.recipientName }}
+                            <div class="flex items-center gap-2">
+                                <span class="text-gray-600 dark:text-gray-400 font-medium">Pour:</span>
+                                <span class="inline-block rounded-md bg-indigo-100 dark:bg-indigo-900/30 px-2 py-0.5 text-indigo-700 dark:text-indigo-300 font-medium">{{ request.recipientName }}</span>
                             </div>
-                            <div class="flex items-center gap-1.5 text-gray-500 dark:text-gray-400">
+                            <div class="flex items-center gap-1.5">
                                 <svg class="fill-gray-400" width="14" height="14" viewBox="0 0 16 16" fill="none">
                                     <path d="M8 1a7 7 0 100 14A7 7 0 008 1zM7.5 4v4l3.5 2 .5-.866L8.5 7.5V4h-1z" fill=""/>
                                 </svg>
-                                <span>Créée le {{ request.createdAt }}</span>
+                                <span class="inline-block rounded-md bg-gray-100 dark:bg-gray-800 px-2 py-0.5 text-gray-600 dark:text-gray-400 text-xs">Créée le {{ request.createdAt }}</span>
                             </div>
                         </div>
 
