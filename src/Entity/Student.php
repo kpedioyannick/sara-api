@@ -22,6 +22,9 @@ class Student extends User
     #[ORM\Column]
     private ?int $points = 0;
 
+    #[ORM\Column(type: 'json', nullable: true)]
+    private ?array $needTags = null;
+
     #[ORM\ManyToOne(inversedBy: 'students')]
     #[ORM\JoinColumn(nullable: false)]
     private ?Family $family = null;
@@ -96,6 +99,17 @@ class Student extends User
     public function addPoints(int $points): static
     {
         $this->points += $points;
+        return $this;
+    }
+
+    public function getNeedTags(): ?array
+    {
+        return $this->needTags;
+    }
+
+    public function setNeedTags(?array $needTags): static
+    {
+        $this->needTags = $needTags;
         return $this;
     }
 
@@ -255,6 +269,7 @@ class Student extends User
             'schoolName' => $this->getSchoolName(),
             'isActive' => $this->isActive(),
             'userType' => $this->getUserType(),
+            'needTags' => $this->getNeedTags() ?? [],
         ];
     }
 

@@ -12,6 +12,7 @@ use App\Form\StudentType;
 use App\Repository\CoachRepository;
 use App\Repository\FamilyRepository;
 use App\Repository\ParentUserRepository;
+use App\Repository\PlanningRepository;
 use App\Repository\SpecialistRepository;
 use App\Repository\StudentRepository;
 use App\Service\PermissionService;
@@ -39,6 +40,7 @@ class FamilyController extends AbstractController
         private readonly ParentUserRepository $parentRepository,
         private readonly StudentRepository $studentRepository,
         private readonly SpecialistRepository $specialistRepository,
+        private readonly PlanningRepository $planningRepository,
         private readonly ValidatorInterface $validator,
         private readonly PermissionService $permissionService
     ) {
@@ -138,7 +140,29 @@ class FamilyController extends AbstractController
         });
 
         // Conversion en tableau pour le template
-        $familiesData = array_map(fn($family) => $family->toTemplateArray($coach), $families);
+        $familiesData = array_map(function($family) use ($coach) {
+            $familyData = $family->toTemplateArray($coach);
+            
+            // Ajouter le nombre de plannings pour chaque étudiant
+            if (isset($familyData['students'])) {
+                foreach ($familyData['students'] as &$student) {
+                    $studentEntity = $this->studentRepository->find($student['id']);
+                    if ($studentEntity) {
+                        $student['planningsCount'] = $this->planningRepository->createQueryBuilder('p')
+                            ->select('COUNT(p.id)')
+                            ->where('p.user = :user')
+                            ->setParameter('user', $studentEntity)
+                            ->getQuery()
+                            ->getSingleScalarResult();
+                    } else {
+                        $student['planningsCount'] = 0;
+                    }
+                }
+                unset($student);
+            }
+            
+            return $familyData;
+        }, $families);
 
         // Récupérer tous les spécialistes pour la sélection
         $specialists = $this->specialistRepository->findAll();
@@ -245,6 +269,16 @@ class FamilyController extends AbstractController
         // Créer la famille seulement si le parent est valide
         $family = new Family();
         $family->setCoach($coach);
+        
+        // Définir le type de famille (FAMILY ou GROUP)
+        if (isset($data['type'])) {
+            try {
+                $familyType = \App\Enum\FamilyType::from($data['type']);
+                $family->setType($familyType);
+            } catch (\ValueError $e) {
+                return new JsonResponse(['success' => false, 'message' => 'Type de famille invalide'], 400);
+            }
+        }
 
         // Validation famille
         $errors = $this->validator->validate($family);
@@ -424,6 +458,9 @@ class FamilyController extends AbstractController
         if (isset($data['class'])) $student->setClass($data['class']);
         if (isset($data['schoolName'])) $student->setSchoolName($data['schoolName']);
         if (isset($data['points'])) $student->setPoints($data['points']);
+        if (isset($data['needTags']) && is_array($data['needTags'])) {
+            $student->setNeedTags($data['needTags']);
+        }
         
         $defaultPassword = 'password123';
         $hashedPassword = $this->passwordHasher->hashPassword($student, $defaultPassword);
@@ -482,6 +519,12 @@ class FamilyController extends AbstractController
         if (isset($data['class'])) $student->setClass($data['class']);
         if (isset($data['schoolName'])) $student->setSchoolName($data['schoolName']);
         if (isset($data['points'])) $student->setPoints($data['points']);
+        if (isset($data['needTags']) && is_array($data['needTags'])) {
+            $student->setNeedTags($data['needTags']);
+        }
+        if (isset($data['isActive'])) {
+            $student->setIsActive((bool)$data['isActive']);
+        }
         
         // Gérer le changement de mot de passe si fourni
         if (isset($data['newPassword']) && !empty(trim($data['newPassword']))) {
@@ -555,5 +598,53 @@ class FamilyController extends AbstractController
         $this->em->flush();
 
         return new JsonResponse(['success' => true, 'message' => 'Élève supprimé avec succès']);
+    }
+
+
+    #[Route('/admin/students/need-tags', name: 'admin_students_need_tags', methods: ['GET'])]
+    #[IsGranted('ROLE_USER')]
+    public function getNeedTags(): JsonResponse
+    {
+        // Tags prédéfinis
+        $predefinedTags = [
+            'Comportement',
+            'Problème scolaire',
+            'Gestion émotionnelle',
+            'Concentration',
+            'Motivation',
+            'Organisation',
+            'Autonomie',
+            'Confiance en soi',
+            'Relations sociales',
+            'Communication',
+        ];
+        
+        // Récupérer tous les étudiants avec leurs tags
+        $students = $this->studentRepository->findAll();
+        
+        // Extraire tous les tags uniques depuis la base de données
+        $allTags = [];
+        foreach ($students as $student) {
+            $tags = $student->getNeedTags();
+            if ($tags && is_array($tags)) {
+                foreach ($tags as $tag) {
+                    if (!empty(trim($tag)) && !in_array($tag, $allTags, true)) {
+                        $allTags[] = trim($tag);
+                    }
+                }
+            }
+        }
+        
+        // Fusionner les tags prédéfinis avec ceux de la base de données
+        // (en évitant les doublons)
+        $allTags = array_unique(array_merge($predefinedTags, $allTags));
+        
+        // Trier par ordre alphabétique
+        sort($allTags);
+        
+        return new JsonResponse([
+            'success' => true,
+            'tags' => array_values($allTags) // array_values pour réindexer
+        ]);
     }
 }

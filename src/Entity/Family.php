@@ -2,6 +2,7 @@
 
 namespace App\Entity;
 
+use App\Enum\FamilyType;
 use App\Repository\FamilyRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
@@ -17,6 +18,9 @@ class Family
 
     #[ORM\Column(length: 255)]
     private ?string $familyIdentifier = null;
+
+    #[ORM\Column(type: 'string', enumType: FamilyType::class)]
+    private FamilyType $type = FamilyType::FAMILY;
 
     #[ORM\Column]
     private ?bool $isActive = true;
@@ -69,6 +73,17 @@ class Family
     public function setIsActive(bool $isActive): static
     {
         $this->isActive = $isActive;
+        return $this;
+    }
+
+    public function getType(): FamilyType
+    {
+        return $this->type;
+    }
+
+    public function setType(FamilyType $type): static
+    {
+        $this->type = $type;
         return $this;
     }
 
@@ -149,6 +164,7 @@ class Family
         return [
             'id' => $this->getId(),
             'familyIdentifier' => $this->getFamilyIdentifier(),
+            'type' => $this->getType()->value,
             'isActive' => $this->isActive(),
             'parent' => $parent ? [
                 'id' => $parent->getId(),
@@ -217,6 +233,12 @@ class Family
         
         // Formatage des étudiants
         $data['students'] = array_map(function ($student) {
+            // Compter les objectifs
+            $objectivesCount = $student->getObjectives()->count();
+            
+            // Compter les demandes
+            $requestsCount = $student->getRequests()->count();
+            
             return [
                 'id' => $student->getId(),
                 'firstName' => $student->getFirstName(),
@@ -225,6 +247,10 @@ class Family
                 'class' => $student->getClass(),
                 'schoolName' => $student->getSchoolName(),
                 'points' => $student->getPoints(),
+                'needTags' => $student->getNeedTags() ?? [],
+                'isActive' => $student->isActive(),
+                'objectivesCount' => $objectivesCount,
+                'requestsCount' => $requestsCount,
                 'specialists' => array_map(fn($s) => [
                     'id' => $s->getId(),
                     'firstName' => $s->getFirstName(),
