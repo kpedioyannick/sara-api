@@ -4,10 +4,13 @@ namespace App\Controller;
 
 use App\Controller\Trait\CoachTrait;
 use App\Entity\Planning;
+use App\Repository\ActivityRepository;
 use App\Repository\CoachRepository;
 use App\Repository\FamilyRepository;
+use App\Repository\PathRepository;
 use App\Repository\PlanningRepository;
 use App\Repository\ProofRepository;
+use App\Repository\RequestRepository;
 use App\Repository\SpecialistRepository;
 use App\Repository\StudentRepository;
 use App\Repository\TaskRepository;
@@ -39,7 +42,10 @@ class PlanningController extends AbstractController
         private readonly SpecialistRepository $specialistRepository,
         private readonly TaskRepository $taskRepository,
         private readonly ProofRepository $proofRepository,
-        private readonly FileStorageService $fileStorageService
+        private readonly FileStorageService $fileStorageService,
+        private readonly ActivityRepository $activityRepository,
+        private readonly PathRepository $pathRepository,
+        private readonly RequestRepository $requestRepository
     ) {
     }
 
@@ -339,7 +345,7 @@ class PlanningController extends AbstractController
 
     #[Route('/admin/planning/task/{taskId}/details', name: 'admin_planning_task_details', methods: ['GET'])]
     #[IsGranted('ROLE_USER')]
-    public function getTaskDetails(int $taskId): Response
+    public function getTaskDetails(int $taskId, Request $request): Response
     {
         $user = $this->getUser();
         if (!$user) {
@@ -364,13 +370,63 @@ class PlanningController extends AbstractController
         // Récupérer les preuves
         $proofs = $this->proofRepository->findBy(['task' => $task], ['createdAt' => 'DESC']);
 
-        return $this->render('tailadmin/pages/planning/_task_rightsheet.html.twig', [
+        // Récupérer la date de l'événement depuis le planning si fournie (depuis le paramètre eventDate)
+        $eventDate = null;
+        if ($request->query->has('eventDate')) {
+            try {
+                $eventDate = new \DateTimeImmutable($request->query->get('eventDate'));
+            } catch (\Exception $e) {
+                // Ignorer si la date est invalide
+            }
+        }
+
+        // Récupérer les données nécessaires pour les champs ManyToMany selon le type de tâche
+        $taskType = $task->getType();
+        $data = [
             'task' => $task,
             'student' => $student,
             'objective' => $task->getObjective(),
             'proofs' => $proofs,
             'currentUser' => $user,
-        ]);
+            'eventDate' => $eventDate,
+        ];
+
+        // Pour WORKSHOP : specialists, activities, paths, students, families
+        if ($taskType->value === 'workshop') {
+            $coach = $this->getCurrentCoach($this->coachRepository, $this->security);
+            $data['specialists'] = array_map(fn($s) => ['id' => $s->getId(), 'name' => $s->getFirstName() . ' ' . $s->getLastName()], $this->specialistRepository->findAll());
+            $data['activities'] = array_map(fn($a) => ['id' => $a->getId(), 'title' => $a->getTitle()], $this->activityRepository->findAll());
+            $data['paths'] = array_map(fn($p) => ['id' => $p->getId(), 'title' => $p->getTitle()], $this->pathRepository->findAll());
+            $data['students'] = array_map(fn($s) => ['id' => $s->getId(), 'name' => $s->getFirstName() . ' ' . $s->getLastName()], $coach ? $this->studentRepository->findByCoach($coach) : []);
+            $data['families'] = array_map(function($f) {
+                $parent = $f->getParent();
+                $name = $parent && $parent->getLastName() 
+                    ? $parent->getLastName() 
+                    : ($f->getType()->value === 'GROUP' ? 'Groupe' : 'Famille') . ' #' . $f->getId();
+                return ['id' => $f->getId(), 'name' => $name];
+            }, $coach ? $this->familyRepository->findByCoach($coach) : []);
+        }
+
+        // Pour ASSESSMENT, INDIVIDUAL_WORK* : students
+        if (in_array($taskType->value, ['assessment', 'individual_work', 'individual_work_remote', 'individual_work_on_site'])) {
+            $coach = $this->getCurrentCoach($this->coachRepository, $this->security);
+            $data['students'] = array_map(fn($s) => ['id' => $s->getId(), 'name' => $s->getFirstName() . ' ' . $s->getLastName()], $coach ? $this->studentRepository->findByCoach($coach) : []);
+        }
+
+        // Pour INDIVIDUAL_WORK_REMOTE : requests
+        if ($taskType->value === 'individual_work_remote') {
+            $coach = $this->getCurrentCoach($this->coachRepository, $this->security);
+            // Récupérer les demandes liées à l'étudiant ou au coach
+            $data['requests'] = [];
+            if ($coach && $student) {
+                $family = $student->getFamily();
+                $familyId = $family ? $family->getId() : null;
+                $requests = $this->requestRepository->findByCoachWithSearch($coach, null, $familyId, $student->getId());
+                $data['requests'] = array_map(fn($r) => ['id' => $r->getId(), 'title' => $r->getTitle()], $requests);
+            }
+        }
+
+        return $this->render('tailadmin/pages/planning/_task_rightsheet.html.twig', $data);
     }
 
     #[Route('/admin/planning/task/{taskId}/proof', name: 'admin_planning_task_proof_create', methods: ['POST'])]
@@ -429,6 +485,84 @@ class PlanningController extends AbstractController
             // Si seulement description, l'utiliser comme contenu
             $proof->setContent($data['description']);
             $proof->setType('text');
+        }
+
+        // Gérer les champs ManyToMany selon le type de tâche
+        $taskType = $task->getType();
+        
+        // Specialists (pour WORKSHOP)
+        if (isset($data['specialistIds']) && is_array($data['specialistIds']) && $taskType->value === 'workshop') {
+            foreach ($data['specialistIds'] as $specialistId) {
+                $specialist = $this->specialistRepository->find($specialistId);
+                if ($specialist) {
+                    $proof->addSpecialist($specialist);
+                }
+            }
+        }
+
+        // Activities (pour WORKSHOP)
+        if (isset($data['activityIds']) && is_array($data['activityIds']) && $taskType->value === 'workshop') {
+            foreach ($data['activityIds'] as $activityId) {
+                $activity = $this->activityRepository->find($activityId);
+                if ($activity) {
+                    $proof->addActivity($activity);
+                }
+            }
+        }
+
+        // Paths (pour WORKSHOP)
+        if (isset($data['pathIds']) && is_array($data['pathIds']) && $taskType->value === 'workshop') {
+            foreach ($data['pathIds'] as $pathId) {
+                $path = $this->pathRepository->find($pathId);
+                if ($path) {
+                    $proof->addPath($path);
+                }
+            }
+        }
+
+        // Students (pour WORKSHOP, ASSESSMENT, INDIVIDUAL_WORK*)
+        if (isset($data['studentIds']) && is_array($data['studentIds'])) {
+            $allowedTypes = ['workshop', 'assessment', 'individual_work', 'individual_work_remote', 'individual_work_on_site'];
+            if (in_array($taskType->value, $allowedTypes)) {
+                foreach ($data['studentIds'] as $studentId) {
+                    $student = $this->studentRepository->find($studentId);
+                    if ($student) {
+                        $proof->addStudent($student);
+                    }
+                }
+            }
+        }
+
+        // Request (pour INDIVIDUAL_WORK_REMOTE)
+        if (isset($data['requestId']) && !empty($data['requestId']) && $taskType->value === 'individual_work_remote') {
+            $request = $this->requestRepository->find($data['requestId']);
+            if ($request) {
+                $proof->setRequest($request);
+            }
+        }
+
+        // Gérer la date de soumission (submittedAt)
+        // Si depuis planning et eventDate fournie : utiliser eventDate
+        // Sinon : utiliser submittedAt du formulaire ou date du jour par défaut
+        if (isset($data['eventDate']) && !empty($data['eventDate'])) {
+            // Depuis planning : utiliser la date de l'événement
+            try {
+                $proof->setSubmittedAt(new \DateTimeImmutable($data['eventDate']));
+            } catch (\Exception $e) {
+                // En cas d'erreur, utiliser la date du jour
+                $proof->setSubmittedAt(new \DateTimeImmutable());
+            }
+        } elseif (isset($data['submittedAt']) && !empty($data['submittedAt'])) {
+            // Depuis objectifs : utiliser la date du formulaire (modifiable via calendrier)
+            try {
+                $proof->setSubmittedAt(new \DateTimeImmutable($data['submittedAt']));
+            } catch (\Exception $e) {
+                // En cas d'erreur, utiliser la date du jour
+                $proof->setSubmittedAt(new \DateTimeImmutable());
+            }
+        } else {
+            // Par défaut : date du jour
+            $proof->setSubmittedAt(new \DateTimeImmutable());
         }
 
         // Validation

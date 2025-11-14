@@ -121,6 +121,20 @@ class ProofController extends AbstractController
         $proof->setTask($task);
         $proof->setSubmittedBy($user);
 
+        // Gérer la date de soumission (submittedAt)
+        // Depuis objectifs : utiliser submittedAt du formulaire ou date du jour par défaut
+        if (isset($data['submittedAt']) && !empty($data['submittedAt'])) {
+            try {
+                $proof->setSubmittedAt(new \DateTimeImmutable($data['submittedAt']));
+            } catch (\Exception $e) {
+                // En cas d'erreur, utiliser la date du jour
+                $proof->setSubmittedAt(new \DateTimeImmutable());
+            }
+        } else {
+            // Par défaut : date du jour
+            $proof->setSubmittedAt(new \DateTimeImmutable());
+        }
+
         // Gestion du contenu selon le type
         if ($data['type'] === 'text' && isset($data['content'])) {
             $proof->setContent($data['content']);
@@ -193,6 +207,15 @@ class ProofController extends AbstractController
         $proof->setType($data['type'] ?? 'text');
         $proof->setPlanning($planning);
         $proof->setSubmittedBy($coach);
+
+        // Gérer la date de soumission (submittedAt)
+        // Depuis planning : utiliser la date de l'événement (startDate du planning)
+        if ($planning->getStartDate()) {
+            $proof->setSubmittedAt($planning->getStartDate());
+        } else {
+            // Par défaut : date du jour
+            $proof->setSubmittedAt(new \DateTimeImmutable());
+        }
 
         // Gestion du contenu selon le type
         if ($data['type'] === 'text' && isset($data['content'])) {

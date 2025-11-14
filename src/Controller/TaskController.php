@@ -8,9 +8,11 @@ use App\Entity\Task;
 use App\Enum\TaskType;
 use App\Repository\ActivityRepository;
 use App\Repository\CoachRepository;
+use App\Repository\FamilyRepository;
 use App\Repository\ObjectiveRepository;
 use App\Repository\ParentUserRepository;
 use App\Repository\PathRepository;
+use App\Repository\RequestRepository;
 use App\Repository\SpecialistRepository;
 use App\Repository\StudentRepository;
 use App\Repository\TaskRepository;
@@ -22,6 +24,7 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
@@ -44,7 +47,9 @@ class TaskController extends AbstractController
         private readonly PermissionService $permissionService,
         private readonly NotificationService $notificationService,
         private readonly ActivityRepository $activityRepository,
-        private readonly PathRepository $pathRepository
+        private readonly PathRepository $pathRepository,
+        private readonly FamilyRepository $familyRepository,
+        private readonly RequestRepository $requestRepository
     ) {
     }
 
@@ -147,6 +152,33 @@ class TaskController extends AbstractController
             $path = $this->pathRepository->find($data['pathId']);
             if ($path) {
                 $task->setPath($path);
+            }
+        }
+
+        // Champs spécifiques pour WORKSHOP
+        if ($task->getType() === TaskType::WORKSHOP) {
+            if (isset($data['location'])) {
+                $task->setLocation($data['location']);
+            }
+            if (isset($data['familyId']) && !empty($data['familyId'])) {
+                $family = $this->familyRepository->find($data['familyId']);
+                if ($family) {
+                    $task->setFamily($family);
+                }
+            }
+        }
+
+        // Champs spécifiques pour ASSESSMENT
+        if ($task->getType() === TaskType::ASSESSMENT) {
+            if (isset($data['assessmentNotes'])) {
+                $task->setAssessmentNotes($data['assessmentNotes']);
+            }
+        }
+
+        // Champs spécifiques pour INDIVIDUAL_WORK_ON_SITE
+        if ($task->getType() === TaskType::INDIVIDUAL_WORK_ON_SITE) {
+            if (isset($data['location'])) {
+                $task->setLocation($data['location']);
             }
         }
 
@@ -292,6 +324,37 @@ class TaskController extends AbstractController
                 if ($path) {
                     $task->setPath($path);
                 }
+            }
+        }
+
+        // Mise à jour des champs spécifiques pour WORKSHOP
+        if ($task->getType() === TaskType::WORKSHOP) {
+            if (isset($data['location'])) {
+                $task->setLocation($data['location']);
+            }
+            if (isset($data['familyId'])) {
+                if (empty($data['familyId'])) {
+                    $task->setFamily(null);
+                } else {
+                    $family = $this->familyRepository->find($data['familyId']);
+                    if ($family) {
+                        $task->setFamily($family);
+                    }
+                }
+            }
+        }
+
+        // Mise à jour des champs spécifiques pour ASSESSMENT
+        if ($task->getType() === TaskType::ASSESSMENT) {
+            if (isset($data['assessmentNotes'])) {
+                $task->setAssessmentNotes($data['assessmentNotes']);
+            }
+        }
+
+        // Mise à jour des champs spécifiques pour INDIVIDUAL_WORK_ON_SITE
+        if ($task->getType() === TaskType::INDIVIDUAL_WORK_ON_SITE) {
+            if (isset($data['location'])) {
+                $task->setLocation($data['location']);
             }
         }
         
@@ -492,6 +555,132 @@ class TaskController extends AbstractController
                 'requiresProof' => $task->isRequiresProof(),
             ]
         ]);
+    }
+
+    #[Route('/admin/tasks/form/{type}', name: 'admin_tasks_form', methods: ['GET'])]
+    #[IsGranted('ROLE_USER')]
+    public function getTaskForm(string $type, Request $request): Response
+    {
+        $user = $this->getUser();
+        if (!$user) {
+            return new JsonResponse(['error' => 'Non autorisé'], 403);
+        }
+
+        $coach = $user instanceof \App\Entity\Coach ? $user : $this->getCurrentCoach($this->coachRepository, $this->security);
+        if (!$coach) {
+            return new JsonResponse(['error' => 'Vous devez être un coach'], 403);
+        }
+
+        // Valider le type
+        $validTypes = ['task', 'activity_task', 'school_activity_task', 'workshop', 'assessment', 'individual_work', 'individual_work_remote', 'individual_work_on_site'];
+        if (!in_array($type, $validTypes)) {
+            return new JsonResponse(['error' => 'Type invalide'], 400);
+        }
+
+        // Récupérer l'ID de la tâche si modification (optionnel)
+        $taskId = $request->query->get('taskId');
+        $task = null;
+        if ($taskId) {
+            $task = $this->taskRepository->find($taskId);
+        }
+
+        // Récupérer l'ID de l'objectif (requis pour le contexte)
+        $objectiveId = $request->query->get('objectiveId');
+        $objective = null;
+        if ($objectiveId) {
+            $objective = $this->objectiveRepository->find($objectiveId);
+        }
+
+        // Charger les données nécessaires selon le type
+        $data = [
+            'type' => $type,
+            'task' => $task,
+            'objective' => $objective,
+            'coach' => $coach,
+        ];
+
+        // Données communes - convertir en tableaux pour le template
+        $students = $this->studentRepository->findByCoach($coach);
+        $data['students'] = array_map(fn($s) => [
+            'id' => $s->getId(),
+            'firstName' => $s->getFirstName(),
+            'lastName' => $s->getLastName(),
+            'pseudo' => $s->getPseudo(),
+        ], $students);
+
+        // Récupérer les parents via les familles du coach
+        $families = $this->familyRepository->findBy(['coach' => $coach, 'isActive' => true]);
+        $parents = [];
+        foreach ($families as $family) {
+            $familyParent = $family->getParent();
+            if ($familyParent) {
+                $parents[] = $familyParent;
+            }
+        }
+        $data['parents'] = array_map(fn($p) => [
+            'id' => $p->getId(),
+            'firstName' => $p->getFirstName(),
+            'lastName' => $p->getLastName(),
+        ], $parents);
+
+        $specialists = $this->specialistRepository->findAll();
+        $data['specialists'] = array_map(fn($s) => [
+            'id' => $s->getId(),
+            'name' => trim(($s->getFirstName() ?? '') . ' ' . ($s->getLastName() ?? '')),
+        ], $specialists);
+
+        $activities = $this->activityRepository->findAll();
+        $data['activities'] = array_map(fn($a) => [
+            'id' => $a->getId(),
+            'title' => $a->getTitle(),
+            'description' => $a->getDescription(),
+        ], $activities);
+
+        $schoolActivities = $this->pathRepository->findAll();
+        $data['schoolActivities'] = array_map(fn($p) => [
+            'id' => $p->getId(),
+            'title' => $p->getTitle(),
+            'description' => $p->getDescription(),
+        ], $schoolActivities);
+
+        // Données spécifiques selon le type
+        if ($type === 'workshop') {
+            $families = $this->familyRepository->findBy(['coach' => $coach, 'isActive' => true]);
+            $data['families'] = array_map(function($f) {
+                $parent = $f->getParent();
+                $name = $parent && $parent->getLastName() 
+                    ? $parent->getLastName() 
+                    : ($f->getType()->value === 'GROUP' ? 'Groupe' : 'Famille') . ' #' . $f->getId();
+                return [
+                    'id' => $f->getId(),
+                    'name' => $name,
+                ];
+            }, $families);
+        }
+
+        if ($type === 'individual_work_remote') {
+            // Charger les demandes accessibles au coach
+            $requests = $this->requestRepository->findByCoachWithSearch($coach);
+            $data['requests'] = array_map(fn($r) => [
+                'id' => $r->getId(),
+                'title' => $r->getTitle(),
+            ], $requests);
+        }
+
+        // Rendre le template correspondant
+        $template = match($type) {
+            'task' => 'tailadmin/pages/objectives/_task_form_task.html.twig',
+            'activity_task' => 'tailadmin/pages/objectives/_task_form_activity_task.html.twig',
+            'school_activity_task' => 'tailadmin/pages/objectives/_task_form_school_activity_task.html.twig',
+            'workshop' => 'tailadmin/pages/objectives/_task_form_workshop.html.twig',
+            'assessment' => 'tailadmin/pages/objectives/_task_form_assessment.html.twig',
+            'individual_work' => 'tailadmin/pages/objectives/_task_form_individual_work.html.twig',
+            'individual_work_remote' => 'tailadmin/pages/objectives/_task_form_individual_work_remote.html.twig',
+            'individual_work_on_site' => 'tailadmin/pages/objectives/_task_form_individual_work_on_site.html.twig',
+            default => 'tailadmin/pages/objectives/_task_form_task.html.twig',
+        };
+
+        return $this->render($template, $data);
     }
 }
 

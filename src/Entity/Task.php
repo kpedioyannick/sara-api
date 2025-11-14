@@ -105,6 +105,18 @@ class Task
     #[ORM\JoinColumn(nullable: true)]
     private ?Path $path = null;
 
+    // Champs pour WORKSHOP
+    #[ORM\Column(type: 'string', nullable: true)]
+    private ?string $location = null; // lieu
+
+    #[ORM\ManyToOne]
+    #[ORM\JoinColumn(nullable: true)]
+    private ?Family $family = null; // pour WORKSHOP
+
+    // Champs pour ASSESSMENT
+    #[ORM\Column(type: 'text', nullable: true)]
+    private ?string $assessmentNotes = null; // notes
+
     public function __construct()
     {
         $this->createdAt = new \DateTimeImmutable();
@@ -352,6 +364,42 @@ class Task
         $this->path = $path;
         return $this;
     }
+
+    // Getters et setters pour WORKSHOP
+    public function getLocation(): ?string
+    {
+        return $this->location;
+    }
+
+    public function setLocation(?string $location): static
+    {
+        $this->location = $location;
+        return $this;
+    }
+
+    public function getFamily(): ?Family
+    {
+        return $this->family;
+    }
+
+    public function setFamily(?Family $family): static
+    {
+        $this->family = $family;
+        return $this;
+    }
+
+    // Getters et setters pour ASSESSMENT
+    public function getAssessmentNotes(): ?string
+    {
+        return $this->assessmentNotes;
+    }
+
+    public function setAssessmentNotes(?string $assessmentNotes): static
+    {
+        $this->assessmentNotes = $assessmentNotes;
+        return $this;
+    }
+
 
     public function toArray(): array
     {

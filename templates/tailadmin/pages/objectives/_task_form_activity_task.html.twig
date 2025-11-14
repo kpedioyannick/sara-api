@@ -1,0 +1,122 @@
+{# Template pour le type ACTIVITY_TASK - Tâche activité #}
+<form @submit.prevent="saveTaskConfig()" class="space-y-6">
+  <!-- Activité liée (requis) -->
+  <div>
+    <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+      Activité liée <span class="text-error-500">*</span>
+    </label>
+    <select
+      id="regular-activity-select"
+      x-ref="regularActivitySelect"
+      x-model="taskConfig.activityId"
+      @change="onActivitySelected()"
+      required
+      class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+    >
+      <option value="">Sélectionner une activité</option>
+      {% for activity in activities %}
+        <option value="{{ activity.id }}">{{ activity.title }}</option>
+      {% endfor %}
+    </select>
+  </div>
+
+  <!-- Titre (pré-rempli depuis l'activité) -->
+  <div>
+    <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+      Titre <span class="text-error-500">*</span>
+    </label>
+    <input
+      type="text"
+      x-model="taskConfig.title"
+      required
+      class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+      placeholder="Titre de la tâche (pré-rempli depuis l'activité)"
+    />
+  </div>
+
+  <!-- Description (pré-remplie depuis l'activité) -->
+  <div>
+    <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+      Description
+    </label>
+    <textarea
+      x-model="taskConfig.description"
+      rows="4"
+      class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+      placeholder="Description de la tâche (pré-remplie depuis l'activité)"
+    ></textarea>
+  </div>
+
+  <!-- Dates -->
+  <div class="grid grid-cols-2 gap-4">
+    <div>
+      <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+        Date de début
+      </label>
+      <input
+        type="date"
+        x-model="taskConfig.createdAt"
+        class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+      />
+    </div>
+    <div>
+      <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+        Date de fin
+      </label>
+      <input
+        type="date"
+        x-model="taskConfig.dueDate"
+        class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+      />
+    </div>
+  </div>
+
+  <!-- Statut -->
+  <div>
+    <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+      Statut
+    </label>
+    <select
+      x-model="taskConfig.status"
+      class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+    >
+      <option value="pending">À faire</option>
+      <option value="in_progress">En cours</option>
+      <option value="completed">Terminé</option>
+    </select>
+  </div>
+
+  <!-- Preuve requise -->
+  <div class="flex items-center gap-2">
+    <input
+      type="checkbox"
+      x-model="taskConfig.requiresProof"
+      id="requires-proof-activity-task"
+      class="h-4 w-4 rounded border-gray-300 text-brand-500 focus:ring-brand-500 dark:border-gray-700"
+    />
+    <label for="requires-proof-activity-task" class="text-sm font-medium text-gray-700 dark:text-gray-300">
+      Preuve requise
+    </label>
+  </div>
+
+  <!-- Boutons -->
+  <div class="flex gap-3 pt-4 border-t border-gray-200 dark:border-gray-800">
+    <button
+      type="button"
+      @click="closeConfigSheet()"
+      class="flex-1 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+    >
+      Annuler
+    </button>
+    <button
+      type="submit"
+      :disabled="configSubmitting"
+      class="flex-1 rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white shadow-theme-xs hover:bg-brand-600 disabled:opacity-50 disabled:cursor-not-allowed"
+    >
+      <span x-show="!configSubmitting">Enregistrer</span>
+      <span x-show="configSubmitting">Enregistrement...</span>
+    </button>
+  </div>
+</form>
+
+

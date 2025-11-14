@@ -132,7 +132,7 @@
                                 </p>
                                 <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                                     Par <span class="px-1.5 py-0.5 rounded {{ labelBg }} {{ labelText }}">{{ proof.submittedBy.firstName }} {{ proof.submittedBy.lastName }}</span>
-                                    • <span class="px-1.5 py-0.5 rounded {{ labelBg }} {{ labelText }}">{{ proof.createdAt|date('d/m/Y H:i') }}</span>
+                                    • <span class="px-1.5 py-0.5 rounded {{ labelBg }} {{ labelText }}">{% if proof.submittedAt %}{{ proof.submittedAt|date('d/m/Y H:i') }}{% else %}{{ proof.createdAt|date('d/m/Y H:i') }}{% endif %}</span>
                                 </p>
                             </div>
                         </div>
@@ -240,6 +240,122 @@
 
                 <div>
                     <label class="mb-1.5 block text-xs font-medium text-gray-500 dark:text-gray-400">
+                        Date de soumission
+                    </label>
+                    <input
+                        type="datetime-local"
+                        x-model="proofForm.submittedAt"
+                        class="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+                    >
+                </div>
+
+                {% if task.type.value == 'workshop' %}
+                <!-- Champs pour WORKSHOP -->
+                <div>
+                    <label class="mb-1.5 block text-xs font-medium text-gray-500 dark:text-gray-400">
+                        Spécialistes présents
+                    </label>
+                    <select
+                        id="proof-specialists-select"
+                        x-ref="proofSpecialistsSelect"
+                        multiple
+                        class="w-full"
+                    >
+                        {% for specialist in specialists|default([]) %}
+                        <option value="{{ specialist.id }}">{{ specialist.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div>
+                    <label class="mb-1.5 block text-xs font-medium text-gray-500 dark:text-gray-400">
+                        Activités liées
+                    </label>
+                    <select
+                        id="proof-activities-select"
+                        x-ref="proofActivitiesSelect"
+                        multiple
+                        class="w-full"
+                    >
+                        {% for activity in activities|default([]) %}
+                        <option value="{{ activity.id }}">{{ activity.title }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div>
+                    <label class="mb-1.5 block text-xs font-medium text-gray-500 dark:text-gray-400">
+                        Activités scolaires liées
+                    </label>
+                    <select
+                        id="proof-paths-select"
+                        x-ref="proofPathsSelect"
+                        multiple
+                        class="w-full"
+                    >
+                        {% for path in paths|default([]) %}
+                        <option value="{{ path.id }}">{{ path.title }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div>
+                    <label class="mb-1.5 block text-xs font-medium text-gray-500 dark:text-gray-400">
+                        Étudiants concernés
+                    </label>
+                    <select
+                        id="proof-students-select"
+                        x-ref="proofStudentsSelect"
+                        multiple
+                        class="w-full"
+                    >
+                        {% for student in students|default([]) %}
+                        <option value="{{ student.id }}">{{ student.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                {% endif %}
+
+                {% if task.type.value in ['assessment', 'individual_work', 'individual_work_remote', 'individual_work_on_site'] %}
+                <!-- Champs pour ASSESSMENT, INDIVIDUAL_WORK* -->
+                <div>
+                    <label class="mb-1.5 block text-xs font-medium text-gray-500 dark:text-gray-400">
+                        Étudiants concernés
+                    </label>
+                    <select
+                        id="proof-students-select"
+                        x-ref="proofStudentsSelect"
+                        multiple
+                        class="w-full"
+                    >
+                        {% for student in students|default([]) %}
+                        <option value="{{ student.id }}">{{ student.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                {% endif %}
+
+                {% if task.type.value == 'individual_work_remote' %}
+                <!-- Champs pour INDIVIDUAL_WORK_REMOTE -->
+                <div>
+                    <label class="mb-1.5 block text-xs font-medium text-gray-500 dark:text-gray-400">
+                        Demande liée
+                    </label>
+                    <select
+                        id="proof-request-select"
+                        x-ref="proofRequestSelect"
+                        class="w-full"
+                    >
+                        <option value="">Aucune demande</option>
+                        {% for request in requests|default([]) %}
+                        <option value="{{ request.id }}">{{ request.title }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                {% endif %}
+
+                <div>
+                    <label class="mb-1.5 block text-xs font-medium text-gray-500 dark:text-gray-400">
                         À l'origine
                     </label>
                     <input
@@ -278,14 +394,121 @@ window.taskRightSheetManager = function(taskId) {
             imageBase64: null,
             fileName: null,
             fileSize: null,
-            mimeType: null
+            mimeType: null,
+            submittedAt: '{% if eventDate %}{{ eventDate.format('Y-m-d\\TH:i') }}{% else %}{{ "now"|date('Y-m-d\\TH:i') }}{% endif %}'
         },
+        eventDate: {% if eventDate %}'{{ eventDate.format('Y-m-d\\TH:i') }}'{% else %}null{% endif %},
         currentUserName: '{{ currentUser.firstName }} {{ currentUser.lastName }}',
+        taskType: '{{ task.type.value }}',
+        // Instances Choices.js
+        proofSpecialistsChoicesInstance: null,
+        proofActivitiesChoicesInstance: null,
+        proofPathsChoicesInstance: null,
+        proofStudentsChoicesInstance: null,
+        proofRequestChoicesInstance: null,
         init() {
             // Initialiser l'état des preuves (toutes repliées par défaut)
             {% for proof in proofs %}
             this.proofOpen[{{ proof.id }}] = false;
             {% endfor %}
+            
+            // Initialiser Choices.js pour les champs ManyToMany selon le type de tâche
+            this.$nextTick(() => {
+                setTimeout(() => {
+                    this.initProofChoices();
+                }, 100);
+            });
+        },
+        initProofChoices() {
+            // WORKSHOP : specialists, activities, paths, students
+            if (this.taskType === 'workshop') {
+                // Specialists
+                const specialistsSelect = this.$el.querySelector('#proof-specialists-select');
+                if (specialistsSelect) {
+                    if (this.proofSpecialistsChoicesInstance) {
+                        this.proofSpecialistsChoicesInstance.destroy();
+                    }
+                    this.proofSpecialistsChoicesInstance = new Choices(specialistsSelect, {
+                        removeItemButton: true,
+                        searchEnabled: true,
+                        placeholder: true,
+                        placeholderValue: 'Sélectionner des spécialistes...',
+                    });
+                }
+
+                // Activities
+                const activitiesSelect = this.$el.querySelector('#proof-activities-select');
+                if (activitiesSelect) {
+                    if (this.proofActivitiesChoicesInstance) {
+                        this.proofActivitiesChoicesInstance.destroy();
+                    }
+                    this.proofActivitiesChoicesInstance = new Choices(activitiesSelect, {
+                        removeItemButton: true,
+                        searchEnabled: true,
+                        placeholder: true,
+                        placeholderValue: 'Sélectionner des activités...',
+                    });
+                }
+
+                // Paths
+                const pathsSelect = this.$el.querySelector('#proof-paths-select');
+                if (pathsSelect) {
+                    if (this.proofPathsChoicesInstance) {
+                        this.proofPathsChoicesInstance.destroy();
+                    }
+                    this.proofPathsChoicesInstance = new Choices(pathsSelect, {
+                        removeItemButton: true,
+                        searchEnabled: true,
+                        placeholder: true,
+                        placeholderValue: 'Sélectionner des activités scolaires...',
+                    });
+                }
+
+                // Students
+                const studentsSelect = this.$el.querySelector('#proof-students-select');
+                if (studentsSelect) {
+                    if (this.proofStudentsChoicesInstance) {
+                        this.proofStudentsChoicesInstance.destroy();
+                    }
+                    this.proofStudentsChoicesInstance = new Choices(studentsSelect, {
+                        removeItemButton: true,
+                        searchEnabled: true,
+                        placeholder: true,
+                        placeholderValue: 'Sélectionner des étudiants...',
+                    });
+                }
+            }
+
+            // ASSESSMENT, INDIVIDUAL_WORK* : students
+            if (['assessment', 'individual_work', 'individual_work_remote', 'individual_work_on_site'].includes(this.taskType)) {
+                const studentsSelect = this.$el.querySelector('#proof-students-select');
+                if (studentsSelect) {
+                    if (this.proofStudentsChoicesInstance) {
+                        this.proofStudentsChoicesInstance.destroy();
+                    }
+                    this.proofStudentsChoicesInstance = new Choices(studentsSelect, {
+                        removeItemButton: true,
+                        searchEnabled: true,
+                        placeholder: true,
+                        placeholderValue: 'Sélectionner des étudiants...',
+                    });
+                }
+            }
+
+            // INDIVIDUAL_WORK_REMOTE : request
+            if (this.taskType === 'individual_work_remote') {
+                const requestSelect = this.$el.querySelector('#proof-request-select');
+                if (requestSelect) {
+                    if (this.proofRequestChoicesInstance) {
+                        this.proofRequestChoicesInstance.destroy();
+                    }
+                    this.proofRequestChoicesInstance = new Choices(requestSelect, {
+                        searchEnabled: true,
+                        placeholder: true,
+                        placeholderValue: 'Sélectionner une demande...',
+                    });
+                }
+            }
         },
         toggleProof(proofId) {
             this.proofOpen[proofId] = !this.proofOpen[proofId];
@@ -343,6 +566,46 @@ window.taskRightSheetManager = function(taskId) {
                     payload.content = this.proofForm.description;
                 }
 
+                // Envoyer la date de soumission
+                // Si eventDate existe (depuis planning), utiliser eventDate
+                // Sinon, utiliser submittedAt du formulaire (depuis objectifs)
+                if (this.eventDate) {
+                    payload.eventDate = this.eventDate;
+                } else if (this.proofForm.submittedAt) {
+                    payload.submittedAt = this.proofForm.submittedAt;
+                }
+
+                // Envoyer les champs ManyToMany selon le type de tâche
+                if (this.taskType === 'workshop') {
+                    if (this.proofSpecialistsChoicesInstance) {
+                        payload.specialistIds = this.proofSpecialistsChoicesInstance.getValue(true);
+                    }
+                    if (this.proofActivitiesChoicesInstance) {
+                        payload.activityIds = this.proofActivitiesChoicesInstance.getValue(true);
+                    }
+                    if (this.proofPathsChoicesInstance) {
+                        payload.pathIds = this.proofPathsChoicesInstance.getValue(true);
+                    }
+                    if (this.proofStudentsChoicesInstance) {
+                        payload.studentIds = this.proofStudentsChoicesInstance.getValue(true);
+                    }
+                }
+
+                if (['assessment', 'individual_work', 'individual_work_remote', 'individual_work_on_site'].includes(this.taskType)) {
+                    if (this.proofStudentsChoicesInstance) {
+                        payload.studentIds = this.proofStudentsChoicesInstance.getValue(true);
+                    }
+                }
+
+                if (this.taskType === 'individual_work_remote') {
+                    if (this.proofRequestChoicesInstance) {
+                        const requestId = this.proofRequestChoicesInstance.getValue(true);
+                        if (requestId) {
+                            payload.requestId = requestId;
+                        }
+                    }
+                }
+
                 const response = await fetch(`/admin/planning/task/${this.taskId}/proof`, {
                     method: 'POST',
                     headers: {
@@ -355,6 +618,8 @@ window.taskRightSheetManager = function(taskId) {
                 const data = await response.json();
 
                 if (data.success) {
+                    // Réinitialiser le formulaire
+                    this.resetProofForm();
                     // Recharger la page pour afficher la nouvelle preuve
                     location.reload();
                 } else {
@@ -367,7 +632,62 @@ window.taskRightSheetManager = function(taskId) {
                 this.isSubmitting = false;
             }
         },
+        resetProofForm() {
+            // Réinitialiser le formulaire
+            this.proofForm = {
+                description: '',
+                imageFile: null,
+                imagePreview: null,
+                imageBase64: null,
+                fileName: null,
+                fileSize: null,
+                mimeType: null,
+                submittedAt: this.eventDate || new Date().toISOString().slice(0, 16)
+            };
+
+            // Réinitialiser les Choices.js
+            if (this.proofSpecialistsChoicesInstance) {
+                this.proofSpecialistsChoicesInstance.setValue([]);
+            }
+            if (this.proofActivitiesChoicesInstance) {
+                this.proofActivitiesChoicesInstance.setValue([]);
+            }
+            if (this.proofPathsChoicesInstance) {
+                this.proofPathsChoicesInstance.setValue([]);
+            }
+            if (this.proofStudentsChoicesInstance) {
+                this.proofStudentsChoicesInstance.setValue([]);
+            }
+            if (this.proofRequestChoicesInstance) {
+                this.proofRequestChoicesInstance.setValue('');
+            }
+        },
+        destroyProofChoices() {
+            // Détruire toutes les instances Choices.js
+            if (this.proofSpecialistsChoicesInstance) {
+                this.proofSpecialistsChoicesInstance.destroy();
+                this.proofSpecialistsChoicesInstance = null;
+            }
+            if (this.proofActivitiesChoicesInstance) {
+                this.proofActivitiesChoicesInstance.destroy();
+                this.proofActivitiesChoicesInstance = null;
+            }
+            if (this.proofPathsChoicesInstance) {
+                this.proofPathsChoicesInstance.destroy();
+                this.proofPathsChoicesInstance = null;
+            }
+            if (this.proofStudentsChoicesInstance) {
+                this.proofStudentsChoicesInstance.destroy();
+                this.proofStudentsChoicesInstance = null;
+            }
+            if (this.proofRequestChoicesInstance) {
+                this.proofRequestChoicesInstance.destroy();
+                this.proofRequestChoicesInstance = null;
+            }
+        },
         closeSheet() {
+            // Détruire les instances Choices.js avant de fermer
+            this.destroyProofChoices();
             // Cette fonction sera appelée depuis le parent
             if (window.closePlanningTaskSheet) {
                 window.closePlanningTaskSheet();

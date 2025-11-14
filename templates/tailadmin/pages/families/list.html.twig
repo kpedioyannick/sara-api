@@ -146,12 +146,12 @@
                             <div class="flex items-center gap-2">
                                 <span class="text-sm font-semibold">
                                     <span class="inline-block rounded-lg {% if family.type == 'GROUP' %}bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200{% else %}bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-200{% endif %} px-3 py-1.5">
-                                        {% if family.parent and family.parent.lastName %}
-                                            {{ family.parent.lastName }}
-                                        {% else %}
+                                {% if family.parent and family.parent.lastName %}
+                                    {{ family.parent.lastName }}
+                                {% else %}
                                             {% if family.type == 'GROUP' %}Groupe{% else %}Famille{% endif %} #{{ family.id }}
-                                        {% endif %}
-                                    </span>
+                                {% endif %}
+                            </span>
                                 </span>
                                 {% if family.type == 'GROUP' %}
                                 <span class="inline-flex items-center rounded-full bg-blue-100 dark:bg-blue-900/30 px-2.5 py-0.5 text-xs font-medium text-blue-700 dark:text-blue-300">
@@ -651,22 +651,22 @@
                                 class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
                             />
                         </div>
-                        <div>
+                            <div>
                             <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
                                 Tags des besoins
                             </label>
-                            <select
+                                <select
                                 id="student-tags-select"
                                 x-ref="studentTagsSelect"
                                 multiple
                                 class="w-full"
                             >
-                            </select>
-                            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                                </select>
+                                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
                                 Tapez pour rechercher ou créer un nouveau tag
-                            </p>
-                        </div>
-                    </form>
+                                </p>
+                            </div>
+                        </form>
                 </div>
 
                 <!-- Footer -->
@@ -674,16 +674,16 @@
                     <div class="flex gap-3">
                         <button
                             @click="closeSheet()"
-                            class="flex-1 rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
-                        >
-                            Annuler
-                        </button>
-                        <button
-                            @click="saveStudent()"
-                            class="flex-1 rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white shadow-theme-xs hover:bg-brand-600"
-                        >
+                                    class="flex-1 rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+                                >
+                                    Annuler
+                                </button>
+                                <button
+                                    @click="saveStudent()"
+                                    class="flex-1 rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white shadow-theme-xs hover:bg-brand-600"
+                                >
                             Créer l'élève
-                        </button>
+                                </button>
                     </div>
                 </div>
             </div>
@@ -1388,10 +1388,10 @@ function familyManager() {
             }
         },
         async openStudentEdit(familyId, studentId) {
-            this.currentType = 'student';
-            this.currentFamilyId = familyId;
-            this.currentStudentId = studentId;
-            this.rightSheetOpen = true;
+                    this.currentType = 'student';
+                    this.currentFamilyId = familyId;
+                    this.currentStudentId = studentId;
+                    this.rightSheetOpen = true;
             
             // Afficher un loader
             this.$nextTick(() => {
