@@ -532,6 +532,68 @@ class Task
         ];
     }
 
+    /**
+     * Convertit la tâche en format compatible avec le planning
+     * Retourne un tableau d'événements (un par jour si la tâche s'étend sur plusieurs jours)
+     */
+    public function toPlanningEvents(\DateTimeImmutable $weekStart, \DateTimeImmutable $weekEnd): array
+    {
+        $events = [];
+        $objective = $this->getObjective();
+        $student = $objective?->getStudent();
+        
+        if (!$student) {
+            return [];
+        }
+
+        $createdAt = $this->getCreatedAt();
+        $dueDate = $this->getDueDate() ?? $createdAt->modify('+1 day');
+
+        // Si la tâche s'étend sur plusieurs jours, créer un événement par jour
+        $currentDate = $createdAt > $weekStart ? $createdAt : $weekStart;
+        $endDate = $dueDate < $weekEnd ? $dueDate : $weekEnd;
+
+        // Créer un événement pour chaque jour où la tâche est active
+        while ($currentDate <= $endDate && $currentDate <= $weekEnd) {
+            if ($currentDate >= $weekStart) {
+                $dayStart = $currentDate->setTime(9, 0, 0); // 9h du matin par défaut
+                $dayEnd = $currentDate->setTime(17, 0, 0); // 17h par défaut
+
+                // Si c'est le premier jour, utiliser l'heure de createdAt si disponible
+                if ($currentDate->format('Y-m-d') === $createdAt->format('Y-m-d')) {
+                    $dayStart = $createdAt;
+                }
+
+                // Si c'est le dernier jour, utiliser l'heure de dueDate si disponible
+                if ($currentDate->format('Y-m-d') === $dueDate->format('Y-m-d')) {
+                    $dayEnd = $dueDate;
+                }
+
+                $events[] = [
+                    'id' => 'task_' . $this->getId() . '_' . $currentDate->format('Y-m-d'),
+                    'title' => $this->getTitle(),
+                    'description' => $this->getDescription(),
+                    'startDate' => $dayStart->format('Y-m-d H:i:s'),
+                    'endDate' => $dayEnd->format('Y-m-d H:i:s'),
+                    'userId' => $student->getId(),
+                    'userName' => $student->getFirstName() . ' ' . $student->getLastName(),
+                    'type' => 'task',
+                    'typeLabel' => 'Tâche d\'objectif',
+                    'status' => $this->getMappedStatus(),
+                    'backgroundColor' => '#10B981', // Vert pour les tâches
+                    'sourceType' => 'task',
+                    'sourceId' => $this->getId(),
+                    'objectiveId' => $objective->getId(),
+                    'clickUrl' => '/admin/objectives/' . $objective->getId(),
+                ];
+            }
+
+            $currentDate = $currentDate->modify('+1 day');
+        }
+
+        return $events;
+    }
+
     public static function createForCoach(array $data, Objective $objective, $assignedTo, string $assignedType): self
     {
         $task = new self();

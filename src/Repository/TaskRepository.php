@@ -83,4 +83,34 @@ class TaskRepository extends ServiceEntityRepository
             ->getQuery()
             ->getResult();
     }
+
+    /**
+     * Récupère les tâches qui chevauchent une semaine donnée
+     * Basé sur createdAt et dueDate
+     */
+    public function findByWeek(\DateTimeImmutable $weekStart, ?\App\Entity\Coach $coach = null, ?array $studentIds = null): array
+    {
+        $weekEnd = $weekStart->modify('+6 days')->setTime(23, 59, 59);
+        
+        $qb = $this->createQueryBuilder('t')
+            ->leftJoin('t.objective', 'o')
+            ->leftJoin('o.student', 's')
+            ->where('(t.createdAt <= :weekEnd AND (t.dueDate >= :weekStart OR t.dueDate IS NULL))')
+            ->setParameter('weekStart', $weekStart)
+            ->setParameter('weekEnd', $weekEnd);
+
+        if ($coach) {
+            $qb->andWhere('t.coach = :coach')
+               ->setParameter('coach', $coach);
+        }
+
+        if ($studentIds && !empty($studentIds)) {
+            $qb->andWhere('s.id IN (:studentIds)')
+               ->setParameter('studentIds', $studentIds);
+        }
+
+        return $qb->orderBy('t.createdAt', 'ASC')
+                  ->getQuery()
+                  ->getResult();
+    }
 }

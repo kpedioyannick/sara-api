@@ -89,18 +89,43 @@ Type = enfant
 
 Affichage visuel : les tâches doivent-elles être différenciées des événements Planning (icône et  badge) Filtre : ajouter un filtre pour afficher/masquer les tâches . au clic sur une tâche, => righsheet qui s'ouvre avec les info de event | Permissions : respecter les mêmes permissions que pour les événements Planning (selon l’utilisateur connecté) ?
 
-Type => scolaire 
-  Title => Liste matière possibilité d'ajouter d'autres 
+- WORKSHOP = 'workshop' // Atelier
+  Champs nécessaires :
+  - lieu (string, nullable)
+  - spécialistes (ManyToMany Specialist)
+  - enfants (ManyToMany Student)
+  - liens activités (ManyToMany Activity)
 
-Type => Tache 
+- ASSESSMENT = 'assessment' // Bilan
+  Champs nécessaires :
+  - notes (text, nullable)
+  - enfant (ManyToMany Student)
 
-Type => Tache activité 
+- INDIVIDUAL_WORK = 'individual_work' // Travail individuel
+  Champs nécessaires :
+   - enfant (ManyToMany Student)
 
-Type => Tache activité scolaire 
+- INDIVIDUAL_WORK_REMOTE = 'individual_work_remote' // Travail individuel à distance
+  Champs nécessaires :
+  - lien demandes
+- enfant (ManyToMany Student)
 
+- INDIVIDUAL_WORK_ON_SITE = 'individual_work_on_site' // Travail individuel dans un lieu
+  Champs nécessaires :
+  - lieu (string, nullable)
+  - enfant (ManyToMany Student)
 
+Dans le moeur de recherche si un élève sort de la liste , un petit bouton à coté dépliant  , on peut ajoure une nore sans rehcertger la page ou sans just dans la iste des reusltat ? as tu des questions ? 
+
+ http://localhost:8000/admin/activities => ajouter des bg avec des couleurs comem sur notion  
+
+ http://localhost:8000/admin/families => trop de couleures vertes 
 Design  notion 
 Bilans et notes pour élèves 
+cacher ent 
+
+Notes enfant image et et etex 
+
 
 Dasshobard 
 Visibilité par enfant : 

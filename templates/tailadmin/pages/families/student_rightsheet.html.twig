@@ -113,6 +113,77 @@
                         </button>
                     </div>
                 </div>
+                <!-- Section Notes -->
+                <div class="pt-4 border-t border-gray-200 dark:border-gray-800">
+                    <div class="mb-4 flex items-center justify-between">
+                        <h4 class="text-sm font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide">Notes</h4>
+                        <button
+                            @click="openNoteForm()"
+                            class="rounded-lg bg-brand-500 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-brand-600"
+                        >
+                            + Ajouter
+                        </button>
+                    </div>
+                    <div class="space-y-2 max-h-64 overflow-y-auto">
+                        <template x-if="notes.length === 0">
+                            <p class="text-sm text-gray-500 dark:text-gray-400 text-center py-4">Aucune note</p>
+                        </template>
+                        <template x-for="note in notes" :key="note.id">
+                            <div class="rounded-lg border border-gray-200 dark:border-gray-700 p-3 hover:shadow-sm transition-shadow">
+                                <div class="flex items-start justify-between gap-2">
+                                    <div class="flex-1 min-w-0">
+                                        <div class="flex items-center gap-2 mb-1.5">
+                                            <span 
+                                                class="px-2 py-0.5 rounded text-xs font-medium"
+                                                :class="{
+                                                    'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300': note.type === 'draft',
+                                                    'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300': note.type === 'assessment',
+                                                    'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300': note.type === 'remark',
+                                                    'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300': note.type === 'vigilance'
+                                                }"
+                                                x-text="note.typeLabel"
+                                            ></span>
+                                            <span class="text-xs text-gray-500 dark:text-gray-400" x-text="formatDate(note.createdAt)"></span>
+                                        </div>
+                                        <p class="text-sm text-gray-800 dark:text-white/90 line-clamp-2" x-text="note.text"></p>
+                                        <template x-if="note.images && note.images.length > 0">
+                                            <div class="mt-2 flex gap-1">
+                                                <template x-for="img in note.images.slice(0, 3)" :key="img.id">
+                                                    <img :src="img.fileUrl" :alt="img.caption || 'Image'" class="h-12 w-12 rounded object-cover border border-gray-200 dark:border-gray-700">
+                                                </template>
+                                                <template x-if="note.images.length > 3">
+                                                    <div class="h-12 w-12 rounded bg-gray-100 dark:bg-gray-800 flex items-center justify-center border border-gray-200 dark:border-gray-700">
+                                                        <span class="text-xs text-gray-500 dark:text-gray-400">+<span x-text="note.images.length - 3"></span></span>
+                                                    </div>
+                                                </template>
+                                            </div>
+                                        </template>
+                                    </div>
+                                    <div class="flex gap-1">
+                                        <button
+                                            @click="editNote(note)"
+                                            class="rounded p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                                            title="Modifier"
+                                        >
+                                            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                            </svg>
+                                        </button>
+                                        <button
+                                            @click="deleteNote(note.id)"
+                                            class="rounded p-1 text-gray-400 hover:text-red-600 dark:hover:text-red-400"
+                                            title="Supprimer"
+                                        >
+                                            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                            </svg>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
                 <div class="pt-4 border-t border-gray-200 dark:border-gray-800">
                     <button
                         @click="toggleEdit()"
@@ -264,6 +335,110 @@
             </form>
         </template>
     </div>
+
+    <!-- Modal Note Form -->
+    <div 
+        x-show="noteFormOpen" 
+        x-transition:enter="transition ease-out duration-200"
+        x-transition:enter-start="opacity-0"
+        x-transition:enter-end="opacity-100"
+        x-transition:leave="transition ease-in duration-150"
+        x-transition:leave-start="opacity-100"
+        x-transition:leave-end="opacity-0"
+        class="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+        @click.away="noteFormOpen = false"
+        style="display: none;"
+        x-cloak
+    >
+        <div 
+            @click.stop
+            class="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-lg bg-white dark:bg-gray-800 shadow-xl"
+        >
+            <div class="sticky top-0 z-10 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-6 py-4">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">
+                        <span x-text="editingNote ? 'Modifier la note' : 'Nouvelle note'"></span>
+                    </h3>
+                    <button
+                        @click="noteFormOpen = false"
+                        class="rounded-lg p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-700 dark:hover:text-gray-300"
+                    >
+                        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            <form @submit.prevent="saveNote()" class="p-6 space-y-4">
+                <div>
+                    <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Type *</label>
+                    <select
+                        x-model="noteForm.type"
+                        required
+                        class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+                    >
+                        <option value="draft">Brouillon</option>
+                        <option value="assessment">Bilan</option>
+                        <option value="remark">Remarque</option>
+                        <option value="vigilance">Vigilance</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Texte *</label>
+                    <textarea
+                        x-model="noteForm.text"
+                        required
+                        rows="5"
+                        class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+                        placeholder="Saisissez votre note..."
+                    ></textarea>
+                </div>
+                <div>
+                    <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Images</label>
+                    <input
+                        type="file"
+                        @change="handleNoteImagesSelect($event)"
+                        multiple
+                        accept="image/*"
+                        class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+                    />
+                    <div class="mt-2 grid grid-cols-4 gap-2" x-show="noteForm.images.length > 0">
+                        <template x-for="(img, index) in noteForm.images" :key="index">
+                            <div class="relative">
+                                <img :src="img.preview" :alt="img.caption || 'Image'" class="h-20 w-full rounded object-cover border border-gray-200 dark:border-gray-700">
+                                <button
+                                    type="button"
+                                    @click="removeNoteImage(index)"
+                                    class="absolute -top-2 -right-2 rounded-full bg-red-500 p-1 text-white hover:bg-red-600"
+                                >
+                                    <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+                <div class="flex gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
+                    <button
+                        type="button"
+                        @click="noteFormOpen = false"
+                        class="flex-1 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+                    >
+                        Annuler
+                    </button>
+                    <button
+                        type="submit"
+                        :disabled="isSavingNote"
+                        class="flex-1 rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-brand-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        <span x-show="!isSavingNote">Enregistrer</span>
+                        <span x-show="isSavingNote">Enregistrement...</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
 </div>
 
 <script>
@@ -273,6 +448,15 @@ window.studentRightSheetManager = function(studentId, familyId) {
         familyId: familyId,
         editMode: false,
         isSaving: false,
+        notes: [],
+        noteFormOpen: false,
+        editingNote: null,
+        isSavingNote: false,
+        noteForm: {
+            type: 'draft',
+            text: '',
+            images: []
+        },
         studentData: {
             firstName: {{ (student.firstName ?? '')|json_encode|raw }},
             lastName: {{ (student.lastName ?? '')|json_encode|raw }},
@@ -287,6 +471,7 @@ window.studentRightSheetManager = function(studentId, familyId) {
         studentTagsEditChoicesInstance: null,
         async init() {
             await this.loadTags();
+            await this.loadNotes();
             // S'assurer que les données sont bien initialisées
             if (!this.studentData.needTags) {
                 this.studentData.needTags = [];
@@ -296,6 +481,138 @@ window.studentRightSheetManager = function(studentId, familyId) {
             }
             // Ne pas initialiser Choices.js ici car editMode est false par défaut
             // Il sera initialisé quand on passera en mode édition
+        },
+        async loadNotes() {
+            try {
+                const response = await fetch(`/admin/students/${this.studentId}/notes`);
+                const data = await response.json();
+                if (data.success) {
+                    this.notes = data.notes || [];
+                }
+            } catch (error) {
+                console.error('Erreur lors du chargement des notes:', error);
+            }
+        },
+        openNoteForm(note = null) {
+            this.editingNote = note;
+            if (note) {
+                this.noteForm = {
+                    type: note.type,
+                    text: note.text,
+                    images: note.images || []
+                };
+            } else {
+                this.noteForm = {
+                    type: 'draft',
+                    text: '',
+                    images: []
+                };
+            }
+            this.noteFormOpen = true;
+        },
+        handleNoteImagesSelect(event) {
+            const files = Array.from(event.target.files);
+            files.forEach(file => {
+                if (file.type.startsWith('image/')) {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        const base64 = e.target.result.split(',')[1];
+                        this.noteForm.images.push({
+                            fileBase64: base64,
+                            fileName: file.name,
+                            preview: e.target.result,
+                            caption: ''
+                        });
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+        },
+        removeNoteImage(index) {
+            this.noteForm.images.splice(index, 1);
+        },
+        async saveNote() {
+            if (this.isSavingNote) return;
+            if (!this.noteForm.text || !this.noteForm.type) {
+                this.showMessage('Veuillez remplir tous les champs obligatoires', 'error');
+                return;
+            }
+
+            this.isSavingNote = true;
+
+            const payload = {
+                type: this.noteForm.type,
+                text: this.noteForm.text,
+                images: this.noteForm.images.map(img => ({
+                    fileBase64: img.fileBase64,
+                    fileName: img.fileName,
+                    caption: img.caption || ''
+                }))
+            };
+
+            try {
+                const url = this.editingNote 
+                    ? `/admin/notes/${this.editingNote.id}`
+                    : `/admin/students/${this.studentId}/notes`;
+                const method = this.editingNote ? 'PUT' : 'POST';
+
+                const response = await fetch(url, {
+                    method: method,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    body: JSON.stringify(payload),
+                });
+
+                const data = await response.json();
+                this.isSavingNote = false;
+
+                if (data.success) {
+                    this.showMessage('Note enregistrée avec succès', 'success');
+                    this.noteFormOpen = false;
+                    await this.loadNotes();
+                } else {
+                    this.showMessage(data.message || 'Erreur lors de l\'enregistrement', 'error');
+                }
+            } catch (error) {
+                this.isSavingNote = false;
+                console.error('Error:', error);
+                this.showMessage('Erreur de connexion', 'error');
+            }
+        },
+        editNote(note) {
+            this.openNoteForm(note);
+        },
+        async deleteNote(noteId) {
+            if (!confirm('Êtes-vous sûr de vouloir supprimer cette note ?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/admin/notes/${noteId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    this.showMessage('Note supprimée avec succès', 'success');
+                    await this.loadNotes();
+                } else {
+                    this.showMessage(data.message || 'Erreur lors de la suppression', 'error');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                this.showMessage('Erreur de connexion', 'error');
+            }
+        },
+        formatDate(dateString) {
+            if (!dateString) return '';
+            const date = new Date(dateString);
+            return date.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
         },
         async loadTags() {
             try {

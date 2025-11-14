@@ -8,6 +8,7 @@ enum TaskType: string
     case ACTIVITY_TASK = 'activity_task';
     case SCHOOL_ACTIVITY_TASK = 'school_activity_task';
 
+
     public function getLabel(): string
     {
         return match($this) {

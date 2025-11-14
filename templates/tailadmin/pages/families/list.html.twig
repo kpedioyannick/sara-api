@@ -136,11 +136,12 @@
         <div class="border-t border-gray-100 p-4 dark:border-gray-800 sm:p-6">
             <div class="grid grid-cols-1 gap-5 {% if app.user.isParent() and families|length == 1 %}sm:grid-cols-1 max-w-3xl mx-auto{% else %}sm:grid-cols-2 xl:grid-cols-3{% endif %}">
                 {% for family in families %}
+                {% set colorIndex = loop.index0 % 6 %}
                 <div 
                     x-show="familyTypeFilter === 'all' || familyTypeFilter === '{{ family.type }}'"
                     {% if app.user.isParent() and families|length == 1 %}class="w-full"{% endif %}
                 >
-                    <div class="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] sm:p-6 {% if family.type == 'GROUP' %}border-blue-300 dark:border-blue-700{% endif %}">
+                    <div class="rounded-xl border p-5 dark:border-gray-800 sm:p-6 {% if colorIndex == 0 %}bg-blue-50 dark:bg-blue-900/10 border-blue-100 dark:border-blue-800/30{% elseif colorIndex == 1 %}bg-purple-50 dark:bg-purple-900/10 border-purple-100 dark:border-purple-800/30{% elseif colorIndex == 2 %}bg-pink-50 dark:bg-pink-900/10 border-pink-100 dark:border-pink-800/30{% elseif colorIndex == 3 %}bg-orange-50 dark:bg-orange-900/10 border-orange-100 dark:border-orange-800/30{% elseif colorIndex == 4 %}bg-cyan-50 dark:bg-cyan-900/10 border-cyan-100 dark:border-cyan-800/30{% else %}bg-amber-50 dark:bg-amber-900/10 border-amber-100 dark:border-amber-800/30{% endif %}">
                         <div class="mb-4 flex items-center justify-between">
                             <div class="flex items-center gap-2">
                                 <span class="text-sm font-semibold text-gray-800 dark:text-white/90">
@@ -151,17 +152,17 @@
                                     {% endif %}
                                 </span>
                                 {% if family.type == 'GROUP' %}
-                                <span class="inline-flex items-center rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
+                                <span class="inline-flex items-center rounded-full bg-blue-100 dark:bg-blue-900/30 px-2.5 py-0.5 text-xs font-medium text-blue-700 dark:text-blue-300">
                                     Groupe
                                 </span>
                                 {% else %}
-                                <span class="inline-flex items-center rounded-full bg-purple-100 px-2.5 py-0.5 text-xs font-medium text-purple-700 dark:bg-purple-900/30 dark:text-purple-400">
+                                <span class="inline-flex items-center rounded-full bg-purple-100 dark:bg-purple-900/30 px-2.5 py-0.5 text-xs font-medium text-purple-700 dark:text-purple-300">
                                     Famille
                                 </span>
                                 {% endif %}
                             </div>
                             {% if family.isActive %}
-                            <span class="inline-flex items-center rounded-full bg-success-100 px-2.5 py-0.5 text-xs font-medium text-success-600 dark:bg-success-900/30 dark:text-success-400">
+                            <span class="inline-flex items-center rounded-full bg-blue-100 dark:bg-blue-900/30 px-2.5 py-0.5 text-xs font-medium text-blue-700 dark:text-blue-300">
                                 Actif
                             </span>
                             {% else %}
@@ -224,7 +225,7 @@
                                     <div class="mt-2 flex flex-wrap items-center gap-2">
                                         <a
                                             href="{{ path('admin_objectives_list', {student: student.id}) }}"
-                                            class="inline-flex items-center gap-1 rounded-lg border border-brand-200 bg-brand-50 px-2.5 py-1 text-xs font-medium text-brand-700 transition-colors hover:bg-brand-100 dark:border-brand-800 dark:bg-brand-900/30 dark:text-brand-400 dark:hover:bg-brand-900/50"
+                                            class="inline-flex items-center gap-1 rounded-lg border border-blue-200 bg-blue-50 px-2.5 py-1 text-xs font-medium text-blue-700 transition-colors hover:bg-blue-100 dark:border-blue-800 dark:bg-blue-900/30 dark:text-blue-400 dark:hover:bg-blue-900/50"
                                             title="Voir les objectifs"
                                         >
                                             <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1925,4 +1926,5 @@ function filterManager() {
     };
 }
 </script>
+
 {% endblock %}

@@ -7,125 +7,9 @@
 {% block content %}
 <div 
     x-data="planningManager()"
-    data-students='{{ students|json_encode|e('html_attr') }}'
-    data-parents='{{ parents|json_encode|e('html_attr') }}'
-    data-specialists='{{ specialists|json_encode|e('html_attr') }}'
-    data-coach='{{ coach|json_encode|e('html_attr') }}'
-    data-current-user-id="{{ currentUserId }}"
-    data-current-user-type="{{ currentUserType }}"
     class="p-4 mx-auto max-w-(--breakpoint-2xl) md:p-6"
 >
     {% include 'tailadmin/components/breadcrumb.html.twig' %}
-
-    {% if app.user.isCoach() or app.user.isParent() or app.user.isSpecialist() %}
-    <!-- Barre de filtres -->
-    <div 
-        x-data="filterManager()"
-        data-parents='{{ parents|json_encode|e('html_attr') }}'
-        data-specialists='{{ specialists|json_encode|e('html_attr') }}'
-        data-students='{{ students|json_encode|e('html_attr') }}'
-        data-profile-type='{{ profileType|default('') }}'
-        data-selected-ids='{{ selectedIds|default('') }}'
-        data-user-role='{% if app.user.isCoach() %}coach{% elseif app.user.isParent() %}parent{% elseif app.user.isSpecialist() %}specialist{% else %}student{% endif %}'
-        class="mb-6 rounded-2xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-white/[0.03]"
-    >
-        <div class="mb-4">
-            <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Filtrer par profil
-            </label>
-            <div class="flex gap-2 flex-wrap">
-                <button
-                    @click="setProfileType('')"
-                    :class="profileType === '' ? 'bg-brand-500 text-white' : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'"
-                    class="rounded-lg px-4 py-2 text-sm font-medium transition-colors hover:bg-brand-600 hover:text-white dark:hover:bg-gray-700"
-                >
-                    Mon planning
-                </button>
-                {% if app.user.isCoach() %}
-                <button
-                    @click="setProfileType('parent')"
-                    :class="profileType === 'parent' ? 'bg-brand-500 text-white' : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'"
-                    class="rounded-lg px-4 py-2 text-sm font-medium transition-colors hover:bg-brand-600 hover:text-white dark:hover:bg-gray-700"
-                >
-                    Parent
-                </button>
-                <button
-                    @click="setProfileType('specialist')"
-                    :class="profileType === 'specialist' ? 'bg-brand-500 text-white' : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'"
-                    class="rounded-lg px-4 py-2 text-sm font-medium transition-colors hover:bg-brand-600 hover:text-white dark:hover:bg-gray-700"
-                >
-                    Spécialiste
-                </button>
-                {% endif %}
-                <button
-                    @click="setProfileType('student')"
-                    :class="profileType === 'student' ? 'bg-brand-500 text-white' : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'"
-                    class="rounded-lg px-4 py-2 text-sm font-medium transition-colors hover:bg-brand-600 hover:text-white dark:hover:bg-gray-700"
-                >
-                    {% if app.user.isParent() %}Enfant{% else %}Élève{% endif %}
-                </button>
-            </div>
-        </div>
-        
-        <div x-show="profileType !== ''">
-            <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Rechercher et sélectionner
-            </label>
-            <select
-                id="choices-select-planning"
-                x-ref="choicesSelect"
-                class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
-                multiple
-            >
-            </select>
-        </div>
-        
-        <div class="mb-4">
-            <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Filtrer par type
-            </label>
-            <select
-                x-model="selectedType"
-                @change="applyFilters()"
-                class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
-            >
-                <option value="">Tous les types</option>
-                <optgroup label="Disponibilités">
-                    <option value="availability_exchange">Disponibilité - Échange</option>
-                    <option value="availability_activity">Disponibilité - Activités</option>
-                </optgroup>
-                <optgroup label="Événements scolaires">
-                    <option value="homework">Devoir</option>
-                    <option value="revision">Révision</option>
-                    <option value="task">Tâche</option>
-                    <option value="assessment">Évaluation</option>
-                    <option value="course">Cours</option>
-                    <option value="training">Formation</option>
-                    <option value="activity">Activité</option>
-                    <option value="detention">Retenue</option>
-                    <option value="exam">Examen</option>
-                    <option value="objective">Objectif</option>
-                </optgroup>
-                <option value="other">Autre</option>
-            </select>
-        </div>
-        
-        <div class="mt-4 flex items-center gap-2" x-show="profileType !== '' || selectedIds.length > 0 || selectedType !== ''">
-            <button
-                @click="applyFilters()"
-                class="rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white shadow-theme-xs hover:bg-brand-600"
-            >
-                Appliquer les filtres
-            </button>
-            <button
-                @click="resetFilters()"
-                class="rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
-            >
-                Réinitialiser
-            </button>
-        </div>
-    </div>
-    {% endif %}
 
     <div class="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
         <!-- Week Navigation Header -->
@@ -168,15 +52,6 @@
                             </svg>
                         </a>
                     </div>
-                    <button
-                        @click="openCreate()"
-                        class="inline-flex items-center gap-2 rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white shadow-theme-xs hover:bg-brand-600"
-                    >
-                        <svg class="fill-current" width="16" height="16" viewBox="0 0 16 16" fill="none">
-                            <path d="M8 1a7 7 0 100 14A7 7 0 008 1zM7.5 4v4l3.5 2 .5-.866L8.5 7.5V4h-1z" fill=""/>
-                        </svg>
-                        Nouvel événement
-                    </button>
                 </div>
             </div>
         </div>
@@ -199,7 +74,11 @@
                         {% if day.events|length > 0 %}
                             {% for event in day.events %}
                             <div 
-                                @click="openView({{ event.id }}, '{{ event.title|e('js') }}', '{{ event.description|e('js') }}', '{{ event.startDate }}', '{{ event.endDate }}', {{ event.userId }}, '{{ event.type }}', '{{ event.status }}')"
+                                {% if event.sourceType is defined and event.sourceType == 'task' and event.sourceId is defined %}
+                                    @click="openTaskDetails({{ event.sourceId }})"
+                                {% else %}
+                                    @click="openView({{ event.id|default('null') }}, '{{ event.title|e('js') }}', '{{ event.description|e('js')|default('') }}', '{{ event.startDate }}', '{{ event.endDate }}', {{ event.userId }}, '{{ event.type }}', '{{ event.status }}')"
+                                {% endif %}
                                 class="group cursor-pointer rounded-lg border p-3 transition-all hover:shadow-theme-xs {% if event.backgroundColor %}border-opacity-30{% else %}border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/50{% endif %}"
                                 {% if event.backgroundColor %}style="background-color: {{ event.backgroundColor }}; border-color: {{ event.backgroundColor }};"{% endif %}
                             >
@@ -238,8 +117,13 @@
                                 
                                 <div class="mt-2 flex items-center justify-between">
                                     <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium {% if event.backgroundColor %}bg-white/20 text-white{% else %}bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400{% endif %}">
-                                        {{ event.typeLabel|default(event.type|upper) }}
+                                        {% if event.sourceType is defined and event.sourceType == 'task' %}
+                                            📋 Tâche
+                                        {% else %}
+                                            {{ event.typeLabel|default(event.type|upper) }}
+                                        {% endif %}
                                     </span>
+                                    {% if event.sourceType is not defined or event.sourceType != 'task' %}
                                     <div class="flex gap-1" @click.stop>
                                         <button
                                             @click="openEdit({{ event.id }}, '{{ event.title|e('js') }}', '{{ event.startDate }}', '{{ event.endDate }}', {{ event.userId }}, '{{ event.type }}', '{{ event.status }}')"
@@ -260,6 +144,7 @@
                                             </svg>
                                         </button>
                                     </div>
+                                    {% endif %}
                                 </div>
                             </div>
                             {% endfor %}
@@ -269,32 +154,10 @@
                                     <svg class="mx-auto h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                                     </svg>
-                                    <p class="mt-2 text-sm">Aucun événement</p>
+                                    <p class="mt-2 text-sm">Aucune tâche</p>
                                 </div>
-                                <button
-                                    @click="openCreateWithDate('{{ day.date }}')"
-                                    class="mt-4 flex items-center gap-2 rounded-lg border border-brand-500 bg-white px-3 py-1.5 text-xs font-medium text-brand-600 transition-colors hover:bg-brand-50 dark:border-brand-400 dark:bg-gray-800 dark:text-brand-400 dark:hover:bg-gray-700"
-                                >
-                                    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-                                    </svg>
-                                    Ajouter un événement
-                                </button>
                             </div>
                         {% endif %}
-                        
-                        <!-- Bouton pour ajouter un événement (même s'il y a déjà des événements) -->
-                        <div class="mt-2 border-t border-gray-100 pt-2 dark:border-gray-800">
-                            <button
-                                @click="openCreateWithDate('{{ day.date }}')"
-                                class="w-full flex items-center justify-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
-                            >
-                                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-                                </svg>
-                                Ajouter un événement
-                            </button>
-                        </div>
                     </div>
                 </div>
                 {% endfor %}
@@ -332,10 +195,10 @@
         </div>
     </div>
 
-    <!-- Right Sheet -->
+    <!-- Right Sheet Overlay -->
     <div
-        x-show="rightSheetOpen"
-        @click="closeSheet()"
+        x-show="rightSheetOpen || taskRightSheetOpen"
+        @click="closeSheet(); closeTaskSheet()"
         x-transition:enter="transition-opacity ease-out duration-300"
         x-transition:enter-start="opacity-0"
         x-transition:enter-end="opacity-100"
@@ -346,6 +209,25 @@
         style="display: none;"
     ></div>
 
+    <!-- Right Sheet pour les tâches -->
+    <div
+        x-show="taskRightSheetOpen"
+        @click.away="handleTaskClickAway($event)"
+        @click.stop
+        x-transition:enter="transition-transform ease-out duration-300"
+        x-transition:enter-start="translate-x-full"
+        x-transition:enter-end="translate-x-0"
+        x-transition:leave="transition-transform ease-in duration-200"
+        x-transition:leave-start="translate-x-0"
+        x-transition:leave-end="translate-x-full"
+        class="fixed right-0 top-0 z-50 h-full w-full max-w-2xl overflow-y-auto bg-white shadow-2xl dark:bg-gray-900"
+        style="display: none;"
+    >
+        <!-- Contenu chargé dynamiquement pour les tâches -->
+        <div id="task-rightsheet-container"></div>
+    </div>
+
+    <!-- Right Sheet pour les événements Planning (ancien système) -->
     <div
         x-show="rightSheetOpen"
         @click.away="closeSheet()"
@@ -675,6 +557,7 @@
 function planningManager() {
     return {
         rightSheetOpen: false,
+        taskRightSheetOpen: false,
         isEdit: false,
         isView: false,
         currentId: null,
@@ -706,42 +589,8 @@ function planningManager() {
             startDate: '',
             endDate: '',
         },
-        studentsData: [],
-        specialistsData: [],
-        coachData: null,
-        parentData: null,
-        students: [],
-        currentUserId: null,
-        currentUserType: null,
         init() {
-            const studentsJson = this.$el.getAttribute('data-students');
-            if (studentsJson) {
-                this.studentsData = JSON.parse(studentsJson);
-                this.students = JSON.parse(studentsJson);
-            }
-            const specialistsJson = this.$el.getAttribute('data-specialists');
-            if (specialistsJson) {
-                this.specialistsData = JSON.parse(specialistsJson);
-            }
-            const coachJson = this.$el.getAttribute('data-coach');
-            if (coachJson) {
-                const parsed = JSON.parse(coachJson);
-                // Si l'utilisateur est un parent, stocker dans parentData
-                {% if app.user.isParent() %}
-                this.parentData = parsed;
-                {% else %}
-                this.coachData = parsed;
-                {% endif %}
-            }
-            // Récupérer l'ID et le type de l'utilisateur connecté
-            const currentUserIdAttr = this.$el.getAttribute('data-current-user-id');
-            if (currentUserIdAttr) {
-                this.currentUserId = parseInt(currentUserIdAttr);
-            }
-            const currentUserTypeAttr = this.$el.getAttribute('data-current-user-type');
-            if (currentUserTypeAttr) {
-                this.currentUserType = currentUserTypeAttr;
-            }
+            // Initialisation simplifiée
         },
         handleTitleChange(value) {
             if (value === 'custom') {
@@ -1068,9 +917,101 @@ function planningManager() {
                 startDate: '',
                 endDate: '',
             };
+        },
+        async openTaskDetails(taskId) {
+            this.taskRightSheetOpen = true;
+            
+            // Afficher un loader
+            this.$nextTick(() => {
+                const container = document.getElementById('task-rightsheet-container');
+                if (container) {
+                    container.innerHTML = '<div class="flex items-center justify-center h-full"><div class="text-center"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-500 mx-auto"></div><p class="mt-2 text-sm text-gray-500">Chargement...</p></div></div>';
+                }
+            });
+            
+            try {
+                const response = await fetch(`/admin/planning/task/${taskId}/details`, {
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Erreur lors du chargement');
+                }
+                
+                const html = await response.text();
+                
+                // Injecter le HTML dans le conteneur et initialiser Alpine.js
+                this.$nextTick(() => {
+                    const container = document.getElementById('task-rightsheet-container');
+                    if (container) {
+                        // Extraire les scripts du HTML
+                        const tempDiv = document.createElement('div');
+                        tempDiv.innerHTML = html;
+                        
+                        const scripts = tempDiv.querySelectorAll('script');
+                        scripts.forEach(script => {
+                            const newScript = document.createElement('script');
+                            if (script.src) {
+                                newScript.src = script.src;
+                            } else {
+                                newScript.textContent = script.textContent;
+                            }
+                            document.head.appendChild(newScript);
+                        });
+                        
+                        // Injecter le HTML sans les scripts
+                        const htmlWithoutScripts = html.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
+                        container.innerHTML = htmlWithoutScripts;
+                        
+                        // Initialiser Alpine.js sur le nouveau contenu
+                        setTimeout(() => {
+                            if (window.Alpine) {
+                                Alpine.initTree(container);
+                            }
+                        }, 100);
+                    }
+                });
+            } catch (error) {
+                console.error('Erreur:', error);
+                const container = document.getElementById('task-rightsheet-container');
+                if (container) {
+                    container.innerHTML = '<div class="flex items-center justify-center h-full"><div class="text-center text-red-500"><p class="text-sm">Erreur lors du chargement</p></div></div>';
+                }
+            }
+        },
+        closeTaskSheet() {
+            this.taskRightSheetOpen = false;
+            const container = document.getElementById('task-rightsheet-container');
+            if (container) {
+                container.innerHTML = '';
+            }
+        },
+        handleTaskClickAway(event) {
+            // Empêcher la fermeture si du texte est sélectionné ou si on clique sur un élément interactif
+            const selection = window.getSelection();
+            if (selection && selection.toString().length > 0) {
+                return;
+            }
+            
+            const target = event.target;
+            if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'BUTTON' || target.tagName === 'SELECT' || target.closest('button') || target.closest('input') || target.closest('textarea') || target.closest('select')) {
+                return;
+            }
+            
+            this.closeTaskSheet();
         }
     };
 }
+
+// Fonction globale pour fermer le RightSheet depuis le template chargé
+window.closePlanningTaskSheet = function() {
+    const planningManager = document.querySelector('[x-data="planningManager()"]')?.__x?.$data;
+    if (planningManager) {
+        planningManager.closeTaskSheet();
+    }
+};
 
 // Charger Choices.js si pas déjà chargé
 if (typeof Choices === 'undefined') {

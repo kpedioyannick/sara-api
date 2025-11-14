@@ -7,8 +7,11 @@ use App\Entity\Planning;
 use App\Repository\CoachRepository;
 use App\Repository\FamilyRepository;
 use App\Repository\PlanningRepository;
+use App\Repository\ProofRepository;
 use App\Repository\SpecialistRepository;
 use App\Repository\StudentRepository;
+use App\Repository\TaskRepository;
+use App\Service\FileStorageService;
 use App\Service\PermissionService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -33,7 +36,10 @@ class PlanningController extends AbstractController
         private readonly StudentRepository $studentRepository,
         private readonly ValidatorInterface $validator,
         private readonly PermissionService $permissionService,
-        private readonly SpecialistRepository $specialistRepository
+        private readonly SpecialistRepository $specialistRepository,
+        private readonly TaskRepository $taskRepository,
+        private readonly ProofRepository $proofRepository,
+        private readonly FileStorageService $fileStorageService
     ) {
     }
 
@@ -69,137 +75,33 @@ class PlanningController extends AbstractController
             }
         }
         
-        // Récupérer le paramètre de filtrage par élève
-        $studentId = $request->query->get('student');
-        $profileType = $request->query->get('profileType'); // 'parent', 'specialist', 'student', ou null
-        $selectedIds = $request->query->get('selectedIds', ''); // IDs séparés par des virgules
-        $eventType = $request->query->get('type'); // Type d'événement pour le filtre
+        // Récupérer uniquement les tâches d'objectifs pour la semaine
+        $weekEnd = $weekStart->modify('+6 days')->setTime(23, 59, 59);
+        $taskEvents = [];
         
-        // Appliquer un filtre par défaut selon le rôle de l'utilisateur si aucun filtre n'est spécifié
-        // Par défaut, afficher le planning de l'utilisateur connecté
-        if (!$profileType && !$selectedIds && !$studentId) {
-            // Récupérer le planning de l'utilisateur connecté
-            $userEvents = $this->planningRepository->findByUserAndWeek($user, $weekStart);
-            $allEvents = $userEvents;
-            $students = [];
+        // Déterminer le coach et les étudiants pour filtrer les tâches
+        $coach = null;
+        
+        if ($user->isCoach()) {
+            $coach = $this->getCurrentCoach($this->coachRepository, $this->security);
+        }
+        
+        // Récupérer les tâches
+        $tasks = $this->taskRepository->findByWeek($weekStart, $coach, null);
+        
+        // Convertir les tâches en événements de planning
+        foreach ($tasks as $task) {
+            $student = $task->getObjective()?->getStudent();
+            if (!$student) {
+                continue;
+            }
             
-            // Récupérer les élèves pour les filtres (selon le rôle)
-            if ($user->isCoach()) {
-                $coach = $this->getCurrentCoach($this->coachRepository, $this->security);
-                if ($coach) {
-                    $students = $this->studentRepository->findByCoach($coach);
-                }
-            } else {
-                $students = $this->permissionService->getAccessibleStudents($user);
+            // Vérifier les permissions
+            if (!$this->permissionService->canViewStudentPlanning($user, $student)) {
+                continue;
             }
-        } else {
-            // Récupérer les événements selon le rôle de l'utilisateur et les filtres
-            $allEvents = [];
-            $students = [];
-
-            if ($user->isCoach()) {
-                $coach = $this->getCurrentCoach($this->coachRepository, $this->security);
-                if (!$coach) {
-                    throw $this->createNotFoundException('Aucun coach trouvé');
-                }
-                // Récupérer toutes les familles du coach
-                $families = $this->familyRepository->findByCoachWithSearch($coach);
-                // Récupérer tous les événements de toutes les familles pour la semaine
-                foreach ($families as $family) {
-                    $events = $this->planningRepository->findByFamilyAndWeek($family, $weekStart);
-                    $allEvents = array_merge($allEvents, $events);
-                }
-                $students = $this->studentRepository->findByCoach($coach);
-            } else {
-                // Pour les autres rôles, utiliser PermissionService
-                $accessibleStudents = $this->permissionService->getAccessibleStudents($user);
-                foreach ($accessibleStudents as $student) {
-                    // Vérifier les permissions pour voir le planning de cet étudiant
-                    if ($this->permissionService->canViewStudentPlanning($user, $student)) {
-                        // Utiliser findByStudentAndWeek pour récupérer directement les événements de l'étudiant
-                        $studentEvents = $this->planningRepository->findByStudentAndWeek($student, $weekStart);
-                        $allEvents = array_merge($allEvents, $studentEvents);
-                    }
-                }
-                $students = $accessibleStudents;
-            }
-        }
-        
-        // Filtrer par élève si spécifié (ancien système)
-        if ($studentId) {
-            $allEvents = array_filter($allEvents, function($event) use ($studentId, $user) {
-                $eventUser = $event->getUser();
-                if (!$eventUser || $eventUser->getId() != (int)$studentId) {
-                    return false;
-                }
-                // Si c'est un étudiant, vérifier les permissions
-                if ($eventUser->isStudent()) {
-                    return $this->permissionService->canViewStudentPlanning($user, $eventUser);
-                }
-                return true;
-            });
-        }
-        
-        // Appliquer les filtres par profil si spécifiés
-        if ($profileType && $selectedIds) {
-            $ids = array_filter(array_map('intval', explode(',', $selectedIds)));
-            if (!empty($ids)) {
-                $filteredEvents = [];
-                foreach ($allEvents as $event) {
-                    $shouldInclude = false;
-                    $eventUser = $event->getUser();
-                    
-                    if (!$eventUser) {
-                        continue; // Ignorer les événements sans utilisateur
-                    }
-                    
-                    if ($profileType === 'parent') {
-                        // Filtrer par parent (planning des enfants du parent)
-                        if ($eventUser->isStudent() && $eventUser->getFamily() && $eventUser->getFamily()->getParent()) {
-                            if (in_array($eventUser->getFamily()->getParent()->getId(), $ids)) {
-                                $shouldInclude = true;
-                            }
-                        }
-                    } elseif ($profileType === 'specialist') {
-                        // Filtrer par spécialiste (planning des élèves assignés au spécialiste)
-                        if ($eventUser->isStudent()) {
-                            foreach ($eventUser->getSpecialists() as $specialist) {
-                                if (in_array($specialist->getId(), $ids)) {
-                                    $shouldInclude = true;
-                                    break;
-                                }
-                            }
-                        }
-                    } elseif ($profileType === 'student') {
-                        // Filtrer par élève
-                        if ($eventUser->isStudent() && in_array($eventUser->getId(), $ids)) {
-                            $shouldInclude = true;
-                        }
-                    }
-                    
-                    // Vérifier les permissions avant d'inclure l'événement
-                    if ($shouldInclude) {
-                        if ($eventUser->isStudent()) {
-                            if ($this->permissionService->canViewStudentPlanning($user, $eventUser)) {
-                                $filteredEvents[] = $event;
-                            }
-                        } else {
-                            // Pour les autres utilisateurs (coach, parent, specialist), inclure si c'est leur propre planning
-                            if ($eventUser->getId() === $user->getId()) {
-                                $filteredEvents[] = $event;
-                            }
-                        }
-                    }
-                }
-                $allEvents = $filteredEvents;
-            }
-        }
-        
-        // Filtrer par type d'événement si spécifié
-        if ($eventType) {
-            $allEvents = array_filter($allEvents, function($event) use ($eventType) {
-                return $event->getType() === $eventType;
-            });
+            
+            $taskEvents = array_merge($taskEvents, $task->toPlanningEvents($weekStart, $weekEnd));
         }
         
         // Générer les 7 jours de la semaine
@@ -224,15 +126,15 @@ class PlanningController extends AbstractController
             ];
         }
         
-        // Distribuer les événements dans les jours de la semaine
-        foreach ($allEvents as $event) {
-            $eventDate = $event->getStartDate();
-            if ($eventDate) {
+        // Distribuer les événements de tâches dans les jours de la semaine
+        foreach ($taskEvents as $taskEvent) {
+            if (isset($taskEvent['startDate'])) {
+                $eventDate = new \DateTimeImmutable($taskEvent['startDate']);
                 $dayKey = $eventDate->format('Y-m-d');
                 // Trouver le jour correspondant dans le tableau
                 foreach ($weekDays as &$dayData) {
                     if ($dayData['date'] === $dayKey) {
-                        $dayData['events'][] = $event->toTemplateArray();
+                        $dayData['events'][] = $taskEvent;
                         break;
                     }
                 }
@@ -248,69 +150,6 @@ class PlanningController extends AbstractController
         
         // Formater la plage de la semaine
         $weekRange = $weekStart->format('d/m/Y') . ' - ' . $weekEnd->format('d/m/Y');
-        
-        // Préparer les données des étudiants pour les formulaires
-        $studentsData = array_map(fn($student) => [
-            'id' => $student->getId(),
-            'firstName' => $student->getFirstName(),
-            'lastName' => $student->getLastName(),
-            'pseudo' => $student->getPseudo(),
-            'class' => $student->getClass(),
-        ], $students);
-
-        // Récupérer les parents et spécialistes pour les filtres (selon le rôle)
-        $parentsData = [];
-        $specialistsData = [];
-        
-        $coachData = null;
-        if ($user->isCoach()) {
-            $coach = $this->getCurrentCoach($this->coachRepository, $this->security);
-            if ($coach) {
-                $coachData = [
-                    'id' => $coach->getId(),
-                    'firstName' => $coach->getFirstName(),
-                    'lastName' => $coach->getLastName(),
-                    'email' => $coach->getEmail(),
-                ];
-                $families = $this->familyRepository->findByCoachWithSearch($coach);
-                foreach ($families as $family) {
-                    $parent = $family->getParent();
-                    if ($parent) {
-                        $parentsData[] = [
-                            'id' => $parent->getId(),
-                            'firstName' => $parent->getFirstName(),
-                            'lastName' => $parent->getLastName(),
-                            'email' => $parent->getEmail(),
-                        ];
-                    }
-                }
-                // Récupérer tous les spécialistes
-                $specialists = $this->specialistRepository->findAll();
-                $specialistsData = array_map(fn($s) => [
-                    'id' => $s->getId(),
-                    'firstName' => $s->getFirstName(),
-                    'lastName' => $s->getLastName(),
-                ], $specialists);
-            }
-        } elseif ($user->isParent()) {
-            // Pour les parents, les élèves sont déjà récupérés via PermissionService
-            // Pas besoin de filtres par parent (ils voient leurs enfants)
-            // Ajouter les données du parent connecté
-            $coachData = [
-                'id' => $user->getId(),
-                'firstName' => $user->getFirstName(),
-                'lastName' => $user->getLastName(),
-                'email' => $user->getEmail(),
-            ];
-        } elseif ($user->isSpecialist()) {
-            // Pour les spécialistes, les élèves sont déjà récupérés via PermissionService
-            // Ajouter le spécialiste connecté à specialistsData pour qu'il puisse se sélectionner
-            $specialistsData = [[
-                'id' => $user->getId(),
-                'firstName' => $user->getFirstName(),
-                'lastName' => $user->getLastName(),
-            ]];
-        }
 
         return $this->render('tailadmin/pages/planning/list.html.twig', [
             'pageTitle' => 'Planning | TailAdmin',
@@ -322,14 +161,6 @@ class PlanningController extends AbstractController
             'nextWeek' => $nextWeek,
             'weekStartFormatted' => $weekStart->format('d/m/Y'),
             'weekEndFormatted' => $weekEnd->format('d/m/Y'),
-            'students' => $studentsData,
-            'parents' => $parentsData,
-            'specialists' => $specialistsData,
-            'coach' => $coachData,
-            'profileType' => $profileType,
-            'selectedIds' => $selectedIds,
-            'currentUserId' => $user->getId(),
-            'currentUserType' => $user->getUserType(),
             'breadcrumbs' => [
                 ['label' => 'Dashboard', 'url' => $this->generateUrl('admin_dashboard')],
             ],
@@ -504,5 +335,119 @@ class PlanningController extends AbstractController
         $this->em->flush();
 
         return new JsonResponse(['success' => true, 'message' => 'Événement supprimé avec succès']);
+    }
+
+    #[Route('/admin/planning/task/{taskId}/details', name: 'admin_planning_task_details', methods: ['GET'])]
+    #[IsGranted('ROLE_USER')]
+    public function getTaskDetails(int $taskId): Response
+    {
+        $user = $this->getUser();
+        if (!$user) {
+            throw $this->createAccessDeniedException('Vous devez être connecté');
+        }
+
+        $task = $this->taskRepository->find($taskId);
+        if (!$task) {
+            throw $this->createNotFoundException('Tâche non trouvée');
+        }
+
+        $student = $task->getObjective()?->getStudent();
+        if (!$student) {
+            throw $this->createNotFoundException('Élève non trouvé pour cette tâche');
+        }
+
+        // Vérifier les permissions
+        if (!$this->permissionService->canViewStudentPlanning($user, $student)) {
+            throw $this->createAccessDeniedException('Vous n\'avez pas le droit de voir cette tâche');
+        }
+
+        // Récupérer les preuves
+        $proofs = $this->proofRepository->findBy(['task' => $task], ['createdAt' => 'DESC']);
+
+        return $this->render('tailadmin/pages/planning/_task_rightsheet.html.twig', [
+            'task' => $task,
+            'student' => $student,
+            'objective' => $task->getObjective(),
+            'proofs' => $proofs,
+            'currentUser' => $user,
+        ]);
+    }
+
+    #[Route('/admin/planning/task/{taskId}/proof', name: 'admin_planning_task_proof_create', methods: ['POST'])]
+    #[IsGranted('ROLE_USER')]
+    public function createProof(int $taskId, Request $request): JsonResponse
+    {
+        $user = $this->getUser();
+        if (!$user) {
+            return new JsonResponse(['success' => false, 'message' => 'Vous devez être connecté'], 403);
+        }
+
+        $task = $this->taskRepository->find($taskId);
+        if (!$task) {
+            return new JsonResponse(['success' => false, 'message' => 'Tâche non trouvée'], 404);
+        }
+
+        $student = $task->getObjective()?->getStudent();
+        if (!$student) {
+            return new JsonResponse(['success' => false, 'message' => 'Élève non trouvé'], 404);
+        }
+
+        // Vérifier les permissions
+        if (!$this->permissionService->canViewStudentPlanning($user, $student)) {
+            return new JsonResponse(['success' => false, 'message' => 'Vous n\'avez pas le droit d\'ajouter une preuve'], 403);
+        }
+
+        $data = json_decode($request->getContent(), true);
+
+        // Créer la preuve
+        $proof = new \App\Entity\Proof();
+        $proof->setTask($task);
+        $proof->setSubmittedBy($user);
+        $proof->setTitle($data['title'] ?? 'Preuve');
+        $proof->setDescription($data['description'] ?? null);
+        $proof->setType('text');
+
+        // Gérer l'upload d'image si présent
+        if (isset($data['fileBase64']) && isset($data['fileName'])) {
+            try {
+                $extension = pathinfo($data['fileName'], PATHINFO_EXTENSION) ?: 'jpg';
+                $filePath = $this->fileStorageService->saveBase64File($data['fileBase64'], $extension);
+                $proof->setFilePath($filePath);
+                $proof->setFileName($data['fileName']);
+                $proof->setFileUrl($this->fileStorageService->generateSecureUrl($filePath));
+                $proof->setFileSize($data['fileSize'] ?? null);
+                $proof->setMimeType($data['mimeType'] ?? null);
+                $proof->setType('image');
+            } catch (\Exception $e) {
+                return new JsonResponse(['success' => false, 'message' => 'Erreur lors de l\'upload: ' . $e->getMessage()], 400);
+            }
+        } elseif (isset($data['content']) && !empty(trim($data['content']))) {
+            // Si pas d'image mais du contenu texte, utiliser le contenu
+            $proof->setContent($data['content']);
+            $proof->setType('text');
+        } elseif (isset($data['description']) && !empty(trim($data['description']))) {
+            // Si seulement description, l'utiliser comme contenu
+            $proof->setContent($data['description']);
+            $proof->setType('text');
+        }
+
+        // Validation
+        $errors = $this->validator->validate($proof);
+        if (count($errors) > 0) {
+            $errorMessages = [];
+            foreach ($errors as $error) {
+                $errorMessages[] = $error->getMessage();
+            }
+            return new JsonResponse(['success' => false, 'message' => implode(', ', $errorMessages)], 400);
+        }
+
+        $this->em->persist($proof);
+        $this->em->flush();
+
+        return new JsonResponse([
+            'success' => true,
+            'message' => 'Preuve ajoutée avec succès',
+            'proofId' => $proof->getId()
+        ]);
     }
 }

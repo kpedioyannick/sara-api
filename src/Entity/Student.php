@@ -42,12 +42,16 @@ class Student extends User
     #[ORM\OneToMany(targetEntity: Availability::class, mappedBy: 'student')]
     private Collection $availabilities;
 
+    #[ORM\OneToMany(targetEntity: Note::class, mappedBy: 'student', fetch: 'EXTRA_LAZY')]
+    private Collection $notes;
+
     public function __construct()
     {
         parent::__construct();
         $this->objectives = new ArrayCollection();
         $this->requests = new ArrayCollection();
         $this->specialists = new ArrayCollection();
+        $this->notes = new ArrayCollection();
         $this->availabilities = new ArrayCollection();
         $this->setRoles(['ROLE_STUDENT']);
     }
@@ -210,6 +214,36 @@ class Student extends User
     public function getAvailabilities(): Collection
     {
         return $this->availabilities;
+    }
+
+    /**
+     * @return Collection<int, Note>
+     */
+    public function getNotes(): Collection
+    {
+        return $this->notes;
+    }
+
+    public function addNote(Note $note): static
+    {
+        if (!$this->notes->contains($note)) {
+            $this->notes->add($note);
+            $note->setStudent($this);
+        }
+
+        return $this;
+    }
+
+    public function removeNote(Note $note): static
+    {
+        if ($this->notes->removeElement($note)) {
+            // set the owning side to null (unless already changed)
+            if ($note->getStudent() === $this) {
+                $note->setStudent(null);
+            }
+        }
+
+        return $this;
     }
 
     public function addAvailability(Availability $availability): static
