@@ -201,7 +201,7 @@ class FamilyController extends AbstractController
 
         return $this->render('tailadmin/pages/families/list.html.twig', [
             'pageTitle' => 'Liste des Familles | TailAdmin',
-            'pageName' => 'Familles',
+            'pageName' => 'families',
             'families' => $familiesData,
             'specialists' => $specialistsData,
             'parents' => $parentsData,
@@ -600,6 +600,69 @@ class FamilyController extends AbstractController
         return new JsonResponse(['success' => true, 'message' => 'Élève supprimé avec succès']);
     }
 
+    #[Route('/admin/families/{familyId}/students/{studentId}/rightsheet', name: 'admin_families_students_rightsheet', methods: ['GET'])]
+    #[IsGranted('ROLE_USER')]
+    public function getStudentRightSheet(int $familyId, int $studentId): Response
+    {
+        $user = $this->getUser();
+        if (!$user) {
+            throw $this->createAccessDeniedException('Vous devez être connecté');
+        }
+
+        $family = $this->familyRepository->find($familyId);
+        if (!$family) {
+            throw $this->createNotFoundException('Famille non trouvée');
+        }
+
+        $student = $this->studentRepository->find($studentId);
+        if (!$student) {
+            throw $this->createNotFoundException('Élève non trouvé');
+        }
+
+        // Vérifier que l'élève appartient à la famille
+        if ($student->getFamily()->getId() !== $family->getId()) {
+            throw $this->createAccessDeniedException('Cet élève n\'appartient pas à cette famille');
+        }
+
+        // Vérifier les permissions
+        if ($user->isCoach()) {
+            $coach = $user instanceof \App\Entity\Coach ? $user : $this->getCurrentCoach($this->coachRepository, $this->security);
+            if (!$coach || $family->getCoach()->getId() !== $coach->getId()) {
+                throw $this->createAccessDeniedException('Vous n\'avez pas la permission de voir cet élève');
+            }
+        } elseif ($user->isParent()) {
+            if ($family->getParent()->getId() !== $user->getId()) {
+                throw $this->createAccessDeniedException('Vous n\'avez pas la permission de voir cet élève');
+            }
+        } else {
+            throw $this->createAccessDeniedException('Vous n\'avez pas la permission de voir cet élève');
+        }
+
+        // Compter les objectifs, demandes et plannings
+        $objectivesCount = $student->getObjectives()->count();
+        $requestsCount = $student->getRequests()->count();
+        $planningsCount = $this->planningRepository->createQueryBuilder('p')
+            ->select('COUNT(p.id)')
+            ->where('p.user = :user')
+            ->setParameter('user', $student)
+            ->getQuery()
+            ->getSingleScalarResult();
+
+        // Récupérer tous les spécialistes pour la sélection (si coach)
+        $specialists = [];
+        if ($user->isCoach()) {
+            $specialists = $this->specialistRepository->findAll();
+        }
+
+        return $this->render('tailadmin/pages/families/student_rightsheet.html.twig', [
+            'student' => $student,
+            'family' => $family,
+            'objectivesCount' => $objectivesCount,
+            'requestsCount' => $requestsCount,
+            'planningsCount' => $planningsCount,
+            'specialists' => $specialists,
+        ]);
+    }
 
     #[Route('/admin/students/need-tags', name: 'admin_students_need_tags', methods: ['GET'])]
     #[IsGranted('ROLE_USER')]

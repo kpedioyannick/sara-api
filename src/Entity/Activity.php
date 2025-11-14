@@ -61,6 +61,9 @@ class Activity
     #[ORM\Column(type: 'json', nullable: true)]
     private ?array $workedPoints = null; // Tableau de tags : ["Motricité fine", "Concentration", ...]
 
+    #[ORM\Column(type: 'json', nullable: true)]
+    private ?array $links = null; // Tableau de liens : ["https://example.com", "https://example2.com", ...]
+
     #[ORM\Column]
     private ?\DateTimeImmutable $createdAt = null;
 
@@ -89,6 +92,7 @@ class Activity
         $this->updatedAt = new \DateTimeImmutable();
         $this->objectives = [];
         $this->workedPoints = [];
+        $this->links = [];
     }
 
     public function getId(): ?int
@@ -170,6 +174,17 @@ class Activity
     public function setWorkedPoints(?array $workedPoints): static
     {
         $this->workedPoints = $workedPoints ?? [];
+        return $this;
+    }
+
+    public function getLinks(): ?array
+    {
+        return $this->links ?? [];
+    }
+
+    public function setLinks(?array $links): static
+    {
+        $this->links = $links ?? [];
         return $this;
     }
 
@@ -288,6 +303,7 @@ class Activity
             'canModify' => $this->canModify(),
             'objectives' => $this->getObjectives(),
             'workedPoints' => $this->getWorkedPoints(),
+            'links' => $this->getLinks(),
             'category' => $this->getCategory()?->toArray(),
             'createdBy' => $this->getCreatedBy()?->toSimpleArray(),
             'imagesCount' => $this->getImages()->count(),
@@ -353,6 +369,7 @@ class Activity
         $activity->setCategory($category);
         $activity->setObjectives($data['objectives'] ?? []);
         $activity->setWorkedPoints($data['workedPoints'] ?? []);
+        $activity->setLinks($data['links'] ?? []);
         $activity->setCreatedBy($createdBy);
         $activity->setStatus($data['status'] ?? self::STATUS_MODIFICATION);
 

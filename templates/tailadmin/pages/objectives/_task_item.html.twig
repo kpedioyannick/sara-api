@@ -1,0 +1,195 @@
+{# Template réutilisable pour afficher une tâche #}
+<div
+  draggable="true"
+  class="group relative p-4 bg-white border-2 border-gray-200 task rounded-lg shadow-theme-sm transition-all duration-200 hover:border-brand-300 hover:shadow-md dark:border-gray-700 dark:bg-white/5 dark:hover:border-brand-600 {% if task.status == 'completed' %}opacity-75{% else %}hover:scale-[1.01]{% endif %}"
+>
+  <!-- Indicateur visuel de clic (ligne gauche) -->
+  <div class="absolute left-0 top-0 bottom-0 w-1 bg-brand-500 rounded-l-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200"></div>
+  
+  <div class="flex flex-col gap-3">
+    <!-- Header: Checkbox + Titre + Description -->
+    <div class="flex items-start gap-3">
+      <label
+        for="taskCheckbox{{ task.id }}"
+        class="flex items-center justify-center w-5 h-5 mt-0.5 border-2 border-gray-300 rounded-md cursor-pointer flex-shrink-0 transition-all duration-200 hover:border-brand-500 hover:bg-brand-50 dark:border-gray-600 dark:hover:border-brand-400 {% if task.status == 'completed' %}opacity-50 cursor-not-allowed bg-success-500 dark:bg-success-400 border-success-500{% elseif task.status == 'in_progress' %}bg-brand-500 dark:bg-brand-400 border-brand-500{% endif %} {% if task.status == 'completed' or task.status == 'in_progress' %}text-white{% endif %}"
+        @click.stop
+        title="{% if task.status == 'completed' %}Tâche terminée{% elseif task.status == 'in_progress' %}Tâche en cours - Cliquez pour ajouter une preuve{% else %}Cliquez pour ajouter une preuve{% endif %}"
+      >
+        <input
+          type="checkbox"
+          id="taskCheckbox{{ task.id }}"
+          class="sr-only taskCheckbox"
+          data-task-id="{{ task.id }}"
+          {% if task.status == 'completed' or task.status == 'in_progress' %}checked{% endif %}
+          {% if task.status == 'completed' %}disabled{% endif %}
+          data-task-title="{{ task.title|escape }}"
+          data-task-status="{{ task.status }}"
+          {% if task.status != 'completed' %}@change.stop="openProofModalFromCheckbox($event)"{% endif %}
+          @click.stop
+        />
+        <span class="{% if task.status == 'completed' or task.status == 'in_progress' %}opacity-100{% else %}opacity-0{% endif %} transition-opacity">
+          <svg width="12" height="12" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M11.6668 3.5L5.25016 9.91667L2.3335 7" stroke="white" stroke-width="1.94437" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </span>
+      </label>
+      <div class="flex-1 min-w-0">
+        <h4 class="text-sm font-semibold text-gray-800 dark:text-white/90 {% if task.status == 'completed' %}line-through{% endif %} group-hover:text-brand-600 dark:group-hover:text-brand-400 transition-colors">{{ task.title }}</h4>
+        {% if task.description %}
+        <p class="text-xs text-gray-600 dark:text-gray-400 mt-1 line-clamp-2 {% if task.status == 'completed' %}line-through{% endif %}">{{ task.description }}</p>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Ligne de séparation visuelle -->
+    <div class="h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent dark:via-gray-700"></div>
+
+    <!-- Informations détaillées compactes -->
+    <div class="flex flex-wrap items-center gap-x-4 gap-y-2 pl-8 text-xs">
+      <!-- Affecté à -->
+      <div class="flex items-center gap-1.5">
+        {% if task.assignedType == 'student' and task.assignedTo %}
+        <span class="inline-flex items-center gap-1 rounded-full bg-blue-50 px-1.5 py-0.5 text-xs font-medium text-blue-600 dark:bg-blue-500/15 dark:text-blue-400">
+          <svg class="fill-current" width="10" height="10" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M8 8a3 3 0 100-6 3 3 0 000 6zM8 9.5c-2.5 0-4.5 1.25-4.5 2.75V13.5h9V12.25c0-1.5-2-2.75-4.5-2.75z" fill="currentColor"/>
+          </svg>
+          {{ task.assignedTo.pseudo|default(task.assignedTo.firstName ~ ' ' ~ task.assignedTo.lastName) }}
+        </span>
+        {% elseif task.assignedType == 'parent' and task.assignedTo %}
+        <span class="inline-flex items-center gap-1 rounded-full bg-blue-50 px-1.5 py-0.5 text-xs font-medium text-blue-600 dark:bg-blue-500/15 dark:text-blue-400">
+          <svg class="fill-current" width="10" height="10" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M8 8a3 3 0 100-6 3 3 0 000 6zM8 9.5c-2.5 0-4.5 1.25-4.5 2.75V13.5h9V12.25c0-1.5-2-2.75-4.5-2.75z" fill="currentColor"/>
+          </svg>
+          {{ task.assignedTo.firstName ~ ' ' ~ task.assignedTo.lastName }}
+        </span>
+        {% elseif task.assignedType == 'specialist' and task.assignedTo %}
+        <span class="inline-flex items-center gap-1 rounded-full bg-blue-50 px-1.5 py-0.5 text-xs font-medium text-blue-600 dark:bg-blue-500/15 dark:text-blue-400">
+          <svg class="fill-current" width="10" height="10" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M8 8a3 3 0 100-6 3 3 0 000 6zM8 9.5c-2.5 0-4.5 1.25-4.5 2.75V13.5h9V12.25c0-1.5-2-2.75-4.5-2.75z" fill="currentColor"/>
+          </svg>
+          {{ task.assignedTo.firstName ~ ' ' ~ task.assignedTo.lastName }}
+        </span>
+        {% else %}
+        <span class="inline-flex items-center gap-1 rounded-full bg-blue-50 px-1.5 py-0.5 text-xs font-medium text-blue-600 dark:bg-blue-500/15 dark:text-blue-400">
+          <svg class="fill-current" width="10" height="10" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M8 8a3 3 0 100-6 3 3 0 000 6zM8 9.5c-2.5 0-4.5 1.25-4.5 2.75V13.5h9V12.25c0-1.5-2-2.75-4.5-2.75z" fill="currentColor"/>
+          </svg>
+          Coach
+        </span>
+        {% endif %}
+      </div>
+
+      <!-- Dates -->
+      {% if task.createdAt or task.dueDate %}
+      <div class="flex items-center gap-2 text-gray-500 dark:text-gray-400">
+        {% if task.createdAt %}
+        <span class="flex items-center gap-1">
+          <svg class="fill-current" width="11" height="11" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path fill-rule="evenodd" clip-rule="evenodd" d="M5.33329 1.0835C5.74751 1.0835 6.08329 1.41928 6.08329 1.8335V2.25016L9.91663 2.25016V1.8335C9.91663 1.41928 10.2524 1.0835 10.6666 1.0835C11.0808 1.0835 11.4166 1.41928 11.4166 1.8335V2.25016L12.3333 2.25016C13.2998 2.25016 14.0833 3.03366 14.0833 4.00016V12.6668C14.0833 13.6333 13.2998 14.4168 12.3333 14.4168L3.66663 14.4168C2.70013 14.4168 1.91663 13.6333 1.91663 12.6668V4.00016C1.91663 3.03366 2.70013 2.25016 3.66663 2.25016L4.58329 2.25016V1.8335C4.58329 1.41928 4.91908 1.0835 5.33329 1.0835ZM5.33329 3.75016L3.66663 3.75016C3.52855 3.75016 3.41663 3.86209 3.41663 4.00016V5.25016L12.5833 5.25016V4.00016C12.5833 3.86209 12.4714 3.75016 12.3333 3.75016L10.6666 3.75016L5.33329 3.75016ZM12.5833 6.75016L3.41663 6.75016L3.41663 12.6668C3.41663 12.8049 3.52855 12.9168 3.66663 12.9168L12.3333 12.9168C12.4714 12.9168 12.5833 12.8049 12.5833 12.6668L12.5833 6.75016Z" fill=""/>
+          </svg>
+          {{ task.createdAt|date('d/m/Y') }}
+        </span>
+        {% endif %}
+        {% if task.dueDate %}
+        <span class="flex items-center gap-1">
+          <svg class="fill-current" width="11" height="11" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path fill-rule="evenodd" clip-rule="evenodd" d="M5.33329 1.0835C5.74751 1.0835 6.08329 1.41928 6.08329 1.8335V2.25016L9.91663 2.25016V1.8335C9.91663 1.41928 10.2524 1.0835 10.6666 1.0835C11.0808 1.0835 11.4166 1.41928 11.4166 1.8335V2.25016L12.3333 2.25016C13.2998 2.25016 14.0833 3.03366 14.0833 4.00016V12.6668C14.0833 13.6333 13.2998 14.4168 12.3333 14.4168L3.66663 14.4168C2.70013 14.4168 1.91663 13.6333 1.91663 12.6668V4.00016C1.91663 3.03366 2.70013 2.25016 3.66663 2.25016L4.58329 2.25016V1.8335C4.58329 1.41928 4.91908 1.0835 5.33329 1.0835ZM5.33329 3.75016L3.66663 3.75016C3.52855 3.75016 3.41663 3.86209 3.41663 4.00016V5.25016L12.5833 5.25016V4.00016C12.5833 3.86209 12.4714 3.75016 12.3333 3.75016L10.6666 3.75016L5.33329 3.75016ZM12.5833 6.75016L3.41663 6.75016L3.41663 12.6668C3.41663 12.8049 3.52855 12.9168 3.66663 12.9168L12.3333 12.9168C12.4714 12.9168 12.5833 12.8049 12.5833 12.6668L12.5833 6.75016Z" fill=""/>
+          </svg>
+          {{ task.dueDate|date('d/m/Y') }}
+        </span>
+        {% endif %}
+      </div>
+      {% endif %}
+
+      <!-- Preuves avec étoiles -->
+      <div class="flex items-center gap-0.5 flex-wrap">
+        {% set proofsCount = task.proofs|length %}
+        {% if proofsCount > 0 %}
+          {% for i in 1..proofsCount %}
+            <span class="text-yellow-400 dark:text-yellow-500 text-xs">⭐</span>
+          {% endfor %}
+        {% else %}
+          <span class="text-xs text-gray-400 dark:text-gray-500">Aucune preuve</span>
+        {% endif %}
+      </div>
+
+      <!-- Liens des activités -->
+      {% if task.activity %}
+      <div class="flex items-center">
+        <a href="{{ path('admin_activities_detail', {id: task.activity.id}) }}" class="inline-flex items-center gap-1 text-xs text-brand-600 hover:text-brand-700 dark:text-brand-400 dark:hover:text-brand-300">
+          <svg class="fill-current" width="10" height="10" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M8 1C4.134 1 1 4.134 1 8s3.134 7 7 7 7-3.134 7-7-3.134-7-7-7zm0 12.5c-3.032 0-5.5-2.468-5.5-5.5S4.968 2.5 8 2.5 13.5 4.968 13.5 8 11.032 13.5 8 13.5z" fill=""/>
+          </svg>
+          {{ task.activity.title|default('Activité') }}
+        </a>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Ligne de séparation avant les actions -->
+    <div class="h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent dark:via-gray-700"></div>
+
+    <!-- Actions: Boutons avec indicateurs visuels -->
+    <div class="flex items-center gap-2 pt-2 pl-8">
+      <button
+        data-task-id="{{ task.id }}"
+        data-task-status="{{ task.status }}"
+        data-task-frequency="{{ task.frequency|default('none') }}"
+        data-task-requires-proof="{{ task.requiresProof ? 'true' : 'false' }}"
+        data-task-title="{{ task.title|e('html_attr') }}"
+        data-task-description="{{ task.description|e('html_attr') }}"
+        data-task-assigned-type="{{ task.assignedType|default('coach') }}"
+        data-task-student-id="{{ task.student ? task.student.id : '' }}"
+        data-task-parent-id="{{ task.parent ? task.parent.id : '' }}"
+        data-task-specialist-id="{{ task.specialist ? task.specialist.id : '' }}"
+        data-task-activity-id="{{ task.activity ? task.activity.id : '' }}"
+        data-task-path-id="{{ task.path ? task.path.id : '' }}"
+        data-task-type="{{ task.type|default('task') }}"
+        data-task-created-at="{{ task.createdAt|default('') }}"
+        data-task-due-date="{{ task.dueDate|default('') }}"
+        @click="openTaskConfig($event)"
+        {% if not objective.canModifyTasks %}disabled{% endif %}
+        class="group/btn relative inline-flex items-center gap-1.5 rounded-lg border-2 border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 shadow-sm transition-all duration-200 hover:border-brand-500 hover:bg-brand-50 hover:shadow-md hover:scale-105 active:scale-95 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:border-brand-400 dark:hover:bg-brand-500/10 {% if not objective.canModifyTasks %}opacity-50 cursor-not-allowed hover:scale-100{% endif %}"
+        title="Cliquez pour configurer cette tâche"
+      >
+        <svg class="fill-current transition-transform group-hover/btn:rotate-12" width="14" height="14" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M11.334 2.666a2.667 2.667 0 0 1 3.771 3.772l-8 8a2.667 2.667 0 0 1-1.886.781l-2.89.111a.667.667 0 0 1-.687-.687l.111-2.89a2.667 2.667 0 0 1 .78-1.886l8-8Zm2.39 2.39a1.333 1.333 0 0 0-1.886-1.886L10.667 4.61l1.886 1.886 1.171-1.44Z" fill=""/>
+        </svg>
+        <span class="hidden sm:inline">Configurer</span>
+        <span class="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-brand-500 opacity-0 group-hover/btn:opacity-100 transition-opacity"></span>
+      </button>
+      <button
+        data-task-id="{{ task.id }}"
+        data-task-proofs="{{ task.proofs|json_encode|e('html_attr') }}"
+        data-task-title="{{ task.title|e('html_attr') }}"
+        @click="showProofHistoryFromButton($event)"
+        class="group/btn relative inline-flex items-center gap-1.5 rounded-lg border-2 border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 shadow-sm transition-all duration-200 hover:border-blue-500 hover:bg-blue-50 hover:shadow-md hover:scale-105 active:scale-95 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:border-blue-400 dark:hover:bg-blue-500/10"
+        title="Cliquez pour voir l'historique des preuves{% if task.proofs|length > 0 %} ({{ task.proofs|length }}){% endif %}"
+      >
+        <svg class="fill-current transition-transform group-hover/btn:scale-110" width="14" height="14" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M8 1C4.134 1 1 4.134 1 8s3.134 7 7 7 7-3.134 7-7-3.134-7-7-7zm0 12.5c-3.032 0-5.5-2.468-5.5-5.5S4.968 2.5 8 2.5 13.5 4.968 13.5 8 11.032 13.5 8 13.5z" fill=""/>
+          <path d="M8 4.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7zm0 6a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5z" fill=""/>
+        </svg>
+        <span class="hidden sm:inline">Preuves{% if task.proofs|length > 0 %} ({{ task.proofs|length }}){% endif %}</span>
+        {% if task.proofs|length > 0 %}
+        <span class="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-blue-500 text-[10px] font-bold text-white shadow-sm">{{ task.proofs|length }}</span>
+        {% endif %}
+      </button>
+      {% if objective.canModifyTasks and task.status != 'completed' %}
+      <button
+        data-task-id="{{ task.id }}"
+        data-task-status="{{ task.status }}"
+        @click="deleteTask({{ task.id }}, '{{ task.status }}')"
+        class="group/btn inline-flex items-center gap-1.5 rounded-lg border-2 border-red-300 bg-white px-3 py-1.5 text-xs font-medium text-red-600 shadow-sm transition-all duration-200 hover:border-red-500 hover:bg-red-50 hover:shadow-md hover:scale-105 active:scale-95 dark:border-red-800 dark:bg-gray-800 dark:text-red-400 dark:hover:border-red-500 dark:hover:bg-red-500/10"
+        title="Cliquez pour supprimer cette tâche"
+      >
+        <svg class="fill-current transition-transform group-hover/btn:rotate-90" width="14" height="14" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M5.33333 2.66667V1.33333C5.33333 0.979711 5.47381 0.640573 5.72386 0.390524C5.97391 0.140476 6.31305 0 6.66667 0H9.33333C9.68696 0 10.0261 0.140476 10.2761 0.390524C10.5262 0.640573 10.6667 0.979711 10.6667 1.33333V2.66667H14.6667C15.0333 2.66667 15.3333 2.96667 15.3333 3.33333C15.3333 3.7 15.0333 4 14.6667 4H13.3333V14C13.3333 14.7072 12.7472 15.3333 12 15.3333H4C3.25281 15.3333 2.66667 14.7072 2.66667 14V4H1.33333C0.966667 4 0.666667 3.7 0.666667 3.33333C0.666667 2.96667 0.966667 2.66667 1.33333 2.66667H5.33333ZM6.66667 1.33333V2.66667H9.33333V1.33333H6.66667Z" fill="currentColor"/>
+        </svg>
+        <span class="hidden sm:inline">Supprimer</span>
+      </button>
+      {% endif %}
+    </div>
+  </div>
+</div>
+

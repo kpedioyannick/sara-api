@@ -2,6 +2,8 @@
 
 namespace App\Entity;
 
+use App\Entity\Path\Path;
+use App\Enum\TaskType;
 use App\Repository\TaskRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
@@ -96,12 +98,20 @@ class Task
     #[ORM\JoinColumn(nullable: true)]
     private ?Activity $activity = null;
 
+    #[ORM\Column(type: 'string', length: 50, enumType: TaskType::class, nullable: false, options: ['default' => 'task'])]
+    private TaskType $type = TaskType::TASK;
+
+    #[ORM\ManyToOne]
+    #[ORM\JoinColumn(nullable: true)]
+    private ?Path $path = null;
+
     public function __construct()
     {
         $this->createdAt = new \DateTimeImmutable();
         $this->updatedAt = new \DateTimeImmutable();
         $this->proofs = new ArrayCollection();
         $this->requiresProof = true;
+        $this->type = TaskType::TASK;
     }
 
     public function getId(): ?int
@@ -317,6 +327,32 @@ class Task
         return $this;
     }
 
+    public function getType(): TaskType
+    {
+        // S'assurer qu'on retourne toujours une valeur valide
+        if ($this->type === null) {
+            $this->type = TaskType::TASK;
+        }
+        return $this->type;
+    }
+
+    public function setType(?TaskType $type): static
+    {
+        $this->type = $type ?? TaskType::TASK;
+        return $this;
+    }
+
+    public function getPath(): ?Path
+    {
+        return $this->path;
+    }
+
+    public function setPath(?Path $path): static
+    {
+        $this->path = $path;
+        return $this;
+    }
+
     public function toArray(): array
     {
         return [
@@ -324,6 +360,7 @@ class Task
             'title' => $this->getTitle(),
             'description' => $this->getDescription(),
             'status' => $this->getStatus(),
+            'type' => $this->getType()->value,
             'frequency' => $this->getFrequency(),
             'requiresProof' => $this->isRequiresProof(),
             'proofType' => $this->getProofType(),
@@ -481,11 +518,16 @@ class Task
                 'firstName' => $this->getSpecialist()->getFirstName(),
                 'lastName' => $this->getSpecialist()->getLastName(),
             ] : null,
-            'dueDate' => $this->getDueDate()?->format('Y-m-d'),
-            'createdAt' => $this->getCreatedAt()?->format('Y-m-d'),
+            'dueDate' => $this->getDueDate()?->format('Y-m-d H:i:s'),
+            'createdAt' => $this->getCreatedAt()?->format('Y-m-d H:i:s'),
             'activity' => $this->getActivity() ? [
                 'id' => $this->getActivity()->getId(),
                 'title' => $this->getActivity()->getTitle(),
+            ] : null,
+            'type' => $this->getType()->value,
+            'path' => $this->getPath() ? [
+                'id' => $this->getPath()->getId(),
+                'title' => $this->getPath()->getTitle(),
             ] : null,
         ];
     }

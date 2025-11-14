@@ -63,14 +63,14 @@
                 >
                     <option value="">Sélectionner une durée</option>
                     <option value="15 minutes">15 minutes</option>
+                    <option value="15-30 minutes">15-30 minutes</option>
                     <option value="30 minutes">30 minutes</option>
+                    <option value="30-45 minutes">30-45 minutes</option>
                     <option value="45 minutes">45 minutes</option>
+                    <option value="45-60 minutes">45-60 minutes</option>
                     <option value="1 heure">1 heure</option>
                     <option value="1h30">1h30</option>
                     <option value="2 heures">2 heures</option>
-                    <option value="15-30 minutes">15-30 minutes</option>
-                    <option value="30-45 minutes">30-45 minutes</option>
-                    <option value="45-60 minutes">45-60 minutes</option>
                 </select>
             </div>
 
@@ -89,22 +89,6 @@
                     <option value="Primaire">Primaire</option>
                     <option value="Collège">Collège</option>
                     <option value="Lycée">Lycée</option>
-                </select>
-            </div>
-
-            <!-- Type -->
-            <div>
-                <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Type <span class="text-error-500">*</span>
-                </label>
-                <select
-                    x-model="createForm.type"
-                    required
-                    class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
-                >
-                    <option value="">Sélectionner un type</option>
-                    <option value="individual">Individuel</option>
-                    <option value="with_adult">Avec un adulte</option>
                 </select>
             </div>
 
@@ -141,6 +125,78 @@
                 </div>
             </div>
 
+            <!-- Images -->
+            <div>
+                <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Images
+                </label>
+                <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    @change="handleImagesSelect($event)"
+                    class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+                />
+                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                    Formats acceptés : JPG, PNG, GIF (max 5MB par image)
+                </p>
+                <!-- Prévisualisation des images -->
+                <div x-show="createForm.images && createForm.images.length > 0" class="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3">
+                    <template x-for="(image, index) in createForm.images" :key="index">
+                        <div class="relative">
+                            <img
+                                :src="image.preview"
+                                :alt="image.name"
+                                class="h-32 w-full rounded-lg border border-gray-200 object-cover dark:border-gray-700"
+                            />
+                            <button
+                                type="button"
+                                @click="createForm.images.splice(index, 1)"
+                                class="absolute top-2 right-2 rounded-full bg-error-500 p-1.5 text-white shadow-lg hover:bg-error-600"
+                            >
+                                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                            <p class="mt-1 truncate text-xs text-gray-500 dark:text-gray-400" x-text="image.name"></p>
+                        </div>
+                    </template>
+                </div>
+            </div>
+
+            <!-- Liens -->
+            <div>
+                <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Liens
+                </label>
+                <div class="space-y-2">
+                    <template x-for="(link, index) in (createForm.links || [])" :key="index">
+                        <div class="flex gap-2">
+                            <input
+                                type="url"
+                                x-model="createForm.links[index]"
+                                class="flex-1 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+                                placeholder="https://example.com"
+                            />
+                            <button
+                                type="button"
+                                @click="createForm.links.splice(index, 1)"
+                                class="rounded-lg border border-error-500 bg-error-50 px-3 py-2 text-sm text-error-600 hover:bg-error-100 dark:border-error-400 dark:bg-error-900/30 dark:text-error-400"
+                            >
+                                Supprimer
+                            </button>
+                        </div>
+                    </template>
+                    <button
+                        type="button"
+                        @click="createForm.links = createForm.links || []; createForm.links.push('')"
+                        class="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"
+                    >
+                        + Ajouter un lien
+                    </button>
+                </div>
+            </div>
+
             <!-- Boutons d'action -->
             <div class="flex gap-3 justify-end pt-4 border-t border-gray-200 dark:border-gray-800">
                 <a href="{{ path('admin_activities_list') }}" class="rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700">
@@ -167,8 +223,9 @@ function activityCreateManager() {
             description: '',
             duration: '30 minutes',
             ageRange: 'Primaire',
-            type: '',
-            objectives: []
+            objectives: [],
+            images: [],
+            links: []
         },
         quillEditor: null,
         quillLoaded: false,
@@ -219,6 +276,49 @@ function activityCreateManager() {
             });
         },
 
+        handleImagesSelect(event) {
+            const files = Array.from(event.target.files || []);
+            if (files.length === 0) return;
+
+            files.forEach(file => {
+                // Vérifier le type
+                if (!file.type.startsWith('image/')) {
+                    if (window.showToast) {
+                        window.showToast(`Le fichier ${file.name} n'est pas une image`, 'error');
+                    }
+                    return;
+                }
+
+                // Vérifier la taille (max 5MB)
+                if (file.size > 5 * 1024 * 1024) {
+                    if (window.showToast) {
+                        window.showToast(`Le fichier ${file.name} est trop volumineux (max 5MB)`, 'error');
+                    }
+                    return;
+                }
+
+                // Lire le fichier en base64 pour la prévisualisation
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    if (!this.createForm.images) {
+                        this.createForm.images = [];
+                    }
+                    this.createForm.images.push({
+                        file: file,
+                        name: file.name,
+                        size: file.size,
+                        type: file.type,
+                        preview: e.target.result,
+                        base64: e.target.result.split(',')[1] // Retirer le préfixe data:image/...
+                    });
+                };
+                reader.readAsDataURL(file);
+            });
+
+            // Réinitialiser l'input
+            event.target.value = '';
+        },
+
         async createActivity() {
             if (this.quillEditor) {
                 this.createForm.description = this.quillEditor.root.innerHTML;
@@ -233,13 +333,22 @@ function activityCreateManager() {
 
             this.saving = true;
             try {
+                // Filtrer les liens vides
+                const validLinks = (this.createForm.links || []).filter(link => link && link.trim().length > 0);
+
                 const payload = {
                     title: this.createForm.title,
                     description: this.createForm.description,
                     duration: this.createForm.duration,
                     ageRange: this.createForm.ageRange,
-                    type: this.createForm.type,
-                    objectives: this.createForm.objectives || []
+                    objectives: this.createForm.objectives || [],
+                    links: validLinks,
+                    images: (this.createForm.images || []).map(img => ({
+                        fileName: img.name,
+                        fileSize: img.size,
+                        mimeType: img.type,
+                        fileBase64: img.base64
+                    }))
                 };
 
                 const response = await fetch('/admin/activities/create', {

@@ -311,23 +311,20 @@
                                     class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
                                 ></textarea>
                                 <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                                    Le titre et les tâches seront générés automatiquement à partir de cette description.
+                                    Modifiez la description si nécessaire, puis cliquez sur "Générer les suggestions" pour voir les tâches proposées.
                                 </p>
                             </div>
                             <div>
-                                <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Catégorie *</label>
+                                <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Catégories *</label>
                                 <select
-                                    x-model="formData.category"
-                                    required
-                                    class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+                                    x-ref="categoryTagsSelect"
+                                    multiple
+                                    class="w-full"
                                 >
-                                    <option value="">Sélectionner...</option>
-                                    <option value="academic">Académique</option>
-                                    <option value="Comportement">Comportement</option>
-                                    <option value="Autonomie">Autonomie</option>
-                                    <option value="Social">Social</option>
-                                    <option value="Émotionnel">Émotionnel</option>
                                 </select>
+                                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                                    Sélectionnez ou créez des catégories pour cet objectif
+                                </p>
                             </div>
                             <div>
                                 <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Élève *</label>
@@ -367,19 +364,16 @@
                                 ></textarea>
                             </div>
                             <div>
-                                <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Catégorie *</label>
+                                <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Catégories *</label>
                                 <select
-                                    x-model="formData.category"
-                                    required
-                                    class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+                                    x-ref="categoryTagsEditSelect"
+                                    multiple
+                                    class="w-full"
                                 >
-                                    <option value="">Sélectionner...</option>
-                                    <option value="academic">Académique</option>
-                                    <option value="Comportement">Comportement</option>
-                                    <option value="Autonomie">Autonomie</option>
-                                    <option value="Social">Social</option>
-                                    <option value="Émotionnel">Émotionnel</option>
                                 </select>
+                                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                                    Sélectionnez ou créez des catégories pour cet objectif
+                                </p>
                             </div>
                             <div>
                                 <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Statut *</label>
@@ -850,12 +844,16 @@ function objectiveManager() {
         formData: {
             title: '',
             description: '',
-            category: '',
+            category: 'general',
+            categoryTags: [],
             status: 'modification',
             progress: 0,
             deadline: '',
             studentId: '',
         },
+        allCategoryTags: [],
+        categoryTagsChoicesInstance: null,
+        categoryTagsEditChoicesInstance: null,
         objectivesData: [],
         studentsData: [],
         students: [],
@@ -886,7 +884,7 @@ function objectiveManager() {
         commentFormData: {
             content: '',
         },
-        init() {
+        async init() {
             const objectivesJson = this.$el.getAttribute('data-objectives');
             const studentsJson = this.$el.getAttribute('data-students');
             const parentsJson = this.$el.getAttribute('data-parents');
@@ -911,8 +909,461 @@ function objectiveManager() {
                 this.coachesData = JSON.parse(coachesJson);
                 this.coaches = JSON.parse(coachesJson);
             }
+            await this.loadCategoryTags();
         },
-        
+        async loadCategoryTags() {
+            try {
+                const response = await fetch('/admin/objectives/category-tags');
+                const data = await response.json();
+                if (data.success && data.tags) {
+                    this.allCategoryTags = data.tags;
+                }
+            } catch (error) {
+                console.error('Erreur lors du chargement des catégories:', error);
+            }
+        },
+        initCategoryTagsChoices() {
+            // Charger Choices.js si pas déjà chargé
+            if (typeof Choices === 'undefined') {
+                const script = document.createElement('script');
+                script.src = 'https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js';
+                script.onload = () => {
+                    this.initCategoryTagsChoices();
+                };
+                document.head.appendChild(script);
+                return;
+            }
+
+            // Détruire l'instance précédente si elle existe
+            if (this.categoryTagsChoicesInstance) {
+                this.categoryTagsChoicesInstance.destroy();
+                this.categoryTagsChoicesInstance = null;
+            }
+
+            const selectElement = this.$refs.categoryTagsSelect;
+            if (!selectElement) return;
+
+            // Préparer les options à partir de toutes les catégories
+            const options = this.allCategoryTags.map(tag => ({
+                value: tag,
+                label: tag
+            }));
+
+            // Initialiser Choices.js
+            this.categoryTagsChoicesInstance = new Choices(selectElement, {
+                removeItemButton: true,
+                searchEnabled: true,
+                searchChoices: true,
+                addItems: true,
+                editItems: false,
+                duplicateItemsAllowed: false,
+                placeholder: true,
+                placeholderValue: 'Tapez pour rechercher ou créer une catégorie',
+                searchPlaceholderValue: 'Rechercher...',
+                noChoicesText: 'Tapez pour créer une nouvelle catégorie',
+                noResultsText: 'Appuyez sur Entrée pour créer cette catégorie',
+                itemSelectText: '',
+                addItemText: (value) => {
+                    return `Appuyez sur Entrée pour ajouter <b>"${value}"</b>`;
+                },
+                addItemFilter: (value) => {
+                    return value.trim().length > 0;
+                }
+            });
+
+            this.categoryTagsChoicesInstance.setChoices(options, 'value', 'label', true);
+
+            // Définir les valeurs sélectionnées
+            if (this.formData.categoryTags && this.formData.categoryTags.length > 0) {
+                this.categoryTagsChoicesInstance.setChoiceByValue(this.formData.categoryTags);
+            }
+
+            // Écouter les événements de clavier sur le champ de recherche pour ajouter de nouveaux tags
+            setTimeout(() => {
+                const searchInput = this.categoryTagsChoicesInstance.input?.element;
+                if (searchInput) {
+                    searchInput.addEventListener('keydown', (e) => {
+                        // Si l'utilisateur appuie sur Entrée et qu'il y a du texte dans le champ de recherche
+                        if (e.key === 'Enter' && searchInput.value && searchInput.value.trim().length > 0) {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            
+                            const newTag = searchInput.value.trim();
+                            
+                            // Vérifier que le tag n'existe pas déjà dans les tags sélectionnés
+                            if (!this.formData.categoryTags || !this.formData.categoryTags.includes(newTag)) {
+                                // Ajouter le tag à la liste globale si nécessaire
+                                if (!this.allCategoryTags.includes(newTag)) {
+                                    this.allCategoryTags.push(newTag);
+                                    this.allCategoryTags.sort();
+                                }
+                                
+                                // Mettre à jour les options dans Choices.js
+                                this.categoryTagsChoicesInstance.setChoices(
+                                    this.allCategoryTags.map(tag => ({ value: tag, label: tag })),
+                                    'value',
+                                    'label',
+                                    true
+                                );
+                                
+                                // Ajouter le tag aux tags sélectionnés
+                                if (!this.formData.categoryTags) {
+                                    this.formData.categoryTags = [];
+                                }
+                                this.formData.categoryTags.push(newTag);
+                                
+                                // Sélectionner le nouveau tag dans Choices.js
+                                this.categoryTagsChoicesInstance.setChoiceByValue(this.formData.categoryTags);
+                                
+                                // Vider le champ de recherche
+                                searchInput.value = '';
+                                
+                                // Forcer la mise à jour d'Alpine.js
+                                this.$nextTick();
+                            }
+                        }
+                    });
+                } else {
+                    // Si le champ n'est pas trouvé, essayer de le trouver dans le conteneur Choices
+                    const choicesContainer = selectElement.closest('.choices');
+                    if (choicesContainer) {
+                        const input = choicesContainer.querySelector('input[type="text"]');
+                        if (input) {
+                            input.addEventListener('keydown', (e) => {
+                                if (e.key === 'Enter' && input.value && input.value.trim().length > 0) {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    
+                                    const newTag = input.value.trim();
+                                    
+                                    if (!this.formData.categoryTags || !this.formData.categoryTags.includes(newTag)) {
+                                        if (!this.allCategoryTags.includes(newTag)) {
+                                            this.allCategoryTags.push(newTag);
+                                            this.allCategoryTags.sort();
+                                        }
+                                        
+                                        this.categoryTagsChoicesInstance.setChoices(
+                                            this.allCategoryTags.map(tag => ({ value: tag, label: tag })),
+                                            'value',
+                                            'label',
+                                            true
+                                        );
+                                        
+                                        if (!this.formData.categoryTags) {
+                                            this.formData.categoryTags = [];
+                                        }
+                                        this.formData.categoryTags.push(newTag);
+                                        this.categoryTagsChoicesInstance.setChoiceByValue(this.formData.categoryTags);
+                                        input.value = '';
+                                        this.$nextTick();
+                                    }
+                                }
+                            });
+                        }
+                    }
+                }
+            }, 200);
+
+            // Écouter les changements pour synchroniser avec formData
+            const self = this;
+            const handleAddItem = (e) => {
+                // Récupérer la valeur depuis l'événement Choices.js
+                let value = '';
+                if (e.detail && e.detail.value) {
+                    // Si c'est un objet Choice, prendre la valeur
+                    if (typeof e.detail.value === 'object' && e.detail.value.value) {
+                        value = e.detail.value.value;
+                    } else if (typeof e.detail.value === 'string') {
+                        value = e.detail.value;
+                    }
+                }
+                
+                // Si on n'a pas récupéré la valeur depuis e.detail, essayer de la récupérer depuis l'instance Choices
+                if (!value) {
+                    setTimeout(() => {
+                        const selectedValues = self.categoryTagsChoicesInstance.getValue(true);
+                        if (selectedValues && selectedValues.length > 0) {
+                            value = selectedValues[selectedValues.length - 1];
+                            self.processNewCategoryTag(value);
+                        }
+                    }, 100);
+                } else {
+                    self.processNewCategoryTag(value);
+                }
+            };
+
+            // Écouter aussi sur l'instance Choices directement
+            this.categoryTagsChoicesInstance.passedElement.element.addEventListener('addItem', handleAddItem);
+
+            selectElement.addEventListener('removeItem', () => {
+                // Synchroniser après suppression
+                const values = this.categoryTagsChoicesInstance.getValue(true);
+                this.formData.categoryTags = values || [];
+            });
+
+            // Synchroniser les valeurs au changement (sélection d'un item existant ou ajout d'un nouveau)
+            selectElement.addEventListener('change', () => {
+                const values = this.categoryTagsChoicesInstance.getValue(true);
+                const previousTags = this.formData.categoryTags || [];
+                this.formData.categoryTags = values || [];
+                
+                // Détecter les nouveaux tags ajoutés
+                if (values && values.length > previousTags.length) {
+                    const newTags = values.filter(tag => !previousTags.includes(tag));
+                    newTags.forEach(newTag => {
+                        if (!this.allCategoryTags.includes(newTag)) {
+                            this.allCategoryTags.push(newTag);
+                            this.allCategoryTags.sort();
+                            
+                            // Mettre à jour les options dans Choices.js
+                            this.$nextTick(() => {
+                                this.categoryTagsChoicesInstance.setChoices(
+                                    this.allCategoryTags.map(tag => ({ value: tag, label: tag })),
+                                    'value',
+                                    'label',
+                                    true
+                                );
+                                
+                                // Resélectionner les valeurs actuelles
+                                if (this.formData.categoryTags && this.formData.categoryTags.length > 0) {
+                                    this.categoryTagsChoicesInstance.setChoiceByValue(this.formData.categoryTags);
+                                }
+                            });
+                        }
+                    });
+                }
+            });
+        },
+        processNewCategoryTag(tagValue) {
+            if (tagValue && tagValue.trim().length > 0) {
+                const trimmedValue = tagValue.trim();
+                
+                // Ajouter à allCategoryTags si nécessaire
+                if (!this.allCategoryTags.includes(trimmedValue)) {
+                    this.allCategoryTags.push(trimmedValue);
+                    this.allCategoryTags.sort();
+                    
+                    // Mettre à jour les options dans Choices.js
+                    this.$nextTick(() => {
+                        if (this.categoryTagsChoicesInstance) {
+                            this.categoryTagsChoicesInstance.setChoices(
+                                this.allCategoryTags.map(tag => ({ value: tag, label: tag })),
+                                'value',
+                                'label',
+                                true
+                            );
+                            
+                            // Resélectionner les valeurs actuelles
+                            if (this.formData.categoryTags && this.formData.categoryTags.length > 0) {
+                                this.categoryTagsChoicesInstance.setChoiceByValue(this.formData.categoryTags);
+                            }
+                        }
+                    });
+                }
+                
+                // Ajouter aux tags sélectionnés si pas déjà présent
+                if (!this.formData.categoryTags) {
+                    this.formData.categoryTags = [];
+                }
+                if (!this.formData.categoryTags.includes(trimmedValue)) {
+                    this.formData.categoryTags.push(trimmedValue);
+                    if (this.categoryTagsChoicesInstance) {
+                        this.categoryTagsChoicesInstance.setChoiceByValue(this.formData.categoryTags);
+                    }
+                }
+            }
+        },
+        initCategoryTagsEditChoices() {
+            // Charger Choices.js si pas déjà chargé
+            if (typeof Choices === 'undefined') {
+                const script = document.createElement('script');
+                script.src = 'https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js';
+                script.onload = () => {
+                    this.initCategoryTagsEditChoices();
+                };
+                document.head.appendChild(script);
+                return;
+            }
+
+            // Détruire l'instance précédente si elle existe
+            if (this.categoryTagsEditChoicesInstance) {
+                this.categoryTagsEditChoicesInstance.destroy();
+                this.categoryTagsEditChoicesInstance = null;
+            }
+
+            const selectElement = this.$refs.categoryTagsEditSelect;
+            if (!selectElement) return;
+
+            // Préparer les options à partir de toutes les catégories
+            const options = this.allCategoryTags.map(tag => ({
+                value: tag,
+                label: tag
+            }));
+
+            // Initialiser Choices.js
+            this.categoryTagsEditChoicesInstance = new Choices(selectElement, {
+                removeItemButton: true,
+                searchEnabled: true,
+                searchChoices: true,
+                addItems: true,
+                editItems: false,
+                duplicateItemsAllowed: false,
+                placeholder: true,
+                placeholderValue: 'Tapez pour rechercher ou créer une catégorie',
+                searchPlaceholderValue: 'Rechercher...',
+                noChoicesText: 'Tapez pour créer une nouvelle catégorie',
+                noResultsText: 'Appuyez sur Entrée pour créer cette catégorie',
+                itemSelectText: '',
+                addItemText: (value) => {
+                    return `Appuyez sur Entrée pour ajouter <b>"${value}"</b>`;
+                },
+                addItemFilter: (value) => {
+                    return value.trim().length > 0;
+                }
+            });
+
+            this.categoryTagsEditChoicesInstance.setChoices(options, 'value', 'label', true);
+
+            // Définir les valeurs sélectionnées
+            if (this.formData.categoryTags && this.formData.categoryTags.length > 0) {
+                this.categoryTagsEditChoicesInstance.setChoiceByValue(this.formData.categoryTags);
+            }
+
+            // Écouter les événements de clavier sur le champ de recherche pour ajouter de nouveaux tags
+            setTimeout(() => {
+                const searchInput = this.categoryTagsEditChoicesInstance.input?.element;
+                if (searchInput) {
+                    searchInput.addEventListener('keydown', (e) => {
+                        if (e.key === 'Enter' && searchInput.value && searchInput.value.trim().length > 0) {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            
+                            const newTag = searchInput.value.trim();
+                            
+                            if (!this.formData.categoryTags || !this.formData.categoryTags.includes(newTag)) {
+                                if (!this.allCategoryTags.includes(newTag)) {
+                                    this.allCategoryTags.push(newTag);
+                                    this.allCategoryTags.sort();
+                                }
+                                
+                                this.categoryTagsEditChoicesInstance.setChoices(
+                                    this.allCategoryTags.map(tag => ({ value: tag, label: tag })),
+                                    'value',
+                                    'label',
+                                    true
+                                );
+                                
+                                if (!this.formData.categoryTags) {
+                                    this.formData.categoryTags = [];
+                                }
+                                this.formData.categoryTags.push(newTag);
+                                this.categoryTagsEditChoicesInstance.setChoiceByValue(this.formData.categoryTags);
+                                searchInput.value = '';
+                                this.$nextTick();
+                            }
+                        }
+                    });
+                } else {
+                    const choicesContainer = selectElement.closest('.choices');
+                    if (choicesContainer) {
+                        const input = choicesContainer.querySelector('input[type="text"]');
+                        if (input) {
+                            input.addEventListener('keydown', (e) => {
+                                if (e.key === 'Enter' && input.value && input.value.trim().length > 0) {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    
+                                    const newTag = input.value.trim();
+                                    
+                                    if (!this.formData.categoryTags || !this.formData.categoryTags.includes(newTag)) {
+                                        if (!this.allCategoryTags.includes(newTag)) {
+                                            this.allCategoryTags.push(newTag);
+                                            this.allCategoryTags.sort();
+                                        }
+                                        
+                                        this.categoryTagsEditChoicesInstance.setChoices(
+                                            this.allCategoryTags.map(tag => ({ value: tag, label: tag })),
+                                            'value',
+                                            'label',
+                                            true
+                                        );
+                                        
+                                        if (!this.formData.categoryTags) {
+                                            this.formData.categoryTags = [];
+                                        }
+                                        this.formData.categoryTags.push(newTag);
+                                        this.categoryTagsEditChoicesInstance.setChoiceByValue(this.formData.categoryTags);
+                                        input.value = '';
+                                        this.$nextTick();
+                                    }
+                                }
+                            });
+                        }
+                    }
+                }
+            }, 200);
+
+            // Écouter les changements pour synchroniser avec formData
+            const selfEdit = this;
+            const handleAddItemEdit = (e) => {
+                let value = '';
+                if (e.detail && e.detail.value) {
+                    if (typeof e.detail.value === 'object' && e.detail.value.value) {
+                        value = e.detail.value.value;
+                    } else if (typeof e.detail.value === 'string') {
+                        value = e.detail.value;
+                    }
+                }
+                
+                if (!value) {
+                    setTimeout(() => {
+                        const selectedValues = selfEdit.categoryTagsEditChoicesInstance.getValue(true);
+                        if (selectedValues && selectedValues.length > 0) {
+                            value = selectedValues[selectedValues.length - 1];
+                            selfEdit.processNewCategoryTag(value);
+                        }
+                    }, 100);
+                } else {
+                    selfEdit.processNewCategoryTag(value);
+                }
+            };
+
+            this.categoryTagsEditChoicesInstance.passedElement.element.addEventListener('addItem', handleAddItemEdit);
+
+            selectElement.addEventListener('removeItem', () => {
+                const values = this.categoryTagsEditChoicesInstance.getValue(true);
+                this.formData.categoryTags = values || [];
+            });
+
+            selectElement.addEventListener('change', () => {
+                const values = this.categoryTagsEditChoicesInstance.getValue(true);
+                const previousTags = this.formData.categoryTags || [];
+                this.formData.categoryTags = values || [];
+                
+                if (values && values.length > previousTags.length) {
+                    const newTags = values.filter(tag => !previousTags.includes(tag));
+                    newTags.forEach(newTag => {
+                        if (!this.allCategoryTags.includes(newTag)) {
+                            this.allCategoryTags.push(newTag);
+                            this.allCategoryTags.sort();
+                            
+                            this.$nextTick(() => {
+                                this.categoryTagsEditChoicesInstance.setChoices(
+                                    this.allCategoryTags.map(tag => ({ value: tag, label: tag })),
+                                    'value',
+                                    'label',
+                                    true
+                                );
+                                
+                                if (this.formData.categoryTags && this.formData.categoryTags.length > 0) {
+                                    this.categoryTagsEditChoicesInstance.setChoiceByValue(this.formData.categoryTags);
+                                }
+                            });
+                        }
+                    });
+                }
+            });
+        },
         openCreate() {
             this.isEdit = false;
             this.currentId = null;
@@ -920,13 +1371,19 @@ function objectiveManager() {
             this.formData = {
                 title: '',
                 description: '',
-                category: '',
+                category: 'general',
+                categoryTags: [],
                 status: 'modification',
                 progress: 0,
                 deadline: '',
                 studentId: '',
             };
             this.rightSheetOpen = true;
+            this.$nextTick(() => {
+                setTimeout(() => {
+                    this.initCategoryTagsChoices();
+                }, 100);
+            });
         },
         openEdit(id) {
             const objective = this.objectivesData.find(o => o.id === id);
@@ -938,6 +1395,7 @@ function objectiveManager() {
                     title: objective.title || '',
                     description: objective.description || '',
                     category: objective.category || '',
+                    categoryTags: objective.categoryTags || [],
                     status: objective.status || 'modification',
                     progress: objective.progress || 0,
                     deadline: objective.deadline ? objective.deadline.split(' ')[0] : '',
@@ -946,6 +1404,11 @@ function objectiveManager() {
                 this.currentTasks = objective.tasks || [];
                 this.currentComments = objective.comments || [];
                 this.rightSheetOpen = true;
+                this.$nextTick(() => {
+                    setTimeout(() => {
+                        this.initCategoryTagsEditChoices();
+                    }, 100);
+                });
             }
         },
         canModifyCurrentObjective() {
@@ -1357,13 +1820,15 @@ function objectiveManager() {
                 : '/admin/objectives/create';
             const method = 'POST';
             
-            // En mode création, n'envoyer que description, studentId, category
+            // En mode création, n'envoyer que description, studentId, category, categoryTags, title, et les tâches sélectionnées
             const dataToSend = this.isEdit 
                 ? this.formData
                 : {
                     description: this.formData.description,
                     studentId: this.formData.studentId,
-                    category: this.formData.category,
+                    category: this.formData.category || 'general',
+                    categoryTags: this.formData.categoryTags || [],
+                    title: this.formData.title || '',
                 };
             
             fetch(url, {
@@ -1411,7 +1876,14 @@ function objectiveManager() {
                 }
                 if (data.success) {
                     this.showMessage(data.message || (this.isEdit ? 'Objectif modifié avec succès' : 'Objectif créé avec succès'), 'success');
+                    // En mode création, rediriger vers la page détail si une redirection est fournie
+                    if (!this.isEdit && data.redirect) {
+                        setTimeout(() => {
+                            window.location.href = data.redirect;
+                        }, 500);
+                    } else {
                     setTimeout(() => location.reload(), 1000);
+                    }
                 } else {
                     this.showMessage(data.message || data.error || (this.isEdit ? 'Erreur lors de la modification' : 'Erreur lors de la création'), 'error');
                 }

@@ -217,8 +217,8 @@ class Family
             $data['coachName'] = null;
         }
         
-        // Formatage de la date
-        $data['createdAt'] = $this->getCreatedAt()?->format('Y-m-d');
+        // Formatage de la date en français (DD/MM/YYYY)
+        $data['createdAt'] = $this->getCreatedAt()?->format('d/m/Y');
         
         // Formatage de l'identifiant
         $data['identifier'] = $this->getFamilyIdentifier();

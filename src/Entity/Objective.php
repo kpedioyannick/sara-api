@@ -47,6 +47,9 @@ class Objective
     #[ORM\Column(length: 100)]
     private ?string $category = null;
 
+    #[ORM\Column(type: 'json', nullable: true)]
+    private ?array $categoryTags = null;
+
     #[ORM\Column(length: 50)]
     private ?string $status = self::STATUS_MODIFICATION;
     #[ORM\Column(nullable: true)]
@@ -109,6 +112,9 @@ class Objective
 
     public function getDescriptionOrigin(): ?string
     {
+        if (!empty($this->description)) {
+            return $this->descriptionOrigin;
+        }
         return $this->descriptionOrigin;
     }
 
@@ -137,6 +143,17 @@ class Objective
     public function setCategory(string $category): static
     {
         $this->category = $category;
+        return $this;
+    }
+
+    public function getCategoryTags(): ?array
+    {
+        return $this->categoryTags;
+    }
+
+    public function setCategoryTags(?array $categoryTags): static
+    {
+        $this->categoryTags = $categoryTags;
         return $this;
     }
 
@@ -257,6 +274,7 @@ class Objective
             'description' => $this->getDescription(),
             'deadline' => $this->getDeadline()?->format('Y-m-d H:i:s'),
             'category' => $this->getCategory(),
+            'categoryTags' => $this->getCategoryTags() ?? [],
             'status' => $this->getStatus(),
             'progress' => $this->getProgress(),
             'student' => $this->getStudent()?->toSimpleArray(),
@@ -337,6 +355,7 @@ class Objective
             'title' => $this->getTitle(),
             'description' => $this->getDescription(),
             'category' => $this->getCategory(),
+            'categoryTags' => $this->getCategoryTags() ?? [],
             'status' => $this->getStatus(),
             'statusLabel' => $this->getStatusLabel(),
             'progress' => $this->getProgress(),
@@ -388,6 +407,10 @@ class Objective
         $objective->setStatus($data['status'] ?? self::STATUS_MODIFICATION);
         $objective->setCategory($data['category'] ?? 'general');
         $objective->setProgress($data['progress'] ?? 0);
+        
+        if (isset($data['categoryTags']) && is_array($data['categoryTags'])) {
+            $objective->setCategoryTags($data['categoryTags']);
+        }
         
         if (isset($data['deadline'])) {
             $objective->setDeadline(new \DateTimeImmutable($data['deadline']));

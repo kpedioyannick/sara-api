@@ -67,6 +67,17 @@
                 {{ objective.title }}
               </h3>
               {% if app.user.isCoach() or (app.user.isParent() and objective.status not in ['validated', 'in_action', 'completed', 'paused']) %}
+              <div class="flex items-center gap-2">
+                <button
+                  @click="openAIHelpSheet()"
+                  class="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-600 shadow-theme-xs transition-colors hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700"
+                  title="Aide IA pour générer des suggestions de tâches"
+                >
+                  <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                  </svg>
+                  Aide IA
+                </button>
               <button
                 @click="openObjectiveEdit()"
                 class="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-theme-xs transition-colors hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
@@ -76,6 +87,7 @@
                 </svg>
                 Modifier
               </button>
+              </div>
               {% endif %}
             </div>
             <div class="flex flex-wrap items-center gap-3 mb-4">
@@ -279,24 +291,6 @@
         <div>
           <div class="flex items-center justify-between mb-2">
             <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300">Description</h4>
-            {% if app.user.isCoach() and objective.descriptionOrigin %}
-            <button
-              @click="generateFromOrigin()"
-              :disabled="generatingFromOrigin"
-              class="inline-flex items-center gap-2 rounded-lg border border-brand-500 bg-brand-50 px-3 py-1.5 text-xs font-medium text-brand-600 shadow-theme-xs hover:bg-brand-100 disabled:opacity-50 disabled:cursor-not-allowed dark:border-brand-400 dark:bg-brand-500/15 dark:text-brand-400 dark:hover:bg-brand-500/25"
-              title="Générer des tâches et une description à partir de la description originale"
-            >
-              <svg x-show="!generatingFromOrigin" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-              </svg>
-              <svg x-show="generatingFromOrigin" class="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
-              <span x-show="!generatingFromOrigin">Générer depuis l'original</span>
-              <span x-show="generatingFromOrigin">Génération...</span>
-            </button>
-            {% endif %}
           </div>
           <p class="text-base text-gray-600 dark:text-gray-400 whitespace-pre-wrap">{{ objective.description }}</p>
         </div>
@@ -355,271 +349,13 @@
           </div>
 
           {% for task in tasks.pending %}
-          <!-- task item -->
-          <div
-            draggable="true"
-            class="p-5 bg-white border border-gray-200 task rounded-xl shadow-theme-sm dark:border-gray-800 dark:bg-white/5"
-          >
-            <div
-              class="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between"
-            >
-              <div class="flex items-start w-full gap-4">
-                <span class="text-gray-400">
-                  <svg
-                    class="fill-current"
-                    width="20"
-                    height="20"
-                    viewBox="0 0 20 20"
-                    fill="none"
-                    xmlns="http://www.w3.org/2000/svg"
-                  >
-                    <path
-                      fill-rule="evenodd"
-                      clip-rule="evenodd"
-                      d="M2.43311 5.0001C2.43311 4.50304 2.83605 4.1001 3.33311 4.1001L16.6664 4.1001C17.1635 4.1001 17.5664 4.50304 17.5664 5.0001C17.5664 5.49715 17.1635 5.9001 16.6664 5.9001L3.33311 5.9001C2.83605 5.9001 2.43311 5.49716 2.43311 5.0001ZM2.43311 15.0001C2.43311 14.503 2.83605 14.1001 3.33311 14.1001L16.6664 14.1001C17.1635 14.1001 17.5664 14.503 17.5664 15.0001C17.5664 15.4972 17.1635 15.9001 16.6664 15.9001L3.33311 15.9001C2.83605 15.9001 2.43311 15.4972 2.43311 15.0001ZM3.33311 9.1001C2.83605 9.1001 2.43311 9.50304 2.43311 10.0001C2.43311 10.4972 2.83605 10.9001 3.33311 10.9001L16.6664 10.9001C17.1635 10.9001 17.5664 10.4972 17.5664 10.0001C17.5664 9.50304 17.1635 9.1001 16.6664 9.1001L3.33311 9.1001Z"
-                      fill=""
-                    />
-                  </svg>
-                </span>
-
-                <label
-                  for="taskCheckbox{{ task.id }}"
-                  class="w-full {% if task.status != 'completed' %}cursor-pointer{% else %}cursor-not-allowed opacity-75{% endif %}"
-                  @click.stop
-                >
-                  <div class="relative flex items-start">
-                    <input
-                      type="checkbox"
-                      id="taskCheckbox{{ task.id }}"
-                      class="sr-only taskCheckbox"
-                      data-task-id="{{ task.id }}"
-                      {% if task.status == 'completed' %}checked disabled{% endif %}
-                      data-task-id="{{ task.id }}"
-                      data-task-title="{{ task.title|escape }}"
-                      data-task-status="{{ task.status }}"
-                      {% if task.status != 'completed' %}@change.stop="openProofModalFromCheckbox($event)"{% endif %}
-                      @click.stop
-                    />
-                    <div
-                      class="flex items-center justify-center w-full h-5 mr-3 border border-gray-300 rounded-md box max-w-5 dark:border-gray-700 {% if task.status == 'completed' %}opacity-50{% endif %}"
-                    >
-                      <span class="opacity-0">
-                        <svg
-                          width="14"
-                          height="14"
-                          viewBox="0 0 14 14"
-                          fill="none"
-                          xmlns="http://www.w3.org/2000/svg"
-                        >
-                          <path
-                            d="M11.6668 3.5L5.25016 9.91667L2.3335 7"
-                            stroke="white"
-                            stroke-width="1.94437"
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                          />
-                        </svg>
-                      </span>
-                    </div>
-                    <p
-                      class="-mt-0.5 text-base text-gray-800 dark:text-white/90"
-                    >
-                      {{ task.title }}
-                    </p>
-                  </div>
-                </label>
-              </div>
-
-              <div
-                class="flex flex-col-reverse items-start justify-end w-full gap-3 xl:flex-row xl:items-center xl:gap-5"
-              >
-                <div class="flex items-center gap-2">
-                  {% if task.requiresProof %}
-                  <span
-                    class="inline-flex rounded-full bg-brand-50 px-2 py-0.5 text-theme-xs font-medium text-brand-500 dark:bg-brand-500/15 dark:text-brand-400"
-                  >
-                    Preuve requise
-                  </span>
-                  {% endif %}
-                  {% if task.assignedType == 'student' and task.assignedTo %}
-                  <span
-                    class="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2 py-0.5 text-theme-xs font-medium text-blue-600 dark:bg-blue-500/15 dark:text-blue-400"
-                    title="À qui est affectée la tâche"
-                  >
-                    <svg class="fill-current" width="12" height="12" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M8 8a3 3 0 100-6 3 3 0 000 6zM8 9.5c-2.5 0-4.5 1.25-4.5 2.75V13.5h9V12.25c0-1.5-2-2.75-4.5-2.75z" fill="currentColor"/>
-                    </svg>
-                    {{ task.assignedTo.pseudo|default(task.assignedTo.firstName ~ ' ' ~ task.assignedTo.lastName) }}
-                  </span>
-                  {% elseif task.assignedType == 'parent' and task.assignedTo %}
-                  <span
-                    class="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2 py-0.5 text-theme-xs font-medium text-blue-600 dark:bg-blue-500/15 dark:text-blue-400"
-                    title="À qui est affectée la tâche"
-                  >
-                    <svg class="fill-current" width="12" height="12" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M8 8a3 3 0 100-6 3 3 0 000 6zM8 9.5c-2.5 0-4.5 1.25-4.5 2.75V13.5h9V12.25c0-1.5-2-2.75-4.5-2.75z" fill="currentColor"/>
-                    </svg>
-                    {{ task.assignedTo.firstName ~ ' ' ~ task.assignedTo.lastName }}
-                  </span>
-                  {% elseif task.assignedType == 'specialist' and task.assignedTo %}
-                  <span
-                    class="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2 py-0.5 text-theme-xs font-medium text-blue-600 dark:bg-blue-500/15 dark:text-blue-400"
-                    title="À qui est affectée la tâche"
-                  >
-                    <svg class="fill-current" width="12" height="12" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M8 8a3 3 0 100-6 3 3 0 000 6zM8 9.5c-2.5 0-4.5 1.25-4.5 2.75V13.5h9V12.25c0-1.5-2-2.75-4.5-2.75z" fill="currentColor"/>
-                    </svg>
-                    {{ task.assignedTo.firstName ~ ' ' ~ task.assignedTo.lastName }}
-                  </span>
+            {% include 'tailadmin/pages/objectives/_task_item.html.twig' with {'task': task, 'objective': objective} %}
                   {% else %}
-                  <span
-                    class="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2 py-0.5 text-theme-xs font-medium text-blue-600 dark:bg-blue-500/15 dark:text-blue-400"
-                    title="À qui est affectée la tâche"
-                  >
-                    <svg class="fill-current" width="12" height="12" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M8 8a3 3 0 100-6 3 3 0 000 6zM8 9.5c-2.5 0-4.5 1.25-4.5 2.75V13.5h9V12.25c0-1.5-2-2.75-4.5-2.75z" fill="currentColor"/>
-                    </svg>
-                    Coach
-                  </span>
-                  {% endif %}
-                  <div class="relative" x-data="{ open{{ task.id }}: false }">
-                    <button
-                      @click="open{{ task.id }} = !open{{ task.id }}"
-                      class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-gray-50 text-gray-500 hover:bg-gray-100 dark:bg-white/[0.02] dark:text-gray-400 dark:hover:bg-white/[0.03]"
-                      title="Actions"
-                    >
-                      <svg class="fill-current" width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M8 4.5a1.5 1.5 0 100 3 1.5 1.5 0 000-3zM8 1.5a1.5 1.5 0 100 3 1.5 1.5 0 000-3zM8 7.5a1.5 1.5 0 100 3 1.5 1.5 0 000-3z" fill="currentColor"/>
-                      </svg>
-                    </button>
-                    <div
-                      x-show="open{{ task.id }}"
-                      @click.away="open{{ task.id }} = false"
-                      x-transition:enter="transition ease-out duration-100"
-                      x-transition:enter-start="transform opacity-0 scale-95"
-                      x-transition:enter-end="transform opacity-100 scale-100"
-                      x-transition:leave="transition ease-in duration-75"
-                      x-transition:leave-start="transform opacity-100 scale-100"
-                      x-transition:leave-end="transform opacity-0 scale-95"
-                      class="absolute right-0 z-10 mt-2 w-48 rounded-lg bg-white shadow-lg ring-1 ring-black ring-opacity-5 dark:bg-gray-800 dark:ring-white/10"
-                      style="display: none;"
-                    >
-                      <div class="py-1">
-                        <button
-                          data-task-id="{{ task.id }}"
-                          data-task-proofs="{{ task.proofs|json_encode|e('html_attr') }}"
-                          data-task-title="{{ task.title|e('html_attr') }}"
-                          @click="showProofHistoryFromButton($event); open{{ task.id }} = false"
-                          class="flex w-full items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
-                        >
-                          <svg class="fill-current" width="14" height="14" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M8 1C4.134 1 1 4.134 1 8s3.134 7 7 7 7-3.134 7-7-3.134-7-7-7zm0 12.5c-3.032 0-5.5-2.468-5.5-5.5S4.968 2.5 8 2.5 13.5 4.968 13.5 8 11.032 13.5 8 13.5z" fill=""/>
-                            <path d="M8 4.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7zm0 6a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5z" fill=""/>
-                          </svg>
-                          Historique{% if task.proofs|length > 0 %} ({{ task.proofs|length }}){% endif %}
-                        </button>
-                        <button
-                          data-task-id="{{ task.id }}"
-                          data-task-status="{{ task.status }}"
-                          data-task-frequency="{{ task.frequency|default('none') }}"
-                          data-task-requires-proof="{{ task.requiresProof ? 'true' : 'false' }}"
-                          data-task-title="{{ task.title|e('html_attr') }}"
-                          data-task-description="{{ task.description|e('html_attr') }}"
-                          data-task-assigned-type="{{ task.assignedType|default('coach') }}"
-                          data-task-student-id="{{ task.student ? task.student.id : '' }}"
-                          data-task-parent-id="{{ task.parent ? task.parent.id : '' }}"
-                          data-task-specialist-id="{{ task.specialist ? task.specialist.id : '' }}"
-                          data-task-activity-id="{{ task.activity ? task.activity.id : '' }}"
-                          data-task-created-at="{{ task.createdAt|default('') }}"
-                          data-task-due-date="{{ task.dueDate|default('') }}"
-                          @click="openTaskConfig($event); open{{ task.id }} = false"
-                          {% if not objective.canModifyTasks %}disabled{% endif %}
-                          class="flex w-full items-center gap-2 px-4 py-2 text-sm {% if objective.canModifyTasks %}text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700{% else %}text-gray-400 cursor-not-allowed dark:text-gray-600{% endif %}"
-                        >
-                          <svg class="fill-current" width="14" height="14" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M11.334 2.666a2.667 2.667 0 0 1 3.771 3.772l-8 8a2.667 2.667 0 0 1-1.886.781l-2.89.111a.667.667 0 0 1-.687-.687l.111-2.89a2.667 2.667 0 0 1 .78-1.886l8-8Zm2.39 2.39a1.333 1.333 0 0 0-1.886-1.886L10.667 4.61l1.886 1.886 1.171-1.44Z" fill=""/>
-                          </svg>
-                          Configurer
-                        </button>
-                        {% if objective.canModifyTasks and task.status != 'completed' %}
-                        <button
-                          data-task-id="{{ task.id }}"
-                          data-task-status="{{ task.status }}"
-                          @click="deleteTask({{ task.id }}, '{{ task.status }}'); open{{ task.id }} = false"
-                          class="flex w-full items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-500/15"
-                        >
-                          <svg class="fill-current" width="14" height="14" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M5.33333 2.66667V1.33333C5.33333 0.979711 5.47381 0.640573 5.72386 0.390524C5.97391 0.140476 6.31305 0 6.66667 0H9.33333C9.68696 0 10.0261 0.140476 10.2761 0.390524C10.5262 0.640573 10.6667 0.979711 10.6667 1.33333V2.66667H14.6667C15.0333 2.66667 15.3333 2.96667 15.3333 3.33333C15.3333 3.7 15.0333 4 14.6667 4H13.3333V14C13.3333 14.7072 12.7472 15.3333 12 15.3333H4C3.25281 15.3333 2.66667 14.7072 2.66667 14V4H1.33333C0.966667 4 0.666667 3.7 0.666667 3.33333C0.666667 2.96667 0.966667 2.66667 1.33333 2.66667H5.33333ZM6.66667 1.33333V2.66667H9.33333V1.33333H6.66667Z" fill="currentColor"/>
-                          </svg>
-                          Supprimer
-                        </button>
-                        {% endif %}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div
-                  class="flex items-center justify-between w-full gap-5 xl:w-auto xl:justify-normal"
-                >
-                  <div class="flex items-center gap-3">
-                    {% if task.createdAt %}
-                    <span
-                      class="flex items-center gap-1 text-sm text-gray-500 cursor-pointer dark:text-gray-400"
-                      title="Date de début"
-                    >
-                      <svg
-                        class="fill-current"
-                        width="16"
-                        height="16"
-                        viewBox="0 0 16 16"
-                        fill="none"
-                        xmlns="http://www.w3.org/2000/svg"
-                      >
-                        <path
-                          fill-rule="evenodd"
-                          clip-rule="evenodd"
-                          d="M5.33329 1.0835C5.74751 1.0835 6.08329 1.41928 6.08329 1.8335V2.25016L9.91663 2.25016V1.8335C9.91663 1.41928 10.2524 1.0835 10.6666 1.0835C11.0808 1.0835 11.4166 1.41928 11.4166 1.8335V2.25016L12.3333 2.25016C13.2998 2.25016 14.0833 3.03366 14.0833 4.00016V12.6668C14.0833 13.6333 13.2998 14.4168 12.3333 14.4168L3.66663 14.4168C2.70013 14.4168 1.91663 13.6333 1.91663 12.6668V4.00016C1.91663 3.03366 2.70013 2.25016 3.66663 2.25016L4.58329 2.25016V1.8335C4.58329 1.41928 4.91908 1.0835 5.33329 1.0835ZM5.33329 3.75016L3.66663 3.75016C3.52855 3.75016 3.41663 3.86209 3.41663 4.00016V5.25016L12.5833 5.25016V4.00016C12.5833 3.86209 12.4714 3.75016 12.3333 3.75016L10.6666 3.75016L5.33329 3.75016ZM12.5833 6.75016L3.41663 6.75016L3.41663 12.6668C3.41663 12.8049 3.52855 12.9168 3.66663 12.9168L12.3333 12.9168C12.4714 12.9168 12.5833 12.8049 12.5833 12.6668L12.5833 6.75016Z"
-                          fill=""
-                        />
-                      </svg>
-                      Début: {{ task.createdAt|date('d/m/Y') }}
-                    </span>
-                    {% endif %}
-                    {% if task.dueDate %}
-                    <span
-                      class="flex items-center gap-1 text-sm text-gray-500 cursor-pointer dark:text-gray-400"
-                      title="Date de fin"
-                    >
-                      <svg
-                        class="fill-current"
-                        width="16"
-                        height="16"
-                        viewBox="0 0 16 16"
-                        fill="none"
-                        xmlns="http://www.w3.org/2000/svg"
-                      >
-                        <path
-                          fill-rule="evenodd"
-                          clip-rule="evenodd"
-                          d="M5.33329 1.0835C5.74751 1.0835 6.08329 1.41928 6.08329 1.8335V2.25016L9.91663 2.25016V1.8335C9.91663 1.41928 10.2524 1.0835 10.6666 1.0835C11.0808 1.0835 11.4166 1.41928 11.4166 1.8335V2.25016L12.3333 2.25016C13.2998 2.25016 14.0833 3.03366 14.0833 4.00016V12.6668C14.0833 13.6333 13.2998 14.4168 12.3333 14.4168L3.66663 14.4168C2.70013 14.4168 1.91663 13.6333 1.91663 12.6668V4.00016C1.91663 3.03366 2.70013 2.25016 3.66663 2.25016L4.58329 2.25016V1.8335C4.58329 1.41928 4.91908 1.0835 5.33329 1.0835ZM5.33329 3.75016L3.66663 3.75016C3.52855 3.75016 3.41663 3.86209 3.41663 4.00016V5.25016L12.5833 5.25016V4.00016C12.5833 3.86209 12.4714 3.75016 12.3333 3.75016L10.6666 3.75016L5.33329 3.75016ZM12.5833 6.75016L3.41663 6.75016L3.41663 12.6668C3.41663 12.8049 3.52855 12.9168 3.66663 12.9168L12.3333 12.9168C12.4714 12.9168 12.5833 12.8049 12.5833 12.6668L12.5833 6.75016Z"
-                          fill=""
-                        />
-                      </svg>
-                      Fin: {{ task.dueDate|date('d/m/Y') }}
-                    </span>
-                    {% endif %}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-          {% else %}
           <div class="p-5 bg-gray-50 border border-gray-200 rounded-xl dark:bg-white/[0.02] dark:border-gray-800 text-center">
             <p class="text-sm text-gray-400 dark:text-gray-500">Aucune tâche</p>
-          </div>
+                      </div>
           {% endfor %}
-        </div>
+                </div>
 
         <!-- Progress list -->
         <div class="flex flex-col gap-4 swim-lane">
@@ -628,275 +364,16 @@
               class="flex items-center gap-3 text-base font-medium text-gray-800 dark:text-white/90"
             >
               En cours
-              <span
+                    <span
                 class="inline-flex rounded-full bg-warning-50 px-2 py-0.5 text-theme-xs font-medium text-warning-700 dark:bg-warning-500/15 dark:text-orange-400"
               >
                 {{ tasks.in_progress|length }}
-              </span>
+                    </span>
             </h3>
-          </div>
+                  </div>
 
           {% for task in tasks.in_progress %}
-          <!-- task item -->
-          <div
-            draggable="true"
-            class="p-5 bg-white border border-gray-200 task rounded-xl shadow-theme-sm dark:border-gray-800 dark:bg-white/5"
-          >
-            <div
-              class="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between"
-            >
-              <div class="flex items-start w-full gap-4">
-                <span class="text-gray-400">
-                  <svg
-                    class="fill-current"
-                    width="20"
-                    height="20"
-                    viewBox="0 0 20 20"
-                    fill="none"
-                    xmlns="http://www.w3.org/2000/svg"
-                  >
-                    <path
-                      fill-rule="evenodd"
-                      clip-rule="evenodd"
-                      d="M2.43311 5.0001C2.43311 4.50304 2.83605 4.1001 3.33311 4.1001L16.6664 4.1001C17.1635 4.1001 17.5664 4.50304 17.5664 5.0001C17.5664 5.49715 17.1635 5.9001 16.6664 5.9001L3.33311 5.9001C2.83605 5.9001 2.43311 5.49716 2.43311 5.0001ZM2.43311 15.0001C2.43311 14.503 2.83605 14.1001 3.33311 14.1001L16.6664 14.1001C17.1635 14.1001 17.5664 14.503 17.5664 15.0001C17.5664 15.4972 17.1635 15.9001 16.6664 15.9001L3.33311 15.9001C2.83605 15.9001 2.43311 15.4972 2.43311 15.0001ZM3.33311 9.1001C2.83605 9.1001 2.43311 9.50304 2.43311 10.0001C2.43311 10.4972 2.83605 10.9001 3.33311 10.9001L16.6664 10.9001C17.1635 10.9001 17.5664 10.4972 17.5664 10.0001C17.5664 9.50304 17.1635 9.1001 16.6664 9.1001L3.33311 9.1001Z"
-                      fill=""
-                    />
-                  </svg>
-                </span>
-
-                <label
-                  for="taskCheckbox{{ task.id }}"
-                  class="w-full cursor-pointer"
-                  @click.stop
-                >
-                  <div class="relative flex items-start">
-                    <input
-                      type="checkbox"
-                      id="taskCheckbox{{ task.id }}"
-                      class="sr-only taskCheckbox"
-                      data-task-id="{{ task.id }}"
-                      checked
-                      data-task-id="{{ task.id }}"
-                      data-task-title="{{ task.title|escape }}"
-                      data-task-status="{{ task.status }}"
-                      {% if task.status != 'completed' %}@change.stop="openProofModalFromCheckbox($event)"{% endif %}
-                      {% if task.status == 'completed' %}disabled{% endif %}
-                      @click.stop
-                    />
-                    <div
-                      class="flex items-center justify-center w-full h-5 mr-3 border border-gray-300 rounded-md box max-w-5 bg-brand-500 dark:bg-brand-400"
-                    >
-                      <span>
-                        <svg
-                          width="14"
-                          height="14"
-                          viewBox="0 0 14 14"
-                          fill="none"
-                          xmlns="http://www.w3.org/2000/svg"
-                        >
-                          <path
-                            d="M11.6668 3.5L5.25016 9.91667L2.3335 7"
-                            stroke="white"
-                            stroke-width="1.94437"
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                          />
-                        </svg>
-                      </span>
-                    </div>
-                    <p
-                      class="-mt-0.5 text-base text-gray-800 dark:text-white/90"
-                    >
-                      {{ task.title }}
-                    </p>
-                  </div>
-                </label>
-              </div>
-
-              <div
-                class="flex flex-col-reverse items-start justify-end w-full gap-3 xl:flex-row xl:items-center xl:gap-5"
-              >
-                <div class="flex items-center gap-2">
-                  {% if task.requiresProof %}
-                  <span
-                    class="inline-flex rounded-full bg-brand-50 px-2 py-0.5 text-theme-xs font-medium text-brand-500 dark:bg-brand-500/15 dark:text-brand-400"
-                  >
-                    Preuve requise
-                  </span>
-                  {% endif %}
-                  {% if task.assignedType == 'student' and task.assignedTo %}
-                  <span
-                    class="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2 py-0.5 text-theme-xs font-medium text-blue-600 dark:bg-blue-500/15 dark:text-blue-400"
-                    title="À qui est affectée la tâche"
-                  >
-                    <svg class="fill-current" width="12" height="12" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M8 8a3 3 0 100-6 3 3 0 000 6zM8 9.5c-2.5 0-4.5 1.25-4.5 2.75V13.5h9V12.25c0-1.5-2-2.75-4.5-2.75z" fill="currentColor"/>
-                    </svg>
-                    {{ task.assignedTo.pseudo|default(task.assignedTo.firstName ~ ' ' ~ task.assignedTo.lastName) }}
-                  </span>
-                  {% elseif task.assignedType == 'parent' and task.assignedTo %}
-                  <span
-                    class="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2 py-0.5 text-theme-xs font-medium text-blue-600 dark:bg-blue-500/15 dark:text-blue-400"
-                    title="À qui est affectée la tâche"
-                  >
-                    <svg class="fill-current" width="12" height="12" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M8 8a3 3 0 100-6 3 3 0 000 6zM8 9.5c-2.5 0-4.5 1.25-4.5 2.75V13.5h9V12.25c0-1.5-2-2.75-4.5-2.75z" fill="currentColor"/>
-                    </svg>
-                    {{ task.assignedTo.firstName ~ ' ' ~ task.assignedTo.lastName }}
-                  </span>
-                  {% elseif task.assignedType == 'specialist' and task.assignedTo %}
-                  <span
-                    class="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2 py-0.5 text-theme-xs font-medium text-blue-600 dark:bg-blue-500/15 dark:text-blue-400"
-                    title="À qui est affectée la tâche"
-                  >
-                    <svg class="fill-current" width="12" height="12" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M8 8a3 3 0 100-6 3 3 0 000 6zM8 9.5c-2.5 0-4.5 1.25-4.5 2.75V13.5h9V12.25c0-1.5-2-2.75-4.5-2.75z" fill="currentColor"/>
-                    </svg>
-                    {{ task.assignedTo.firstName ~ ' ' ~ task.assignedTo.lastName }}
-                  </span>
-                  {% else %}
-                  <span
-                    class="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2 py-0.5 text-theme-xs font-medium text-blue-600 dark:bg-blue-500/15 dark:text-blue-400"
-                    title="À qui est affectée la tâche"
-                  >
-                    <svg class="fill-current" width="12" height="12" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M8 8a3 3 0 100-6 3 3 0 000 6zM8 9.5c-2.5 0-4.5 1.25-4.5 2.75V13.5h9V12.25c0-1.5-2-2.75-4.5-2.75z" fill="currentColor"/>
-                    </svg>
-                    Coach
-                  </span>
-                  {% endif %}
-                  <div class="relative" x-data="{ open{{ task.id }}: false }">
-                    <button
-                      @click="open{{ task.id }} = !open{{ task.id }}"
-                      class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-gray-50 text-gray-500 hover:bg-gray-100 dark:bg-white/[0.02] dark:text-gray-400 dark:hover:bg-white/[0.03]"
-                      title="Actions"
-                    >
-                      <svg class="fill-current" width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M8 4.5a1.5 1.5 0 100 3 1.5 1.5 0 000-3zM8 1.5a1.5 1.5 0 100 3 1.5 1.5 0 000-3zM8 7.5a1.5 1.5 0 100 3 1.5 1.5 0 000-3z" fill="currentColor"/>
-                      </svg>
-                    </button>
-                    <div
-                      x-show="open{{ task.id }}"
-                      @click.away="open{{ task.id }} = false"
-                      x-transition:enter="transition ease-out duration-100"
-                      x-transition:enter-start="transform opacity-0 scale-95"
-                      x-transition:enter-end="transform opacity-100 scale-100"
-                      x-transition:leave="transition ease-in duration-75"
-                      x-transition:leave-start="transform opacity-100 scale-100"
-                      x-transition:leave-end="transform opacity-0 scale-95"
-                      class="absolute right-0 z-10 mt-2 w-48 rounded-lg bg-white shadow-lg ring-1 ring-black ring-opacity-5 dark:bg-gray-800 dark:ring-white/10"
-                      style="display: none;"
-                    >
-                      <div class="py-1">
-                        <button
-                          data-task-id="{{ task.id }}"
-                          data-task-proofs="{{ task.proofs|json_encode|e('html_attr') }}"
-                          data-task-title="{{ task.title|e('html_attr') }}"
-                          @click="showProofHistoryFromButton($event); open{{ task.id }} = false"
-                          class="flex w-full items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
-                        >
-                          <svg class="fill-current" width="14" height="14" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M8 1C4.134 1 1 4.134 1 8s3.134 7 7 7 7-3.134 7-7-3.134-7-7-7zm0 12.5c-3.032 0-5.5-2.468-5.5-5.5S4.968 2.5 8 2.5 13.5 4.968 13.5 8 11.032 13.5 8 13.5z" fill=""/>
-                            <path d="M8 4.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7zm0 6a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5z" fill=""/>
-                          </svg>
-                          Historique{% if task.proofs|length > 0 %} ({{ task.proofs|length }}){% endif %}
-                        </button>
-                        <button
-                          data-task-id="{{ task.id }}"
-                          data-task-status="{{ task.status }}"
-                          data-task-frequency="{{ task.frequency|default('none') }}"
-                          data-task-requires-proof="{{ task.requiresProof ? 'true' : 'false' }}"
-                          data-task-title="{{ task.title|e('html_attr') }}"
-                          data-task-description="{{ task.description|e('html_attr') }}"
-                          data-task-assigned-type="{{ task.assignedType|default('coach') }}"
-                          data-task-student-id="{{ task.student ? task.student.id : '' }}"
-                          data-task-parent-id="{{ task.parent ? task.parent.id : '' }}"
-                          data-task-specialist-id="{{ task.specialist ? task.specialist.id : '' }}"
-                          data-task-activity-id="{{ task.activity ? task.activity.id : '' }}"
-                          data-task-created-at="{{ task.createdAt|default('') }}"
-                          data-task-due-date="{{ task.dueDate|default('') }}"
-                          @click="openTaskConfig($event); open{{ task.id }} = false"
-                          {% if not objective.canModifyTasks %}disabled{% endif %}
-                          class="flex w-full items-center gap-2 px-4 py-2 text-sm {% if objective.canModifyTasks %}text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700{% else %}text-gray-400 cursor-not-allowed dark:text-gray-600{% endif %}"
-                        >
-                          <svg class="fill-current" width="14" height="14" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M11.334 2.666a2.667 2.667 0 0 1 3.771 3.772l-8 8a2.667 2.667 0 0 1-1.886.781l-2.89.111a.667.667 0 0 1-.687-.687l.111-2.89a2.667 2.667 0 0 1 .78-1.886l8-8Zm2.39 2.39a1.333 1.333 0 0 0-1.886-1.886L10.667 4.61l1.886 1.886 1.171-1.44Z" fill=""/>
-                          </svg>
-                          Configurer
-                        </button>
-                        {% if objective.canModifyTasks and task.status != 'completed' %}
-                        <button
-                          data-task-id="{{ task.id }}"
-                          data-task-status="{{ task.status }}"
-                          @click="deleteTask({{ task.id }}, '{{ task.status }}'); open{{ task.id }} = false"
-                          class="flex w-full items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-500/15"
-                        >
-                          <svg class="fill-current" width="14" height="14" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M5.33333 2.66667V1.33333C5.33333 0.979711 5.47381 0.640573 5.72386 0.390524C5.97391 0.140476 6.31305 0 6.66667 0H9.33333C9.68696 0 10.0261 0.140476 10.2761 0.390524C10.5262 0.640573 10.6667 0.979711 10.6667 1.33333V2.66667H14.6667C15.0333 2.66667 15.3333 2.96667 15.3333 3.33333C15.3333 3.7 15.0333 4 14.6667 4H13.3333V14C13.3333 14.7072 12.7472 15.3333 12 15.3333H4C3.25281 15.3333 2.66667 14.7072 2.66667 14V4H1.33333C0.966667 4 0.666667 3.7 0.666667 3.33333C0.666667 2.96667 0.966667 2.66667 1.33333 2.66667H5.33333ZM6.66667 1.33333V2.66667H9.33333V1.33333H6.66667Z" fill="currentColor"/>
-                          </svg>
-                          Supprimer
-                        </button>
-                        {% endif %}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div
-                  class="flex items-center justify-between w-full gap-5 xl:w-auto xl:justify-normal"
-                >
-                  <div class="flex items-center gap-3">
-                    {% if task.createdAt %}
-                    <span
-                      class="flex items-center gap-1 text-sm text-gray-500 cursor-pointer dark:text-gray-400"
-                      title="Date de début"
-                    >
-                      <svg
-                        class="fill-current"
-                        width="16"
-                        height="16"
-                        viewBox="0 0 16 16"
-                        fill="none"
-                        xmlns="http://www.w3.org/2000/svg"
-                      >
-                        <path
-                          fill-rule="evenodd"
-                          clip-rule="evenodd"
-                          d="M5.33329 1.0835C5.74751 1.0835 6.08329 1.41928 6.08329 1.8335V2.25016L9.91663 2.25016V1.8335C9.91663 1.41928 10.2524 1.0835 10.6666 1.0835C11.0808 1.0835 11.4166 1.41928 11.4166 1.8335V2.25016L12.3333 2.25016C13.2998 2.25016 14.0833 3.03366 14.0833 4.00016V12.6668C14.0833 13.6333 13.2998 14.4168 12.3333 14.4168L3.66663 14.4168C2.70013 14.4168 1.91663 13.6333 1.91663 12.6668V4.00016C1.91663 3.03366 2.70013 2.25016 3.66663 2.25016L4.58329 2.25016V1.8335C4.58329 1.41928 4.91908 1.0835 5.33329 1.0835ZM5.33329 3.75016L3.66663 3.75016C3.52855 3.75016 3.41663 3.86209 3.41663 4.00016V5.25016L12.5833 5.25016V4.00016C12.5833 3.86209 12.4714 3.75016 12.3333 3.75016L10.6666 3.75016L5.33329 3.75016ZM12.5833 6.75016L3.41663 6.75016L3.41663 12.6668C3.41663 12.8049 3.52855 12.9168 3.66663 12.9168L12.3333 12.9168C12.4714 12.9168 12.5833 12.8049 12.5833 12.6668L12.5833 6.75016Z"
-                          fill=""
-                        />
-                      </svg>
-                      Début: {{ task.createdAt|date('d/m/Y') }}
-                    </span>
-                    {% endif %}
-                    {% if task.dueDate %}
-                    <span
-                      class="flex items-center gap-1 text-sm text-gray-500 cursor-pointer dark:text-gray-400"
-                      title="Date de fin"
-                    >
-                      <svg
-                        class="fill-current"
-                        width="16"
-                        height="16"
-                        viewBox="0 0 16 16"
-                        fill="none"
-                        xmlns="http://www.w3.org/2000/svg"
-                      >
-                        <path
-                          fill-rule="evenodd"
-                          clip-rule="evenodd"
-                          d="M5.33329 1.0835C5.74751 1.0835 6.08329 1.41928 6.08329 1.8335V2.25016L9.91663 2.25016V1.8335C9.91663 1.41928 10.2524 1.0835 10.6666 1.0835C11.0808 1.0835 11.4166 1.41928 11.4166 1.8335V2.25016L12.3333 2.25016C13.2998 2.25016 14.0833 3.03366 14.0833 4.00016V12.6668C14.0833 13.6333 13.2998 14.4168 12.3333 14.4168L3.66663 14.4168C2.70013 14.4168 1.91663 13.6333 1.91663 12.6668V4.00016C1.91663 3.03366 2.70013 2.25016 3.66663 2.25016L4.58329 2.25016V1.8335C4.58329 1.41928 4.91908 1.0835 5.33329 1.0835ZM5.33329 3.75016L3.66663 3.75016C3.52855 3.75016 3.41663 3.86209 3.41663 4.00016V5.25016L12.5833 5.25016V4.00016C12.5833 3.86209 12.4714 3.75016 12.3333 3.75016L10.6666 3.75016L5.33329 3.75016ZM12.5833 6.75016L3.41663 6.75016L3.41663 12.6668C3.41663 12.8049 3.52855 12.9168 3.66663 12.9168L12.3333 12.9168C12.4714 12.9168 12.5833 12.8049 12.5833 12.6668L12.5833 6.75016Z"
-                          fill=""
-                        />
-                      </svg>
-                      Fin: {{ task.dueDate|date('d/m/Y') }}
-                    </span>
-                    {% endif %}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+            {% include 'tailadmin/pages/objectives/_task_item.html.twig' with {'task': task, 'objective': objective} %}
           {% else %}
           <div class="p-5 bg-gray-50 border border-gray-200 rounded-xl dark:bg-white/[0.02] dark:border-gray-800 text-center">
             <p class="text-sm text-gray-400 dark:text-gray-500">Aucune tâche</p>
@@ -920,202 +397,7 @@
           </div>
 
           {% for task in tasks.completed %}
-          <!-- task item -->
-          <div
-            draggable="true"
-            class="p-5 bg-white border border-gray-200 task rounded-xl shadow-theme-sm dark:border-gray-800 dark:bg-white/5 opacity-75"
-          >
-            <div
-              class="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between"
-            >
-              <div class="flex items-start w-full gap-4">
-                <span class="text-gray-400">
-                  <svg
-                    class="fill-current"
-                    width="20"
-                    height="20"
-                    viewBox="0 0 20 20"
-                    fill="none"
-                    xmlns="http://www.w3.org/2000/svg"
-                  >
-                    <path
-                      fill-rule="evenodd"
-                      clip-rule="evenodd"
-                      d="M2.43311 5.0001C2.43311 4.50304 2.83605 4.1001 3.33311 4.1001L16.6664 4.1001C17.1635 4.1001 17.5664 4.50304 17.5664 5.0001C17.5664 5.49715 17.1635 5.9001 16.6664 5.9001L3.33311 5.9001C2.83605 5.9001 2.43311 5.49716 2.43311 5.0001ZM2.43311 15.0001C2.43311 14.503 2.83605 14.1001 3.33311 14.1001L16.6664 14.1001C17.1635 14.1001 17.5664 14.503 17.5664 15.0001C17.5664 15.4972 17.1635 15.9001 16.6664 15.9001L3.33311 15.9001C2.83605 15.9001 2.43311 15.4972 2.43311 15.0001ZM3.33311 9.1001C2.83605 9.1001 2.43311 9.50304 2.43311 10.0001C2.43311 10.4972 2.83605 10.9001 3.33311 10.9001L16.6664 10.9001C17.1635 10.9001 17.5664 10.4972 17.5664 10.0001C17.5664 9.50304 17.1635 9.1001 16.6664 9.1001L3.33311 9.1001Z"
-                      fill=""
-                    />
-                  </svg>
-                </span>
-
-                <label
-                  for="taskCheckbox{{ task.id }}"
-                  class="w-full cursor-pointer"
-                  @click.stop
-                >
-                  <div class="relative flex items-start">
-                    <input
-                      type="checkbox"
-                      id="taskCheckbox{{ task.id }}"
-                      class="sr-only taskCheckbox"
-                      data-task-id="{{ task.id }}"
-                      checked
-                      data-task-id="{{ task.id }}"
-                      data-task-title="{{ task.title|escape }}"
-                      data-task-status="{{ task.status }}"
-                      {% if task.status != 'completed' %}@change.stop="openProofModalFromCheckbox($event)"{% endif %}
-                      {% if task.status == 'completed' %}disabled{% endif %}
-                      @click.stop
-                    />
-                    <div
-                      class="flex items-center justify-center w-full h-5 mr-3 border border-gray-300 rounded-md box max-w-5 bg-success-500 dark:bg-success-400"
-                    >
-                      <span>
-                        <svg
-                          width="14"
-                          height="14"
-                          viewBox="0 0 14 14"
-                          fill="none"
-                          xmlns="http://www.w3.org/2000/svg"
-                        >
-                          <path
-                            d="M11.6668 3.5L5.25016 9.91667L2.3335 7"
-                            stroke="white"
-                            stroke-width="1.94437"
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                          />
-                        </svg>
-                      </span>
-                    </div>
-                    <p
-                      class="-mt-0.5 text-base text-gray-800 dark:text-white/90 line-through"
-                    >
-                      {{ task.title }}
-                    </p>
-                  </div>
-                </label>
-              </div>
-
-              <div
-                class="flex flex-col-reverse items-start justify-end w-full gap-3 xl:flex-row xl:items-center xl:gap-5"
-              >
-                <div class="flex items-center gap-2">
-                  <span
-                    class="inline-flex rounded-full bg-brand-50 px-2 py-0.5 text-theme-xs font-medium text-brand-500 dark:bg-brand-500/15 dark:text-brand-400"
-                  >
-                    Preuve requise
-                  </span>
-                  <button
-                    data-task-id="{{ task.id }}"
-                    data-task-proofs="{{ task.proofs|json_encode|e('html_attr') }}"
-                    data-task-title="{{ task.title|e('html_attr') }}"
-                    @click="showProofHistoryFromButton($event)"
-                    class="inline-flex items-center gap-1 rounded-full {% if task.proofs|length > 0 %}bg-gray-100 px-2 py-0.5 text-theme-xs font-medium text-gray-700 hover:bg-gray-200 dark:bg-white/[0.03] dark:text-white/80 dark:hover:bg-white/[0.05]{% else %}bg-gray-50 px-2 py-0.5 text-theme-xs font-medium text-gray-500 hover:bg-gray-100 dark:bg-white/[0.02] dark:text-gray-400 dark:hover:bg-white/[0.03]{% endif %}"
-                    title="Voir l'historique des preuves"
-                  >
-                    <svg class="fill-current" width="14" height="14" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M8 1C4.134 1 1 4.134 1 8s3.134 7 7 7 7-3.134 7-7-3.134-7-7-7zm0 12.5c-3.032 0-5.5-2.468-5.5-5.5S4.968 2.5 8 2.5 13.5 4.968 13.5 8 11.032 13.5 8 13.5z" fill=""/>
-                      <path d="M8 4.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7zm0 6a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5z" fill=""/>
-                    </svg>
-                    {% if task.proofs|length > 0 %}
-                      {{ task.proofs|length }} Historique(s)
-                    {% else %}
-                      Aucun Historique
-                    {% endif %}
-                  </button>
-                  <button
-                    data-task-id="{{ task.id }}"
-                    data-task-status="{{ task.status }}"
-                    data-task-frequency="{{ task.frequency|default('none') }}"
-                    data-task-requires-proof="{{ task.requiresProof ? 'true' : 'false' }}"
-                    data-task-title="{{ task.title|e('html_attr') }}"
-                    data-task-description="{{ task.description|e('html_attr') }}"
-                    data-task-assigned-type="{{ task.assignedType|default('coach') }}"
-                    data-task-student-id="{{ task.student ? task.student.id : '' }}"
-                    data-task-parent-id="{{ task.parent ? task.parent.id : '' }}"
-                    data-task-specialist-id="{{ task.specialist ? task.specialist.id : '' }}"
-                    data-task-created-at="{{ task.createdAt|default('') }}"
-                    data-task-due-date="{{ task.dueDate|default('') }}"
-                    @click="openTaskConfig($event)"
-                    class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-theme-xs font-medium bg-gray-50 text-gray-500 hover:bg-gray-100 dark:bg-white/[0.02] dark:text-gray-400 dark:hover:bg-white/[0.03]"
-                    title="Configurer la tâche"
-                  >
-                    <svg class="fill-current" width="14" height="14" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M11.334 2.666a2.667 2.667 0 0 1 3.771 3.772l-8 8a2.667 2.667 0 0 1-1.886.781l-2.89.111a.667.667 0 0 1-.687-.687l.111-2.89a2.667 2.667 0 0 1 .78-1.886l8-8Zm2.39 2.39a1.333 1.333 0 0 0-1.886-1.886L10.667 4.61l1.886 1.886 1.171-1.44Z" fill=""/>
-                    </svg>
-                    Configurer
-                  </button>
-                  {% if objective.canModifyTasks and task.status != 'completed' %}
-                  <button
-                    data-task-id="{{ task.id }}"
-                    data-task-status="{{ task.status }}"
-                    @click="deleteTask({{ task.id }}, '{{ task.status }}')"
-                    class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-theme-xs font-medium bg-red-50 text-red-500 hover:bg-red-100 dark:bg-red-500/15 dark:text-red-400 dark:hover:bg-red-500/25"
-                    title="Supprimer la tâche"
-                  >
-                    <svg class="fill-current" width="14" height="14" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M5.33333 2.66667V1.33333C5.33333 0.979711 5.47381 0.640573 5.72386 0.390524C5.97391 0.140476 6.31305 0 6.66667 0H9.33333C9.68696 0 10.0261 0.140476 10.2761 0.390524C10.5262 0.640573 10.6667 0.979711 10.6667 1.33333V2.66667H14.6667C15.0333 2.66667 15.3333 2.96667 15.3333 3.33333C15.3333 3.7 15.0333 4 14.6667 4H13.3333V14C13.3333 14.7072 12.7472 15.3333 12 15.3333H4C3.25281 15.3333 2.66667 14.7072 2.66667 14V4H1.33333C0.966667 4 0.666667 3.7 0.666667 3.33333C0.666667 2.96667 0.966667 2.66667 1.33333 2.66667H5.33333ZM6.66667 1.33333V2.66667H9.33333V1.33333H6.66667Z" fill="currentColor"/>
-                    </svg>
-                    Supprimer
-                  </button>
-                  {% endif %}
-                </div>
-
-                <div
-                  class="flex items-center justify-between w-full gap-5 xl:w-auto xl:justify-normal"
-                >
-                  <div class="flex items-center gap-3">
-                    {% if task.createdAt %}
-                    <span
-                      class="flex items-center gap-1 text-sm text-gray-500 cursor-pointer dark:text-gray-400"
-                      title="Date de début"
-                    >
-                      <svg
-                        class="fill-current"
-                        width="16"
-                        height="16"
-                        viewBox="0 0 16 16"
-                        fill="none"
-                        xmlns="http://www.w3.org/2000/svg"
-                      >
-                        <path
-                          fill-rule="evenodd"
-                          clip-rule="evenodd"
-                          d="M5.33329 1.0835C5.74751 1.0835 6.08329 1.41928 6.08329 1.8335V2.25016L9.91663 2.25016V1.8335C9.91663 1.41928 10.2524 1.0835 10.6666 1.0835C11.0808 1.0835 11.4166 1.41928 11.4166 1.8335V2.25016L12.3333 2.25016C13.2998 2.25016 14.0833 3.03366 14.0833 4.00016V12.6668C14.0833 13.6333 13.2998 14.4168 12.3333 14.4168L3.66663 14.4168C2.70013 14.4168 1.91663 13.6333 1.91663 12.6668V4.00016C1.91663 3.03366 2.70013 2.25016 3.66663 2.25016L4.58329 2.25016V1.8335C4.58329 1.41928 4.91908 1.0835 5.33329 1.0835ZM5.33329 3.75016L3.66663 3.75016C3.52855 3.75016 3.41663 3.86209 3.41663 4.00016V5.25016L12.5833 5.25016V4.00016C12.5833 3.86209 12.4714 3.75016 12.3333 3.75016L10.6666 3.75016L5.33329 3.75016ZM12.5833 6.75016L3.41663 6.75016L3.41663 12.6668C3.41663 12.8049 3.52855 12.9168 3.66663 12.9168L12.3333 12.9168C12.4714 12.9168 12.5833 12.8049 12.5833 12.6668L12.5833 6.75016Z"
-                          fill=""
-                        />
-                      </svg>
-                      Début: {{ task.createdAt|date('d/m/Y') }}
-                    </span>
-                    {% endif %}
-                    {% if task.dueDate %}
-                    <span
-                      class="flex items-center gap-1 text-sm text-gray-500 cursor-pointer dark:text-gray-400"
-                      title="Date de fin"
-                    >
-                      <svg
-                        class="fill-current"
-                        width="16"
-                        height="16"
-                        viewBox="0 0 16 16"
-                        fill="none"
-                        xmlns="http://www.w3.org/2000/svg"
-                      >
-                        <path
-                          fill-rule="evenodd"
-                          clip-rule="evenodd"
-                          d="M5.33329 1.0835C5.74751 1.0835 6.08329 1.41928 6.08329 1.8335V2.25016L9.91663 2.25016V1.8335C9.91663 1.41928 10.2524 1.0835 10.6666 1.0835C11.0808 1.0835 11.4166 1.41928 11.4166 1.8335V2.25016L12.3333 2.25016C13.2998 2.25016 14.0833 3.03366 14.0833 4.00016V12.6668C14.0833 13.6333 13.2998 14.4168 12.3333 14.4168L3.66663 14.4168C2.70013 14.4168 1.91663 13.6333 1.91663 12.6668V4.00016C1.91663 3.03366 2.70013 2.25016 3.66663 2.25016L4.58329 2.25016V1.8335C4.58329 1.41928 4.91908 1.0835 5.33329 1.0835ZM5.33329 3.75016L3.66663 3.75016C3.52855 3.75016 3.41663 3.86209 3.41663 4.00016V5.25016L12.5833 5.25016V4.00016C12.5833 3.86209 12.4714 3.75016 12.3333 3.75016L10.6666 3.75016L5.33329 3.75016ZM12.5833 6.75016L3.41663 6.75016L3.41663 12.6668C3.41663 12.8049 3.52855 12.9168 3.66663 12.9168L12.3333 12.9168C12.4714 12.9168 12.5833 12.8049 12.5833 12.6668L12.5833 6.75016Z"
-                          fill=""
-                        />
-                      </svg>
-                      Fin: {{ task.dueDate|date('d/m/Y') }}
-                    </span>
-                    {% endif %}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+            {% include 'tailadmin/pages/objectives/_task_item.html.twig' with {'task': task, 'objective': objective} %}
           {% else %}
           <div class="p-5 bg-gray-50 border border-gray-200 rounded-xl dark:bg-white/[0.02] dark:border-gray-800 text-center">
             <p class="text-sm text-gray-400 dark:text-gray-500">Aucune tâche</p>
@@ -1186,7 +468,7 @@
               <div class="flex-1">
                 <p class="text-sm font-medium text-gray-800 dark:text-white/90">
                   {% if comment.author %}
-                    {{ comment.author.firstName }} {{ comment.author.lastName }}
+                  {{ comment.author.firstName }} {{ comment.author.lastName }}
                   {% else %}
                     Anonyme
                   {% endif %}
@@ -1313,17 +595,20 @@
             <!-- File Upload (Photo) -->
             <div>
               <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Prendre une photo <span class="text-error-500">*</span>
+                Prendre une photo <span x-show="currentTaskRequiresProof" class="text-error-500">*</span>
               </label>
               <input
                 type="file"
                 accept="image/*"
                 @change="handleFileSelect($event)"
-                required
+                :required="currentTaskRequiresProof"
                 class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
               />
               <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
                 Formats acceptés : JPG, PNG, GIF
+                <span x-show="!currentTaskRequiresProof" class="block mt-1 text-gray-400 dark:text-gray-500">
+                  (Optionnel - vous pouvez ajouter uniquement du texte)
+                </span>
               </p>
               <div x-show="proofFormData.filePreview" class="mt-3">
                 <img
@@ -1514,6 +799,63 @@
       <!-- Content -->
       <div class="flex-1 overflow-y-auto p-6" x-show="taskConfig">
         <form @submit.prevent="saveTaskConfig()" class="space-y-6">
+          <!-- Type de tâche -->
+          <div>
+            <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+              Type <span class="text-error-500">*</span>
+            </label>
+            <select
+              x-model="taskConfig.type"
+              @change="onTaskTypeChange()"
+              required
+              class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+            >
+              <option value="task">Tâche</option>
+              <option value="activity_task">Tâche activité</option>
+              <option value="school_activity_task">Tâche activité scolaire</option>
+            </select>
+          </div>
+
+          <!-- Activité liée (pour type Tâche activité) -->
+          <div x-show="taskConfig.type === 'activity_task'">
+            <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+              Activité liée <span class="text-error-500">*</span>
+            </label>
+            <select
+              id="regular-activity-select"
+              x-ref="regularActivitySelect"
+              x-model="taskConfig.activityId"
+              @change="onActivitySelected()"
+              :required="taskConfig.type === 'activity_task'"
+              class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+            >
+              <option value="">Sélectionner une activité</option>
+              <template x-for="activity in regularActivities" :key="activity.id">
+                <option :value="activity.id" x-text="activity.title"></option>
+              </template>
+            </select>
+          </div>
+
+          <!-- Activité scolaire liée (pour type Tâche activité scolaire) -->
+          <div x-show="taskConfig.type === 'school_activity_task'">
+            <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+              Activité scolaire liée <span class="text-error-500">*</span>
+            </label>
+            <select
+              id="school-activity-select"
+              x-ref="schoolActivitySelect"
+              x-model="taskConfig.pathId"
+              @change="onPathSelected()"
+              :required="taskConfig.type === 'school_activity_task'"
+              class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+            >
+              <option value="">Sélectionner une activité scolaire</option>
+              <template x-for="activity in schoolActivities" :key="activity.id">
+                <option :value="activity.id" x-text="activity.title"></option>
+              </template>
+            </select>
+          </div>
+
           <!-- Titre -->
           <div>
             <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -1530,29 +872,9 @@
 
           <!-- Description -->
           <div>
-            <div class="mb-2 flex items-center justify-between">
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Description
-              </label>
-              <button
-                type="button"
-                x-show="taskConfig.isNew && canUseAI"
-                @click="generateSmartTasks()"
-                :disabled="generatingTasks"
-                class="inline-flex items-center gap-2 rounded-lg border border-brand-500 bg-brand-50 px-3 py-1.5 text-xs font-medium text-brand-600 shadow-theme-xs hover:bg-brand-100 disabled:opacity-50 disabled:cursor-not-allowed dark:border-brand-400 dark:bg-brand-500/15 dark:text-brand-400 dark:hover:bg-brand-500/25"
-                title="Générer des suggestions de tâches intelligentes avec l'IA"
-              >
-                <svg x-show="!generatingTasks" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-                </svg>
-                <svg x-show="generatingTasks" class="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                <span x-show="!generatingTasks">IA</span>
-                <span x-show="generatingTasks">Génération...</span>
-              </button>
-            </div>
+            <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+              Description
+            </label>
             <textarea
               x-model="taskConfig.description"
               rows="4"
@@ -1576,8 +898,34 @@
             </select>
           </div>
 
-          <!-- Dates -->
-          <div class="grid grid-cols-2 gap-4">
+          <!-- Dates et Heures (uniquement pour type Tâche) -->
+          <div x-show="taskConfig.type === 'task'" class="grid grid-cols-2 gap-4">
+            <!-- Date et heure de début -->
+            <div>
+              <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Date et heure de début
+              </label>
+              <input
+                type="datetime-local"
+                x-model="taskConfig.createdAt"
+                class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+              />
+            </div>
+            <!-- Date et heure de fin -->
+            <div>
+              <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Date et heure de fin
+              </label>
+              <input
+                type="datetime-local"
+                x-model="taskConfig.dueDate"
+                class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+              />
+            </div>
+          </div>
+
+          <!-- Dates simples (pour les autres types) -->
+          <div x-show="taskConfig.type !== 'task'" class="grid grid-cols-2 gap-4">
             <!-- Date de début -->
             <div>
               <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -1665,12 +1013,12 @@
               />
               <span class="text-sm font-medium text-gray-700 dark:text-gray-300">
                 Demander une preuve
-              </span>
+                </span>
             </label>
             <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
               Si activé, l'utilisateur devra fournir une preuve (texte, photo, etc.) pour valider la tâche.
             </p>
-          </div>
+              </div>
 
           <!-- Temporalité -->
           <div>
@@ -1700,56 +1048,15 @@
             </p>
           </div>
 
-          <!-- Activité liée -->
-          <div class="space-y-4">
-            <!-- Activité normale -->
-            <div>
-              <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Activité liée (optionnel)
-              </label>
-              <select
-                id="regular-activity-select"
-                x-ref="regularActivitySelect"
-                class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
-              >
-                <option value="">Aucune activité</option>
-                <template x-for="activity in regularActivities" :key="activity.id">
-                  <option :value="activity.id" x-text="activity.title"></option>
-                </template>
-              </select>
-            </div>
-            
-            <!-- Activité scolaire -->
-            <div>
-              <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Activité scolaire liée (optionnel)
-              </label>
-              <select
-                id="school-activity-select"
-                x-ref="schoolActivitySelect"
-                class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
-              >
-                <option value="">Aucune activité scolaire</option>
-                <template x-for="activity in schoolActivities" :key="activity.id">
-                  <option :value="activity.id" x-text="activity.title"></option>
-                </template>
-              </select>
-            </div>
-            
-            <p class="text-xs text-gray-500 dark:text-gray-400">
-              Vous pouvez lier cette tâche à une activité normale ou à une activité scolaire, mais pas aux deux en même temps.
-            </p>
-          </div>
-
           <!-- Footer -->
           <div class="flex gap-3 pt-4 border-t border-gray-200 dark:border-gray-800">
-            <button
+              <button
               type="button"
               @click="closeConfigSheet()"
               class="flex-1 rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
-            >
+              >
               Annuler
-            </button>
+              </button>
             <button
               type="submit"
               :disabled="configSubmitting"
@@ -1912,7 +1219,7 @@
                 <option value="paused">En pause</option>
               </select>
             </div>
-            {% endif %}
+              {% endif %}
             <div>
               <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Progression (%)</label>
               <input
@@ -1933,7 +1240,7 @@
                   x-model="objectiveFormData.createdAt"
                   class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
                 />
-              </div>
+          </div>
               <!-- Date de fin -->
               <div>
                 <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Date de fin</label>
@@ -1942,8 +1249,8 @@
                   x-model="objectiveFormData.deadline"
                   class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
                 />
-              </div>
-            </div>
+        </div>
+      </div>
             <div>
               <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Élève *</label>
               <select
@@ -1979,7 +1286,182 @@
         </div>
       </div>
     </div>
-  </main>
+  <!-- AI Help Right Sheet -->
+  <div
+    x-show="aiHelpSheetOpen"
+    @click="aiHelpSheetOpen = false"
+    x-transition:enter="transition-opacity ease-out duration-300"
+    x-transition:enter-start="opacity-0"
+    x-transition:enter-end="opacity-100"
+    x-transition:leave="transition-opacity ease-in duration-200"
+    x-transition:leave-start="opacity-100"
+    x-transition:leave-end="opacity-0"
+    class="fixed inset-0 z-[70] bg-black/50 backdrop-blur-sm"
+    style="display: none;"
+  ></div>
+
+  <div
+    x-show="aiHelpSheetOpen"
+    @click.away="handleAIClickAway($event)"
+    @click.stop
+    x-transition:enter="transition-transform ease-out duration-300"
+    x-transition:enter-start="translate-x-full"
+    x-transition:enter-end="translate-x-0"
+    x-transition:leave="transition-transform ease-in duration-200"
+    x-transition:leave-start="translate-x-0"
+    x-transition:leave-end="translate-x-full"
+    class="fixed right-0 top-0 z-[70] h-full w-full max-w-2xl overflow-y-auto bg-white shadow-2xl dark:bg-gray-900"
+    style="display: none;"
+  >
+    <div class="flex h-full flex-col" @click.stop>
+      <div class="sticky top-0 z-10 border-b border-gray-200 bg-white px-6 py-4 dark:border-gray-800 dark:bg-gray-900">
+        <div class="flex items-center justify-between">
+          <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">Aide IA - Suggestions de tâches</h3>
+          <div class="flex items-center gap-2">
+            <button
+              @click.stop="clearAIHistory()"
+              class="rounded-lg p-2 text-xs text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-300"
+              title="Réinitialiser les suggestions"
+            >
+              <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+            </button>
+            <button
+              @click="aiHelpSheetOpen = false"
+              class="rounded-lg p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-300"
+            >
+              <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex-1 overflow-y-auto p-6">
+        <div class="space-y-6">
+          <!-- Description -->
+          <div>
+            <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Description *</label>
+            <textarea
+              x-model="aiHelpDescription"
+              required
+              rows="6"
+              placeholder="Décrivez l'objectif à atteindre..."
+              @click.stop
+              class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+            ></textarea>
+            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+              Modifiez la description si nécessaire, puis cliquez sur "Générer les suggestions" pour voir les tâches proposées.
+            </p>
+          </div>
+
+          <!-- Checkbox pour proposer une révision du titre et description -->
+          <div class="flex items-start gap-2 rounded-lg border border-gray-200 bg-gray-50 p-3 dark:border-gray-700 dark:bg-gray-800/50" @click.stop>
+            <input
+              type="checkbox"
+              id="ai-update-objective"
+              x-model="updateObjectiveTitleAndDescription"
+              @click.stop
+              class="mt-0.5 rounded border-gray-300 text-brand-600 focus:ring-brand-500"
+            />
+            <label for="ai-update-objective" class="flex-1 cursor-pointer text-sm text-gray-700 dark:text-gray-300" @click.stop>
+              Proposer une révision du titre et de la description de l'objectif
+            </label>
+          </div>
+
+          <!-- Bouton pour générer les suggestions -->
+          <div>
+            <button
+              type="button"
+              @click.stop="generateAISuggestions()"
+              :disabled="!aiHelpDescription || !objective?.student?.id || isGeneratingAISuggestions"
+              class="w-full rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white shadow-theme-xs hover:bg-brand-600 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <span x-show="!isGeneratingAISuggestions">Générer les suggestions</span>
+              <span x-show="isGeneratingAISuggestions">Génération en cours...</span>
+            </button>
+          </div>
+
+          <!-- Affichage des propositions de titre et description -->
+          <div x-show="aiSuggestedObjective" class="space-y-4 rounded-lg border border-brand-200 bg-brand-50 p-4 dark:border-brand-800 dark:bg-brand-500/10">
+            <div>
+              <label class="mb-2 block text-sm font-semibold text-brand-700 dark:text-brand-400">
+                Propositions pour l'objectif
+              </label>
+              
+              <div x-show="!updateObjectiveTitleAndDescription" class="mb-3 rounded-lg border border-brand-300 bg-brand-100 p-2 dark:border-brand-700 dark:bg-brand-500/20">
+                <p class="text-xs text-brand-700 dark:text-brand-300">
+                  💡 Cochez la case ci-dessus pour appliquer ces propositions lors de l'ajout des tâches
+                </p>
+              </div>
+              
+              <!-- Titre proposé -->
+              <div class="mb-4">
+                <label class="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-400">Titre proposé</label>
+                <div class="rounded-lg border border-gray-200 bg-white p-3 dark:border-gray-700 dark:bg-gray-800">
+                  <p class="text-sm font-medium text-gray-800 dark:text-white" x-text="aiSuggestedObjective && aiSuggestedObjective.title ? aiSuggestedObjective.title : 'Aucun titre proposé'"></p>
+                </div>
+              </div>
+
+              <!-- Description proposée -->
+              <div>
+                <label class="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-400">Description proposée</label>
+                <div class="rounded-lg border border-gray-200 bg-white p-3 dark:border-gray-700 dark:bg-gray-800">
+                  <p class="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap" x-text="aiSuggestedObjective && aiSuggestedObjective.description ? aiSuggestedObjective.description : 'Aucune description proposée'"></p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Affichage des tâches proposées -->
+          <div x-show="aiSuggestedTasks && aiSuggestedTasks.length > 0" class="space-y-4">
+            <div>
+              <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Tâches proposées (<span x-text="selectedAITasksCount"></span> sélectionnée(s))
+              </label>
+              <div class="max-h-96 space-y-2 overflow-y-auto rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-800/50">
+                <template x-for="(task, index) in aiSuggestedTasks" :key="index">
+                  <div class="flex items-start gap-3 rounded-lg border border-gray-200 bg-white p-3 dark:border-gray-700 dark:bg-gray-800" @click.stop>
+                    <input
+                      type="checkbox"
+                      :id="'ai-task-' + index"
+                      :value="index"
+                      x-model="selectedAITaskIndices"
+                      @click.stop
+                      class="mt-1 rounded border-gray-300 text-brand-600 focus:ring-brand-500"
+                    />
+                    <label :for="'ai-task-' + index" class="flex-1 cursor-pointer" @click.stop>
+                      <div class="font-medium text-gray-800 dark:text-white" x-text="task.title"></div>
+                      <div class="mt-1 text-sm text-gray-600 dark:text-gray-400" x-text="task.description"></div>
+                      <div class="mt-2 flex gap-2 text-xs text-gray-500 dark:text-gray-500">
+                        <span x-show="task.frequency && task.frequency !== 'none'" x-text="'Fréquence: ' + task.frequency"></span>
+                        <span x-show="task.proofType" x-text="'Preuve: ' + task.proofType"></span>
+                      </div>
+                    </label>
+                  </div>
+                </template>
+              </div>
+            </div>
+
+            <!-- Bouton pour ajouter les tâches sélectionnées -->
+            <div>
+              <button
+                type="button"
+                @click.stop="addSelectedTasksToObjective()"
+                :disabled="!selectedAITaskIndices || selectedAITaskIndices.length === 0"
+                class="w-full rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white shadow-theme-xs hover:bg-brand-600 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Ajouter les tâches sélectionnées à l'objectif
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
 <!-- ===== Main Content End ===== -->
 
 <style>
@@ -1999,6 +1481,7 @@ function taskManager() {
     currentTaskId: null,
     currentTaskTitle: '',
     currentTaskStatus: null,
+    currentTaskRequiresProof: true,
     currentTaskProofs: [],
     objectiveFormData: {
       title: '',
@@ -2022,8 +1505,6 @@ function taskManager() {
     },
     configSubmitting: false,
     configTaskTitle: '',
-    generatingTasks: false,
-    generatingFromOrigin: false,
     students: [],
     parents: [],
     specialists: [],
@@ -2033,6 +1514,7 @@ function taskManager() {
     schoolActivityChoicesInstance: null,
     taskConfig: {
       isNew: false,
+      type: 'task',
       title: '',
       description: '',
       status: 'pending',
@@ -2042,6 +1524,8 @@ function taskManager() {
       studentId: '',
       parentId: '',
       specialistId: '',
+      activityId: '',
+      pathId: '',
     },
     commentFormOpen: false,
     commentEditMode: false,
@@ -2054,6 +1538,13 @@ function taskManager() {
     objective: null,
     studentsData: [],
     canUseAI: {{ canUseAI ? 'true' : 'false' }},
+    aiHelpSheetOpen: false,
+    aiHelpDescription: '',
+    isGeneratingAISuggestions: false,
+    aiSuggestedTasks: [],
+    selectedAITaskIndices: [],
+    updateObjectiveTitleAndDescription: false,
+    aiSuggestedObjective: null,
     
     init() {
       const studentsJson = this.$el.getAttribute('data-students');
@@ -2285,6 +1776,7 @@ function taskManager() {
       
       // Récupérer le statut de la tâche depuis la checkbox
       const taskStatus = checkbox.getAttribute('data-task-status');
+      const taskRequiresProof = checkbox.getAttribute('data-task-requires-proof') === 'true';
       
       // Vérifier que la tâche n'est pas terminée - on ne peut ajouter des preuves que si la tâche est "pending" ou "in_progress"
       if (taskStatus === 'completed') {
@@ -2306,6 +1798,7 @@ function taskManager() {
         this.currentTaskId = taskId;
         this.currentTaskTitle = taskTitle;
         this.currentTaskStatus = taskStatus;
+        this.currentTaskRequiresProof = taskRequiresProof;
         this.proofSheetOpen = true;
         // Réinitialiser le formulaire
         this.proofFormData = {
@@ -2332,6 +1825,7 @@ function taskManager() {
       const taskId = parseInt(checkbox.getAttribute('data-task-id'));
       const taskTitle = checkbox.getAttribute('data-task-title') || 'Tâche #' + taskId;
       const taskStatus = checkbox.getAttribute('data-task-status');
+      const taskRequiresProof = checkbox.getAttribute('data-task-requires-proof') === 'true';
       
       // Vérifier que la tâche n'est pas terminée - on ne peut ajouter des preuves que si la tâche est "pending" ou "in_progress"
       if (taskStatus === 'completed') {
@@ -2409,8 +1903,8 @@ function taskManager() {
       this.proofSubmitting = true;
       
       try {
-        // Vérifier qu'un fichier a été sélectionné
-        if (!this.proofFormData.fileBase64) {
+        // Vérifier qu'un fichier a été sélectionné si requiresProof = true
+        if (this.currentTaskRequiresProof && !this.proofFormData.fileBase64) {
           if (window.showToast) {
             window.showToast('Veuillez sélectionner une photo', 'error');
           }
@@ -2418,16 +1912,35 @@ function taskManager() {
           return;
         }
         
+        // Si requiresProof = false, au moins une description est requise
+        if (!this.currentTaskRequiresProof && !this.proofFormData.description) {
+          if (window.showToast) {
+            window.showToast('Veuillez ajouter au moins une description', 'error');
+          }
+          this.proofSubmitting = false;
+          return;
+        }
+        
+        // Déterminer le type de preuve
+        const proofType = this.proofFormData.fileBase64 ? 'photo' : 'text';
+        
         // Préparer les données
         const data = {
-          type: 'photo',
+          type: proofType,
           title: `Preuve - ${this.currentTaskTitle}`,
           description: this.proofFormData.description || null,
-          fileBase64: this.proofFormData.fileBase64,
-          fileName: this.proofFormData.fileName,
-          fileSize: this.proofFormData.fileSize,
-          mimeType: this.proofFormData.mimeType,
         };
+        
+        // Ajouter les données du fichier seulement si présent
+        if (this.proofFormData.fileBase64) {
+          data.fileBase64 = this.proofFormData.fileBase64;
+          data.fileName = this.proofFormData.fileName;
+          data.fileSize = this.proofFormData.fileSize;
+          data.mimeType = this.proofFormData.mimeType;
+        } else if (this.proofFormData.description) {
+          // Si pas de fichier mais description, utiliser le contenu comme texte
+          data.content = this.proofFormData.description;
+        }
         
         // Envoyer la preuve
         const response = await fetch(`/admin/tasks/${this.currentTaskId}/proofs/create`, {
@@ -2640,13 +2153,38 @@ function taskManager() {
       const taskCreatedAt = button.getAttribute('data-task-created-at') || '';
       const taskDueDate = button.getAttribute('data-task-due-date') || '';
       const taskActivityId = button.getAttribute('data-task-activity-id') || '';
+      const taskPathId = button.getAttribute('data-task-path-id') || '';
+      const taskType = button.getAttribute('data-task-type') || 'task';
       
-      console.log('Données de la tâche:', { taskId, taskStatus, taskFrequency, taskRequiresProof, taskTitle, taskDescription, taskAssignedType, taskCreatedAt, taskDueDate, taskActivityId });
+      console.log('Données de la tâche:', { taskId, taskStatus, taskFrequency, taskRequiresProof, taskTitle, taskDescription, taskAssignedType, taskCreatedAt, taskDueDate, taskActivityId, taskPathId, taskType });
       
       this.currentTaskId = taskId;
       this.configTaskTitle = taskTitle || 'Tâche #' + taskId;
+      
+      // Formater les dates pour datetime-local ou date selon le type
+      let formattedCreatedAt = '';
+      let formattedDueDate = '';
+      if (taskCreatedAt) {
+        if (taskType === 'task') {
+          // Pour datetime-local, format: YYYY-MM-DDTHH:mm
+          const date = new Date(taskCreatedAt);
+          formattedCreatedAt = date.toISOString().slice(0, 16);
+        } else {
+          formattedCreatedAt = taskCreatedAt.split(' ')[0]; // Format YYYY-MM-DD pour input date
+        }
+      }
+      if (taskDueDate) {
+        if (taskType === 'task') {
+          const date = new Date(taskDueDate);
+          formattedDueDate = date.toISOString().slice(0, 16);
+        } else {
+          formattedDueDate = taskDueDate.split(' ')[0];
+        }
+      }
+      
       this.taskConfig = {
         isNew: false,
+        type: taskType,
         title: taskTitle || '',
         description: taskDescription || '',
         status: taskStatus || 'pending',
@@ -2657,8 +2195,9 @@ function taskManager() {
         parentId: taskParentId,
         specialistId: taskSpecialistId,
         activityId: taskActivityId,
-        createdAt: taskCreatedAt ? taskCreatedAt.split(' ')[0] : '', // Format YYYY-MM-DD pour input date
-        dueDate: taskDueDate ? taskDueDate.split(' ')[0] : '', // Format YYYY-MM-DD pour input date
+        pathId: taskPathId,
+        createdAt: formattedCreatedAt,
+        dueDate: formattedDueDate,
       };
       
       console.log('Ouverture du configSheet - avant:', { configSheetOpen: this.configSheetOpen, taskConfig: this.taskConfig });
@@ -2716,8 +2255,19 @@ function taskManager() {
       
       this.currentTaskId = null;
       this.configTaskTitle = '';
+      
+      // Initialiser les dates avec la date/heure actuelle pour les champs datetime-local
+      const now = new Date();
+      const nowFormatted = now.toISOString().slice(0, 16); // Format: YYYY-MM-DDTHH:mm
+      
+      // Date de fin par défaut: +1 jour
+      const tomorrow = new Date(now);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      const tomorrowFormatted = tomorrow.toISOString().slice(0, 16);
+      
       this.taskConfig = {
         isNew: true,
+        type: 'task',
         title: '',
         description: '',
         status: 'pending',
@@ -2728,8 +2278,9 @@ function taskManager() {
         parentId: '',
         specialistId: '',
         activityId: '',
-        createdAt: '',
-        dueDate: '',
+        pathId: '',
+        createdAt: nowFormatted,
+        dueDate: tomorrowFormatted,
       };
       
       this.configSheetOpen = true;
@@ -2757,150 +2308,6 @@ function taskManager() {
       // Pour "specialist", on laisse vide (pas de valeur par défaut)
     },
     
-    async generateSmartTasks() {
-      if (!this.objectiveId) {
-        if (window.showToast) {
-          window.showToast('Erreur: ID de l\'objectif manquant', 'error');
-        }
-        return;
-      }
-
-      this.generatingTasks = true;
-
-      try {
-        const response = await fetch(`/admin/objectives/${this.objectiveId}/generate-tasks`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({}),
-        });
-
-        let result;
-        try {
-          result = await response.json();
-        } catch (e) {
-          result = { success: false, message: 'Erreur lors de la lecture de la réponse' };
-        }
-
-        if (response.ok && result.success && result.tasks && result.tasks.length > 0) {
-          // Prendre la première tâche suggérée et remplir le formulaire
-          const firstTask = result.tasks[0];
-          
-          this.taskConfig.title = firstTask.title || '';
-          this.taskConfig.description = firstTask.description || '';
-          this.taskConfig.frequency = firstTask.frequency || 'none';
-          this.taskConfig.requiresProof = firstTask.requiresProof !== undefined ? firstTask.requiresProof : true;
-          
-          if (firstTask.proofType) {
-            // Note: proofType n'est pas directement dans taskConfig, mais peut être utilisé plus tard
-            // On peut l'ajouter si nécessaire
-          }
-
-          const successMessage = `${result.tasks.length} tâche(s) suggérée(s). Première tâche chargée.`;
-          if (window.showToast) {
-            window.showToast(successMessage, 'success');
-          } else {
-            alert(successMessage);
-          }
-
-          // Optionnel: afficher toutes les suggestions dans une modal ou permettre de naviguer entre elles
-          // Pour l'instant, on charge juste la première
-        } else {
-          const errorMessage = result.message || 'Aucune tâche suggérée';
-          if (window.showToast) {
-            window.showToast(errorMessage, 'error');
-          } else {
-            alert(errorMessage);
-          }
-        }
-      } catch (error) {
-        console.error('Erreur lors de la génération des tâches:', error);
-        const errorMessage = 'Erreur lors de la génération des suggestions';
-        if (window.showToast) {
-          window.showToast(errorMessage, 'error');
-        } else {
-          alert(errorMessage);
-        }
-      } finally {
-        this.generatingTasks = false;
-      }
-    },
-    
-    async generateFromOrigin() {
-      if (!this.objectiveId) {
-        if (window.showToast) {
-          window.showToast('Erreur: ID de l\'objectif manquant', 'error');
-        }
-        return;
-      }
-
-      this.generatingFromOrigin = true;
-
-      try {
-        const response = await fetch(`/admin/objectives/${this.objectiveId}/generate-from-origin`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({}),
-        });
-
-        let result;
-        try {
-          result = await response.json();
-        } catch (e) {
-          result = { success: false, message: 'Erreur lors de la lecture de la réponse' };
-        }
-
-        if (response.ok && result.success) {
-          // Mettre à jour la description si elle a été générée
-          if (result.description) {
-            // Recharger la page pour afficher la nouvelle description
-            window.location.reload();
-          }
-          
-          // Si des tâches ont été générées, les afficher
-          if (result.tasks && result.tasks.length > 0) {
-            const successMessage = `${result.tasks.length} tâche(s) générée(s) et description mise à jour.`;
-            if (window.showToast) {
-              window.showToast(successMessage, 'success');
-            }
-            // Recharger la page pour afficher les nouvelles tâches
-            setTimeout(() => {
-              window.location.reload();
-            }, 1000);
-          } else {
-            const successMessage = result.message || 'Description mise à jour avec succès.';
-            if (window.showToast) {
-              window.showToast(successMessage, 'success');
-            }
-            // Recharger la page pour afficher la nouvelle description
-            setTimeout(() => {
-              window.location.reload();
-            }, 1000);
-          }
-        } else {
-          const errorMessage = result.message || 'Erreur lors de la génération';
-          if (window.showToast) {
-            window.showToast(errorMessage, 'error');
-          } else {
-            alert(errorMessage);
-          }
-        }
-      } catch (error) {
-        console.error('Erreur lors de la génération depuis l\'original:', error);
-        const errorMessage = 'Erreur lors de la génération';
-        if (window.showToast) {
-          window.showToast(errorMessage, 'error');
-        } else {
-          alert(errorMessage);
-        }
-      } finally {
-        this.generatingFromOrigin = false;
-      }
-    },
-    
     closeConfigSheet() {
       // Détruire ChoiceJS avant de fermer
       if (this.regularActivityChoicesInstance) {
@@ -2926,6 +2333,7 @@ function taskManager() {
       this.configTaskTitle = '';
       this.taskConfig = {
         isNew: false,
+        type: 'task',
         title: '',
         description: '',
         status: 'pending',
@@ -2935,9 +2343,53 @@ function taskManager() {
         studentId: '',
         parentId: '',
         specialistId: '',
+        activityId: '',
+        pathId: '',
         createdAt: '',
         dueDate: '',
       };
+    },
+    
+    onTaskTypeChange() {
+      // Réinitialiser les champs d'activité lors du changement de type
+      if (this.taskConfig.type === 'task') {
+        this.taskConfig.activityId = '';
+        this.taskConfig.pathId = '';
+      } else if (this.taskConfig.type === 'activity_task') {
+        this.taskConfig.pathId = '';
+      } else if (this.taskConfig.type === 'school_activity_task') {
+        this.taskConfig.activityId = '';
+      }
+    },
+    
+    onActivitySelected() {
+      // Préremplir titre et description depuis l'activité sélectionnée
+      if (!this.taskConfig.activityId) {
+        return;
+      }
+      
+      const activityId = parseInt(this.taskConfig.activityId);
+      const activity = this.regularActivities.find(a => a.id === activityId);
+      
+      if (activity) {
+        this.taskConfig.title = activity.title || '';
+        this.taskConfig.description = activity.description || '';
+      }
+    },
+    
+    onPathSelected() {
+      // Préremplir titre et description depuis l'activité scolaire sélectionnée
+      if (!this.taskConfig.pathId) {
+        return;
+      }
+      
+      const pathId = parseInt(this.taskConfig.pathId);
+      const path = this.schoolActivities.find(p => p.id === pathId);
+      
+      if (path) {
+        this.taskConfig.title = path.title || '';
+        this.taskConfig.description = path.description || '';
+      }
     },
     
     async saveTaskConfig() {
@@ -2945,6 +2397,23 @@ function taskManager() {
       if (!this.taskConfig.title || this.taskConfig.title.trim() === '') {
         if (window.showToast) {
           window.showToast('Le titre est requis', 'error');
+        }
+        this.configSubmitting = false;
+        return;
+      }
+      
+      // Validation selon le type de tâche
+      if (this.taskConfig.type === 'activity_task' && !this.taskConfig.activityId) {
+        if (window.showToast) {
+          window.showToast('Veuillez sélectionner une activité', 'error');
+        }
+        this.configSubmitting = false;
+        return;
+      }
+      
+      if (this.taskConfig.type === 'school_activity_task' && !this.taskConfig.pathId) {
+        if (window.showToast) {
+          window.showToast('Veuillez sélectionner une activité scolaire', 'error');
         }
         this.configSubmitting = false;
         return;
@@ -2964,6 +2433,7 @@ function taskManager() {
       try {
         // Préparer les données à envoyer
         const dataToSend = {
+          type: this.taskConfig.type,
           title: this.taskConfig.title,
           description: this.taskConfig.description || '',
           status: this.taskConfig.status,
@@ -2989,9 +2459,14 @@ function taskManager() {
           dataToSend.specialistId = parseInt(this.taskConfig.specialistId);
         }
         
-        // Ajouter l'activité liée si fournie
-        if (this.taskConfig.activityId) {
+        // Ajouter l'activité liée selon le type de tâche
+        if (this.taskConfig.type === 'activity_task' && this.taskConfig.activityId) {
           dataToSend.activityId = parseInt(this.taskConfig.activityId);
+        }
+        
+        // Ajouter l'activité scolaire liée selon le type de tâche
+        if (this.taskConfig.type === 'school_activity_task' && this.taskConfig.pathId) {
+          dataToSend.pathId = parseInt(this.taskConfig.pathId);
         }
         
         // Déterminer l'URL selon le mode (création ou édition)
@@ -3279,6 +2754,216 @@ function taskManager() {
         } else {
           alert(errorMessage);
         }
+      }
+    },
+    
+    openAIHelpSheet() {
+      // Initialiser avec la description de l'objectif seulement si elle n'est pas déjà définie
+      if (!this.aiHelpDescription) {
+        this.aiHelpDescription = this.objective?.descriptionOrigin || this.objective?.description || '';
+      }
+      
+      // Ne pas réinitialiser les suggestions pour garder l'historique
+      // Les suggestions restent disponibles même après fermeture du right sheet
+      // Seulement réinitialiser si on n'a jamais généré de suggestions
+      if (!this.aiSuggestedTasks || this.aiSuggestedTasks.length === 0) {
+        this.aiSuggestedTasks = [];
+        this.selectedAITaskIndices = [];
+      }
+      
+      // Ne pas réinitialiser la checkbox et les suggestions d'objectif pour garder l'historique
+      // this.updateObjectiveTitleAndDescription reste à sa valeur actuelle
+      // this.aiSuggestedObjective reste à sa valeur actuelle
+      
+      this.aiHelpSheetOpen = true;
+    },
+    
+    handleAIClickAway(event) {
+      // Vérifier si du texte est sélectionné
+      if (window.getSelection().toString().length > 0) {
+        return; // Ne pas fermer si du texte est sélectionné
+      }
+      
+      // Vérifier si le clic est sur un élément interactif
+      const target = event.target;
+      const isInteractive = target.closest('input, select, textarea, button, label, .choices') !== null;
+      
+      if (isInteractive) {
+        return; // Ne pas fermer si c'est un élément interactif
+      }
+      
+      // Fermer le right sheet
+      this.aiHelpSheetOpen = false;
+    },
+    
+    async generateAISuggestions() {
+      if (!this.aiHelpDescription || !this.objective?.student?.id) {
+        if (window.showToast) {
+          window.showToast('Veuillez remplir la description et vérifier que l\'élève est défini', 'error');
+        }
+        return;
+      }
+
+      this.isGeneratingAISuggestions = true;
+      this.aiSuggestedTasks = [];
+      this.selectedAITaskIndices = [];
+
+      try {
+        // Récupérer la classe de l'élève
+        const student = this.studentsData.find(s => s.id === this.objective.student.id);
+        const studentClass = student?.class || '';
+
+        const response = await fetch('/admin/objectives/generate-suggestions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest',
+          },
+          body: JSON.stringify({
+            description: this.aiHelpDescription,
+            studentId: this.objective.student.id,
+            studentClass: studentClass,
+            category: this.objective.category || 'general',
+            generateObjective: this.updateObjectiveTitleAndDescription, // Ne générer l'objectif que si la checkbox est cochée
+          }),
+        });
+
+        const data = await response.json();
+
+        if (data.success && data.suggestions) {
+          // Stocker les suggestions de l'objectif SEULEMENT si la checkbox est cochée
+          if (this.updateObjectiveTitleAndDescription && data.suggestions.objective) {
+            this.aiSuggestedObjective = data.suggestions.objective;
+            console.log('Suggestions objectif reçues:', this.aiSuggestedObjective);
+          } else {
+            // Si la checkbox n'est pas cochée, ne pas stocker les suggestions d'objectif
+            this.aiSuggestedObjective = null;
+          }
+          
+          if (data.suggestions.tasks) {
+            this.aiSuggestedTasks = data.suggestions.tasks;
+            // Sélectionner toutes les tâches par défaut
+            this.selectedAITaskIndices = this.aiSuggestedTasks.map((_, index) => index);
+          }
+        } else {
+          if (window.showToast) {
+            window.showToast(data.message || 'Erreur lors de la génération des suggestions', 'error');
+          }
+        }
+      } catch (error) {
+        console.error('Erreur:', error);
+        if (window.showToast) {
+          window.showToast('Erreur de connexion', 'error');
+        }
+      } finally {
+        this.isGeneratingAISuggestions = false;
+      }
+    },
+    
+    async addSelectedTasksToObjective() {
+      if (!this.selectedAITaskIndices || this.selectedAITaskIndices.length === 0) {
+        if (window.showToast) {
+          window.showToast('Veuillez sélectionner au moins une tâche', 'error');
+        }
+        return;
+      }
+
+      const selectedTasks = this.selectedAITaskIndices.map(index => this.aiSuggestedTasks[index]).filter(task => task !== undefined);
+      
+      if (selectedTasks.length === 0) {
+        if (window.showToast) {
+          window.showToast('Aucune tâche valide sélectionnée', 'error');
+        }
+        return;
+      }
+
+      try {
+        // Si la checkbox est cochée et qu'on a des suggestions pour l'objectif, mettre à jour le titre et la description
+        if (this.updateObjectiveTitleAndDescription && this.aiSuggestedObjective) {
+          const updateResponse = await fetch(`/admin/objectives/${this.objectiveId}/update`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Requested-With': 'XMLHttpRequest',
+            },
+            body: JSON.stringify({
+              title: this.aiSuggestedObjective.title || this.objective.title,
+              description: this.aiSuggestedObjective.description || this.objective.description,
+            }),
+          });
+          
+          const updateResult = await updateResponse.json();
+          if (!updateResult.success) {
+            console.warn('Erreur lors de la mise à jour de l\'objectif:', updateResult.message);
+          }
+        }
+
+        // Créer toutes les tâches sélectionnées
+        const createPromises = selectedTasks.map(taskData => {
+          return fetch(`/admin/objectives/${this.objectiveId}/tasks/create`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Requested-With': 'XMLHttpRequest',
+            },
+            body: JSON.stringify({
+              title: taskData.title || '',
+              description: taskData.description || '',
+              status: 'pending',
+              frequency: taskData.frequency || 'none',
+              requiresProof: taskData.requiresProof !== false,
+              proofType: taskData.proofType || '',
+              assignedType: 'coach',
+            }),
+          });
+        });
+
+        const responses = await Promise.all(createPromises);
+        const results = await Promise.all(responses.map(r => r.json()));
+
+        const successCount = results.filter(r => r.success).length;
+        
+        if (successCount > 0) {
+          const message = this.updateObjectiveTitleAndDescription && this.aiSuggestedObjective
+            ? `${successCount} tâche(s) ajoutée(s) et objectif mis à jour avec succès`
+            : `${successCount} tâche(s) ajoutée(s) avec succès`;
+          
+          if (window.showToast) {
+            window.showToast(message, 'success');
+          }
+          
+          // Fermer le right sheet et recharger la page
+          this.aiHelpSheetOpen = false;
+          setTimeout(() => {
+            window.location.reload();
+          }, 500);
+        } else {
+          if (window.showToast) {
+            window.showToast('Erreur lors de l\'ajout des tâches', 'error');
+          }
+        }
+      } catch (error) {
+        console.error('Erreur:', error);
+        if (window.showToast) {
+          window.showToast('Erreur de connexion', 'error');
+        }
+      }
+    },
+    
+    get selectedAITasksCount() {
+      return this.selectedAITaskIndices ? this.selectedAITaskIndices.length : 0;
+    },
+    
+    clearAIHistory() {
+      // Réinitialiser toutes les données de l'aide IA
+      this.aiHelpDescription = this.objective?.descriptionOrigin || this.objective?.description || '';
+      this.aiSuggestedTasks = [];
+      this.selectedAITaskIndices = [];
+      this.updateObjectiveTitleAndDescription = false;
+      this.aiSuggestedObjective = null;
+      
+      if (window.showToast) {
+        window.showToast('Suggestions réinitialisées', 'success');
       }
     },
   };

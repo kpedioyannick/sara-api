@@ -5,10 +5,12 @@ namespace App\Controller;
 use App\Controller\Trait\CoachTrait;
 use App\Entity\Objective;
 use App\Entity\Task;
+use App\Enum\TaskType;
 use App\Repository\ActivityRepository;
 use App\Repository\CoachRepository;
 use App\Repository\ObjectiveRepository;
 use App\Repository\ParentUserRepository;
+use App\Repository\PathRepository;
 use App\Repository\SpecialistRepository;
 use App\Repository\StudentRepository;
 use App\Repository\TaskRepository;
@@ -41,7 +43,8 @@ class TaskController extends AbstractController
         private readonly TaskPlanningService $taskPlanningService,
         private readonly PermissionService $permissionService,
         private readonly NotificationService $notificationService,
-        private readonly ActivityRepository $activityRepository
+        private readonly ActivityRepository $activityRepository,
+        private readonly PathRepository $pathRepository
     ) {
     }
 
@@ -120,11 +123,30 @@ class TaskController extends AbstractController
             'created_at' => $data['createdAt'] ?? null,
         ], $objective, $assignedTo, $assignedType);
 
-        // Lier l'activité si fournie
+        // Définir le type de tâche
+        if (isset($data['type'])) {
+            try {
+                $taskType = TaskType::from($data['type']);
+                $task->setType($taskType);
+            } catch (\ValueError $e) {
+                // Type invalide, utiliser la valeur par défaut
+                $task->setType(TaskType::TASK);
+            }
+        }
+
+        // Lier l'activité si fournie (pour type activity_task)
         if (isset($data['activityId']) && !empty($data['activityId'])) {
             $activity = $this->activityRepository->find($data['activityId']);
             if ($activity) {
                 $task->setActivity($activity);
+            }
+        }
+
+        // Lier l'activité scolaire (Path) si fournie (pour type school_activity_task)
+        if (isset($data['pathId']) && !empty($data['pathId'])) {
+            $path = $this->pathRepository->find($data['pathId']);
+            if ($path) {
+                $task->setPath($path);
             }
         }
 
@@ -223,6 +245,15 @@ class TaskController extends AbstractController
         if (isset($data['requiresProof'])) {
             $task->setRequiresProof((bool)$data['requiresProof']);
         }
+        // Mettre à jour le type de tâche
+        if (isset($data['type'])) {
+            try {
+                $taskType = TaskType::from($data['type']);
+                $task->setType($taskType);
+            } catch (\ValueError $e) {
+                // Type invalide, ignorer
+            }
+        }
         // Mettre à jour les dates si fournies
         if (isset($data['createdAt']) && $data['createdAt']) {
             try {
@@ -240,7 +271,7 @@ class TaskController extends AbstractController
         }
         if (isset($data['proofType'])) $task->setProofType($data['proofType']);
         
-        // Mise à jour de l'activité liée
+        // Mise à jour de l'activité liée (pour type activity_task)
         if (isset($data['activityId'])) {
             if (empty($data['activityId'])) {
                 $task->setActivity(null);
@@ -248,6 +279,18 @@ class TaskController extends AbstractController
                 $activity = $this->activityRepository->find($data['activityId']);
                 if ($activity) {
                     $task->setActivity($activity);
+                }
+            }
+        }
+
+        // Mise à jour de l'activité scolaire liée (Path) (pour type school_activity_task)
+        if (isset($data['pathId'])) {
+            if (empty($data['pathId'])) {
+                $task->setPath(null);
+            } else {
+                $path = $this->pathRepository->find($data['pathId']);
+                if ($path) {
+                    $task->setPath($path);
                 }
             }
         }

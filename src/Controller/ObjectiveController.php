@@ -12,6 +12,7 @@ use App\Repository\CommentRepository;
 use App\Repository\CoachRepository;
 use App\Repository\FamilyRepository;
 use App\Repository\ObjectiveRepository;
+use App\Repository\PathRepository;
 use App\Repository\SpecialistRepository;
 use App\Repository\StudentRepository;
 use App\Repository\TaskRepository;
@@ -49,7 +50,8 @@ class ObjectiveController extends AbstractController
         private readonly LoggerInterface $logger,
         private readonly PermissionService $permissionService,
         private readonly NotificationService $notificationService,
-        private readonly ActivityRepository $activityRepository
+        private readonly ActivityRepository $activityRepository,
+        private readonly PathRepository $pathRepository
     ) {
     }
 
@@ -265,8 +267,9 @@ class ObjectiveController extends AbstractController
             if (empty($data['studentId'])) {
                 return new JsonResponse(['success' => false, 'message' => 'L\'élève est requis'], 400);
             }
+            // Le champ category n'est plus obligatoire, on utilise 'general' par défaut
             if (empty($data['category'])) {
-                return new JsonResponse(['success' => false, 'message' => 'La catégorie est requise'], 400);
+                $data['category'] = 'general';
             }
 
             // Récupérer l'élève
@@ -297,53 +300,27 @@ class ObjectiveController extends AbstractController
                 }
             }
 
-            // Vérifier si l'utilisateur peut utiliser l'IA
-            $canUseAI = $this->permissionService->canUseAI($user);
-            $suggestions = null;
-            
-            // Générer les suggestions avec SmartObjectiveService uniquement si l'utilisateur est un coach
-            if ($canUseAI) {
-                try {
-                    $suggestions = $this->smartObjectiveService->generateSuggestions(
-                        $data['description'],
-                        $data['category']
-                    );
-                } catch (\Exception $e) {
-                    $this->logger->error('Erreur lors de la génération des suggestions', [
-                        'error' => $e->getMessage()
-                    ]);
-                    return new JsonResponse([
-                        'success' => false, 
-                        'message' => 'Erreur lors de la génération des suggestions : ' . $e->getMessage()
-                    ], 500);
-                }
-            }
-
-            // Créer l'objectif avec les données générées ou manuelles
+            // Créer l'objectif avec les données fournies
             $objective = new Objective();
             $objective->setCoach($coach);
             $objective->setStudent($student);
             
-            // Sauvegarder la description originale avant toute modification par l'IA
+            // Sauvegarder la description originale
             $descriptionOrigin = $data['description'];
             $objective->setDescriptionOrigin($descriptionOrigin);
+            $objective->setDescription($descriptionOrigin);
             
-            // Si l'IA a généré une description, l'utiliser, sinon utiliser la description originale
-            if ($canUseAI && $suggestions && isset($suggestions['objective']['description'])) {
-                $objective->setDescription($suggestions['objective']['description']);
-            } else {
-                $objective->setDescription($descriptionOrigin);
+            $objective->setCategory($data['category'] ?? 'general');
+            if (isset($data['categoryTags']) && is_array($data['categoryTags'])) {
+                $objective->setCategoryTags($data['categoryTags']);
             }
-            
-            $objective->setCategory($data['category']);
             $objective->setStatus(Objective::STATUS_MODIFICATION);
             $objective->setProgress(0);
             
-            // Utiliser le titre généré par OpenAI si disponible, sinon créer un titre simple
-            if ($canUseAI && $suggestions && isset($suggestions['objective']['title'])) {
-                $objective->setTitle($suggestions['objective']['title']);
+            // Utiliser le titre fourni ou créer un titre simple
+            if (isset($data['title']) && !empty($data['title'])) {
+                $objective->setTitle($data['title']);
             } else {
-                // Fallback si pas de titre généré ou si l'utilisateur ne peut pas utiliser l'IA
                 $objective->setTitle('Objectif - ' . substr($data['description'], 0, 50));
             }
 
@@ -373,10 +350,10 @@ class ObjectiveController extends AbstractController
                 error_log('Erreur notification objectif créé: ' . $e->getMessage());
             }
 
-            // Créer les tâches suggérées uniquement si l'IA a été utilisée
+            // Créer les tâches sélectionnées par l'utilisateur
             $tasksCount = 0;
-            if ($canUseAI && $suggestions && isset($suggestions['tasks']) && is_array($suggestions['tasks'])) {
-                foreach ($suggestions['tasks'] as $taskData) {
+            if (isset($data['selectedTasks']) && is_array($data['selectedTasks']) && !empty($data['selectedTasks'])) {
+                foreach ($data['selectedTasks'] as $taskData) {
                     // Valider la fréquence
                     $frequency = $taskData['frequency'] ?? 'none';
                     $validFrequencies = [
@@ -400,7 +377,7 @@ class ObjectiveController extends AbstractController
                     $task->setDescription($taskData['description'] ?? '');
                     $task->setStatus('pending');
                     $task->setFrequency($frequency);
-                    $task->setRequiresProof(true); // Par défaut, toutes les tâches nécessitent des preuves
+                    $task->setRequiresProof($taskData['requiresProof'] ?? true);
                     $task->setProofType($taskData['proofType'] ?? '');
                     $task->setAssignedType('coach');
                     
@@ -410,14 +387,14 @@ class ObjectiveController extends AbstractController
                 $this->em->flush();
             }
 
-            $message = $canUseAI && $tasksCount > 0 
-                ? 'Objectif créé avec succès avec ' . $tasksCount . ' tâche(s) générée(s)'
-                : 'Objectif créé avec succès';
-
+            // Rediriger vers la page détail de l'objectif créé
             return new JsonResponse([
                 'success' => true, 
-                'id' => $objective->getId(), 
-                'message' => $message
+                'id' => $objective->getId(),
+                'redirect' => '/admin/objectives/' . $objective->getId(),
+                'message' => $tasksCount > 0 
+                    ? 'Objectif créé avec succès avec ' . $tasksCount . ' tâche(s)'
+                    : 'Objectif créé avec succès'
             ]);
         } catch (\Exception $e) {
             $this->logger->error('Erreur non capturée lors de la création d\'objectif', [
@@ -587,39 +564,26 @@ class ObjectiveController extends AbstractController
 
         // Récupérer toutes les activités pour le sélecteur
         $activities = $this->activityRepository->findAll();
-        
-        // Catégories considérées comme "scolaires" (à adapter selon vos besoins)
-        $schoolCategories = [
-            'scolaire', 'school', 'école', 'education', 'apprentissage', 
-            'cours', 'devoir', 'mathématiques', 'français', 'lecture', 
-            'écriture', 'orthographe', 'grammaire', 'calcul', 'géométrie'
-        ];
-        
         $regularActivities = [];
-        $schoolActivities = [];
         
         foreach ($activities as $activity) {
-            $activityData = [
+            $regularActivities[] = [
                 'id' => $activity->getId(),
                 'title' => $activity->getTitle(),
+                'description' => $activity->getDescription() ?? '',
             ];
-            
-            $categoryName = mb_strtolower($activity->getCategory()?->getName() ?? '');
-            $isSchool = false;
-            
-            // Vérifier si la catégorie contient un mot-clé scolaire
-            foreach ($schoolCategories as $keyword) {
-                if (str_contains($categoryName, $keyword)) {
-                    $isSchool = true;
-                    break;
-                }
-            }
-            
-            if ($isSchool) {
-                $schoolActivities[] = $activityData;
-            } else {
-                $regularActivities[] = $activityData;
-            }
+        }
+        
+        // Récupérer tous les Paths (activités scolaires) pour le sélecteur
+        $paths = $this->pathRepository->findAll();
+        $schoolActivities = [];
+        
+        foreach ($paths as $path) {
+            $schoolActivities[] = [
+                'id' => $path->getId(),
+                'title' => $path->getTitle(),
+                'description' => $path->getDescription() ?? '',
+            ];
         }
 
         return $this->render('tailadmin/pages/objectives/detail.html.twig', [
@@ -678,6 +642,9 @@ class ObjectiveController extends AbstractController
         if (isset($data['title'])) $objective->setTitle($data['title']);
         if (isset($data['description'])) $objective->setDescription($data['description']);
         if (isset($data['category'])) $objective->setCategory($data['category']);
+        if (isset($data['categoryTags']) && is_array($data['categoryTags'])) {
+            $objective->setCategoryTags($data['categoryTags']);
+        }
         // Seul le coach peut changer le statut d'un objectif
         if (isset($data['status'])) {
             if (!$user->isCoach()) {
@@ -956,102 +923,136 @@ class ObjectiveController extends AbstractController
         }
     }
 
-    #[Route('/admin/objectives/{id}/generate-from-origin', name: 'admin_objectives_generate_from_origin', methods: ['POST'])]
+    #[Route('/admin/objectives/generate-suggestions', name: 'admin_objectives_generate_suggestions', methods: ['POST'])]
     #[IsGranted('ROLE_USER')]
-    public function generateFromOrigin(int $id, Request $request): JsonResponse
+    public function generateSuggestions(Request $request): JsonResponse
     {
+        $user = $this->getUser();
+        if (!$user) {
+            return new JsonResponse(['success' => false, 'message' => 'Vous devez être connecté'], 403);
+        }
+
+        $data = json_decode($request->getContent(), true);
+        
+        if (empty($data['description'])) {
+            return new JsonResponse(['success' => false, 'message' => 'La description est requise'], 400);
+        }
+        if (empty($data['studentId'])) {
+            return new JsonResponse(['success' => false, 'message' => 'L\'élève est requis'], 400);
+        }
+
+        // Récupérer l'élève
+        $student = $this->studentRepository->find($data['studentId']);
+        if (!$student) {
+            return new JsonResponse(['success' => false, 'message' => 'Élève non trouvé'], 400);
+        }
+
+        // Vérifier les permissions
+        if (!$this->permissionService->canCreateObjective($user, $student)) {
+            return new JsonResponse(['success' => false, 'message' => 'Vous n\'avez pas le droit de créer un objectif pour cet élève'], 403);
+        }
+
+        // Vérifier si l'utilisateur peut utiliser l'IA
+        $canUseAI = $this->permissionService->canUseAI($user);
+        if (!$canUseAI) {
+            return new JsonResponse(['success' => false, 'message' => 'Vous n\'avez pas accès à l\'IA'], 403);
+        }
+
         try {
-            $user = $this->getUser();
-            if (!$user) {
-                return new JsonResponse(['success' => false, 'message' => 'Vous devez être connecté'], 403);
+            // Construire le prompt avec description + classe de l'élève
+            $description = $data['description'];
+            $studentClass = $student->getClass() ?? '';
+            $category = $data['category'] ?? 'general';
+            
+            // Ajouter la classe dans le prompt si disponible
+            $promptDescription = $description;
+            if (!empty($studentClass)) {
+                $promptDescription = "C'est un élève de classe {$studentClass}. {$description}";
             }
 
-            // Vérifier que seul le coach peut utiliser l'IA
-            if (!$this->permissionService->canUseAI($user)) {
-                return new JsonResponse(['success' => false, 'message' => 'Seul le coach peut utiliser l\'IA pour générer des tâches'], 403);
-            }
+            // Vérifier si on doit générer des suggestions pour l'objectif (titre et description)
+            $generateObjective = isset($data['generateObjective']) && $data['generateObjective'] === true;
 
-            $coach = $this->getCurrentCoach($this->coachRepository, $this->security);
-            if (!$coach) {
-                return new JsonResponse(['success' => false, 'message' => 'Coach non trouvé'], 404);
-            }
+            $suggestions = $this->smartObjectiveService->generateSuggestions(
+                $promptDescription,
+                $category,
+                $generateObjective
+            );
 
-            $objective = $this->objectiveRepository->find($id);
-            if (!$objective || $objective->getCoach() !== $coach) {
-                return new JsonResponse(['success' => false, 'message' => 'Objectif non trouvé'], 404);
-            }
-
-            // Vérifier que description_origin existe
-            if (!$objective->getDescriptionOrigin()) {
-                return new JsonResponse(['success' => false, 'message' => 'La description originale n\'existe pas'], 400);
-            }
-
-            $type = $objective->getCategory() ?? 'general';
-
-            // Générer les suggestions avec SmartObjectiveService en utilisant description_origin
-            try {
-                $suggestions = $this->smartObjectiveService->generateSuggestions(
-                    $objective->getDescriptionOrigin(),
-                    $type
-                );
-
-                // Mettre à jour la description de l'objectif si une nouvelle description a été générée
-                if (isset($suggestions['objective']['description'])) {
-                    $objective->setDescription($suggestions['objective']['description']);
-                    $this->em->flush();
-                }
-
-                // Créer les tâches suggérées
-                $createdTasks = [];
-                if (isset($suggestions['tasks']) && is_array($suggestions['tasks'])) {
-                    foreach ($suggestions['tasks'] as $taskData) {
-                        $task = new Task();
-                        $task->setObjective($objective);
-                        $task->setTitle($taskData['title'] ?? 'Tâche sans titre');
-                        $task->setDescription($taskData['description'] ?? '');
-                        $task->setStatus('pending');
-                        $task->setRequiresProof($taskData['requiresProof'] ?? true);
-                        $task->setFrequency($taskData['frequency'] ?? 'none');
-                        $task->setAssignedType('coach');
-                        $task->setCoach($coach);
-
-                        $this->em->persist($task);
-                        $createdTasks[] = [
-                            'id' => $task->getId(),
-                            'title' => $task->getTitle(),
-                            'description' => $task->getDescription(),
-                        ];
-                    }
-                    $this->em->flush();
-                }
-
-                return new JsonResponse([
-                    'success' => true,
-                    'description' => $suggestions['objective']['description'] ?? null,
-                    'tasks' => $createdTasks,
-                    'message' => count($createdTasks) . ' tâche(s) créée(s) et description mise à jour'
-                ]);
-            } catch (\Exception $e) {
-                $this->logger->error('Erreur lors de la génération depuis description_origin', [
-                    'objective_id' => $id,
-                    'error' => $e->getMessage()
-                ]);
-                return new JsonResponse([
-                    'success' => false,
-                    'message' => 'Erreur lors de la génération : ' . $e->getMessage()
-                ], 500);
-            }
+            return new JsonResponse([
+                'success' => true,
+                'suggestions' => $suggestions
+            ]);
         } catch (\Exception $e) {
-            $this->logger->error('Erreur non capturée lors de la génération depuis description_origin', [
-                'objective_id' => $id,
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+            $this->logger->error('Erreur lors de la génération des suggestions', [
+                'error' => $e->getMessage()
             ]);
             return new JsonResponse([
                 'success' => false,
-                'message' => 'Erreur serveur: ' . $e->getMessage()
+                'message' => 'Erreur lors de la génération des suggestions : ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    #[Route('/admin/objectives/category-tags', name: 'admin_objectives_category_tags', methods: ['GET'])]
+    #[IsGranted('ROLE_USER')]
+    public function getCategoryTags(): JsonResponse
+    {
+        // Catégories prédéfinies
+        $predefinedCategories = [
+            'Gestion de stress',
+            'Motivation',
+            'Concentration',
+            'Organisation',
+            'Autonomie',
+            'Confiance en soi',
+            'Relations sociales',
+            'Communication',
+            'Gestion émotionnelle',
+            'Comportement',
+            'Problème scolaire',
+        ];
+        
+        // Récupérer tous les objectifs avec leurs categoryTags
+        $objectives = $this->objectiveRepository->findAll();
+        
+        // Extraire tous les tags uniques depuis les objectifs
+        $allCategories = [];
+        foreach ($objectives as $objective) {
+            $categoryTags = $objective->getCategoryTags();
+            if ($categoryTags && is_array($categoryTags)) {
+                foreach ($categoryTags as $tag) {
+                    if (!empty(trim($tag)) && !in_array($tag, $allCategories, true)) {
+                        $allCategories[] = trim($tag);
+                    }
+                }
+            }
+        }
+        
+        // Récupérer tous les tags de besoins depuis les élèves
+        $students = $this->studentRepository->findAll();
+        foreach ($students as $student) {
+            $needTags = $student->getNeedTags();
+            if ($needTags && is_array($needTags)) {
+                foreach ($needTags as $tag) {
+                    if (!empty(trim($tag)) && !in_array($tag, $allCategories, true)) {
+                        $allCategories[] = trim($tag);
+                    }
+                }
+            }
+        }
+        
+        // Fusionner les catégories prédéfinies avec celles de la base de données
+        // (en évitant les doublons)
+        $allCategories = array_unique(array_merge($predefinedCategories, $allCategories));
+        
+        // Trier par ordre alphabétique
+        sort($allCategories);
+        
+        return new JsonResponse([
+            'success' => true,
+            'tags' => array_values($allCategories) // array_values pour réindexer
+        ]);
     }
 }
 

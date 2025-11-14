@@ -139,87 +139,69 @@
             <div class="grid grid-cols-1 gap-5 sm:grid-cols-2">
                 {% for request in requests %}
                 <div>
-                    <div class="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] sm:p-6">
-                        <div class="mb-4 flex items-center justify-between">
-                            <span class="text-theme-xs font-medium text-gray-500 dark:text-gray-400">{{ request.type|upper }}</span>
-                            <div class="flex items-center gap-2">
+                    <div class="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-800 dark:bg-white/[0.03] sm:p-5">
+                        <div class="mb-3 flex items-center justify-between">
+                            <span class="text-xs font-medium text-gray-500 dark:text-gray-400">{{ request.type|upper }}</span>
+                            <div class="flex items-center gap-1.5">
                                 {% if request.priority == 'high' %}
-                                <span class="inline-flex items-center rounded-full bg-error-100 px-2.5 py-0.5 text-xs font-medium text-error-600 dark:bg-error-900/30 dark:text-error-400">
+                                <span class="inline-flex items-center rounded-full bg-error-100 px-2 py-0.5 text-xs font-medium text-error-600 dark:bg-error-900/30 dark:text-error-400">
                                     Haute
                                 </span>
                                 {% elseif request.priority == 'medium' %}
-                                <span class="inline-flex items-center rounded-full bg-warning-100 px-2.5 py-0.5 text-xs font-medium text-warning-600 dark:bg-warning-900/30 dark:text-warning-400">
+                                <span class="inline-flex items-center rounded-full bg-warning-100 px-2 py-0.5 text-xs font-medium text-warning-600 dark:bg-warning-900/30 dark:text-warning-400">
                                     Moyenne
                                 </span>
                                 {% else %}
-                                <span class="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-600 dark:bg-gray-800 dark:text-gray-400">
+                                <span class="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600 dark:bg-gray-800 dark:text-gray-400">
                                     Basse
                                 </span>
                                 {% endif %}
                                 {% if request.status == 'resolved' %}
-                                <span class="inline-flex items-center rounded-full bg-success-100 px-2.5 py-0.5 text-xs font-medium text-success-600 dark:bg-success-900/30 dark:text-success-400">
+                                <span class="inline-flex items-center rounded-full bg-success-100 px-2 py-0.5 text-xs font-medium text-success-600 dark:bg-success-900/30 dark:text-success-400">
                                     Résolue
                                 </span>
                                 {% elseif request.status == 'in_progress' %}
-                                <span class="inline-flex items-center rounded-full bg-brand-100 px-2.5 py-0.5 text-xs font-medium text-brand-600 dark:bg-brand-900/30 dark:text-brand-400">
+                                <span class="inline-flex items-center rounded-full bg-brand-100 px-2 py-0.5 text-xs font-medium text-brand-600 dark:bg-brand-900/30 dark:text-brand-400">
                                     En cours
                                 </span>
                                 {% else %}
-                                <span class="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-600 dark:bg-gray-800 dark:text-gray-400">
+                                <span class="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600 dark:bg-gray-800 dark:text-gray-400">
                                     En attente
                                 </span>
                                 {% endif %}
                             </div>
                         </div>
 
-                        <h4 class="mb-3 text-theme-xl font-medium text-gray-800 dark:text-white/90">
+                        <h4 class="mb-2 text-base font-medium text-gray-800 dark:text-white/90">
                             {{ request.title }}
                         </h4>
 
-                        <div class="mb-4 space-y-2">
-                            <div class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-                                <span>De: {{ request.creatorName }}</span>
+                        <div class="mb-3 space-y-1 text-sm">
+                            <div class="text-gray-600 dark:text-gray-400">
+                                <span class="font-medium">De:</span> {{ request.creatorName }}
                             </div>
-                            <div class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-                                <span>Pour: {{ request.recipientName }}</span>
+                            <div class="text-gray-600 dark:text-gray-400">
+                                <span class="font-medium">Pour:</span> {{ request.recipientName }}
                             </div>
-                            <div class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
-                                <svg class="fill-gray-400" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                            <div class="flex items-center gap-1.5 text-gray-500 dark:text-gray-400">
+                                <svg class="fill-gray-400" width="14" height="14" viewBox="0 0 16 16" fill="none">
                                     <path d="M8 1a7 7 0 100 14A7 7 0 008 1zM7.5 4v4l3.5 2 .5-.866L8.5 7.5V4h-1z" fill=""/>
                                 </svg>
                                 <span>Créée le {{ request.createdAt }}</span>
                             </div>
                         </div>
 
-                        <div class="mt-4 flex gap-2">
+                        <div class="mt-3">
                             <a
                                 href="{{ path('admin_requests_detail', {id: request.id}) }}"
-                                class="flex-1 inline-flex items-center justify-center gap-2 rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white shadow-theme-xs transition-colors hover:bg-brand-600"
+                                class="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-brand-500 px-3 py-2 text-sm font-medium text-white shadow-theme-xs transition-colors hover:bg-brand-600"
                             >
                                 <svg class="fill-current" width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
                                     <path d="M8 1C4.134 1 1 4.134 1 8s3.134 7 7 7 7-3.134 7-7-3.134-7-7-7zm0 12.5c-3.032 0-5.5-2.468-5.5-5.5S4.968 2.5 8 2.5 13.5 4.968 13.5 8 11.032 13.5 8 13.5z" fill=""/>
                                     <path d="M8 4.5a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7zm0 6a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5z" fill=""/>
                                 </svg>
-                                Détails
+                                Messages ({{ request.messagesCount|default(0) }})
                             </a>
-                            <button
-                                @click="openEdit({{ request.id }})"
-                                class="inline-flex items-center justify-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-theme-xs transition-colors hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
-                            >
-                                <svg class="fill-current" width="16" height="16" viewBox="0 0 16 16" fill="none">
-                                    <path d="M11.333 2.667a2.667 2.667 0 0 1 3.774 3.774l-8 8a2.667 2.667 0 0 1-1.886.78H2.667v-2.554a2.667 2.667 0 0 1 .78-1.886l8-8zm2.554 1.22L12.113 2.113a1.333 1.333 0 0 0-1.886 0L9.333 3.007l2.667 2.667 1.554-1.554a1.333 1.333 0 0 0 0-1.886z" fill=""/>
-                                </svg>
-                                Modifier
-                            </button>
-                            <button
-                                @click="openDelete({{ request.id }})"
-                                class="inline-flex items-center justify-center gap-2 rounded-lg border border-red-200 bg-white px-4 py-2.5 text-sm font-medium text-red-600 shadow-theme-xs transition-colors hover:bg-red-50 dark:border-red-800 dark:bg-gray-800 dark:text-red-400 dark:hover:bg-red-900/20"
-                            >
-                                <svg class="fill-current" width="16" height="16" viewBox="0 0 16 16" fill="none">
-                                    <path d="M5.5 5.5a.5.5 0 015 0v3a.5.5 0 01-5 0v-3zM2 4a2 2 0 012-2h8a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V4z" fill=""/>
-                                </svg>
-                                Supprimer
-                            </button>
                         </div>
                     </div>
                 </div>
@@ -524,43 +506,6 @@ function requestManager() {
         },
         isParentFieldRequired() {
             return this.shouldShowParentField();
-        },
-        openEdit(id) {
-            const request = this.requestsData.find(r => r.id === id);
-            if (request) {
-                this.isEdit = true;
-                this.currentId = id;
-                this.formData = {
-                    title: request.title || '',
-                    description: request.description || '',
-                    type: request.type || '',
-                    status: request.status || 'pending',
-                    priority: request.priority || 'medium',
-                    studentId: request.student?.id || '',
-                    specialistId: request.specialist?.id || '',
-                };
-                this.rightSheetOpen = true;
-            }
-        },
-        openDelete(id) {
-            if (confirm('Êtes-vous sûr de vouloir supprimer cette demande ?')) {
-                fetch(`/admin/requests/${id}`, {
-                    method: 'DELETE',
-                    headers: { 'X-Requested-With': 'XMLHttpRequest' },
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        this.showMessage(data.message || 'Demande supprimée avec succès', 'success');
-                        setTimeout(() => location.reload(), 1000);
-                    } else {
-                        this.showMessage(data.message || 'Erreur lors de la suppression', 'error');
-                    }
-                })
-                .catch(error => {
-                    this.showMessage('Erreur de connexion', 'error');
-                });
-            }
         },
         saveRequest() {
             const url = this.isEdit 

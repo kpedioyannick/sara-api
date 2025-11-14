@@ -27,10 +27,10 @@ class SmartObjectiveService
     /**
      * Génère des suggestions d'objectifs avec critères d'évaluation basées sur une description
      */
-    public function generateSuggestions(string $title, string $type = 'general'): array
+    public function generateSuggestions(string $title, string $type = 'general', bool $generateObjective = false): array
     {
         try {
-            $prompt = $this->buildPrompt($title, $type);
+            $prompt = $this->buildPrompt($title, $type, $generateObjective);
             $response = $this->callOpenAI($prompt);
             
             if (!$response) {
@@ -65,7 +65,7 @@ class SmartObjectiveService
             $content = $response['choices'][0]['message']['content'];
             $this->logger->debug('Contenu OpenAI extrait', ['content_length' => strlen($content)]);
             
-            return $this->parseResponse($content);
+            return $this->parseResponse($content, $generateObjective);
         } catch (\Exception $e) {
             $this->logger->error('Erreur lors de la génération des suggestions de tâches', [
                 'title' => $title,
@@ -82,9 +82,11 @@ class SmartObjectiveService
     /**
      * Construit le prompt pour OpenAI
      */
-    private function buildPrompt(string $title, string $typeDescription): string
+    private function buildPrompt(string $title, string $typeDescription, bool $generateObjective = false): string
     {
-        return "Tu es un expert en suivi d'objectifs éducatifs. Génère un objectif avec ses critères d'évaluation et des suggestions de tâches basées sur: \"{$title}\" de type \"{$typeDescription}\"
+        if ($generateObjective) {
+            // Prompt avec génération d'objectif (titre et description)
+            return "Tu es un expert en suivi d'objectifs éducatifs. Génère un objectif avec ses critères d'évaluation et des suggestions de tâches basées sur: \"{$title}\" de type \"{$typeDescription}\"
 
         Retourne un JSON avec cette structure exacte:
         {
@@ -107,6 +109,29 @@ class SmartObjectiveService
         - Les suggestions de tâches soient concrètes et réalisables
         - La description de l'objectif et des tâches soit spécifique et claire
         Réponds uniquement avec le JSON, sans texte supplémentaire.";
+        } else {
+            // Prompt sans génération d'objectif (seulement des tâches)
+            return "Tu es un expert en suivi d'objectifs éducatifs. Génère UNIQUEMENT des suggestions de tâches basées sur: \"{$title}\" de type \"{$typeDescription}\"
+
+        Retourne un JSON avec cette structure exacte (SANS la clé \"objective\"):
+        {
+            \"tasks\": [
+                {
+                    \"title\": \"Titre de la tâche\",
+                    \"description\": \"Description spécifique et claire de la tâche\",
+                    \"frequency\": \"none|hourly|daily|half_day|every_2_days|weekly|monthly|yearly\",
+                    \"requiresProof\": true,
+                    \"proofType\": \"image|audio|video|document|text\"
+                }
+            ]
+        }
+
+        Assure-toi que:
+        - Les suggestions de tâches soient concrètes et réalisables
+        - La description des tâches soit spécifique et claire
+        - NE PAS inclure de clé \"objective\" dans le JSON
+        Réponds uniquement avec le JSON, sans texte supplémentaire.";
+        }
     }
 
     /**
@@ -179,7 +204,7 @@ class SmartObjectiveService
     /**
      * Parse la réponse d'OpenAI
      */
-    private function parseResponse(string $content): array
+    private function parseResponse(string $content, bool $generateObjective = false): array
     {
         try {
             // Nettoyer le contenu pour extraire le JSON
@@ -192,7 +217,8 @@ class SmartObjectiveService
             
             $this->logger->debug('Contenu nettoyé pour parsing', [
                 'content_preview' => substr($content, 0, 200),
-                'content_length' => strlen($content)
+                'content_length' => strlen($content),
+                'generateObjective' => $generateObjective
             ]);
             
             // Chercher le JSON dans la réponse (plus permissif avec plusieurs lignes)
@@ -208,29 +234,36 @@ class SmartObjectiveService
                     throw new \Exception('Erreur de parsing JSON: ' . json_last_error_msg());
                 }
                 
-                if (isset($data['objective'])) {
-                    // Normaliser les tâches (peut être 'tasks' ou 'suggestions')
-                    if (isset($data['suggestions']) && !isset($data['tasks'])) {
-                        $data['tasks'] = $data['suggestions'];
-                    }
-                    // S'assurer qu'on a toujours un tableau tasks
-                    if (!isset($data['tasks'])) {
-                        $data['tasks'] = [];
-                    }
-                    
-                    $this->logger->debug('Parsing réussi', [
-                        'has_objective' => isset($data['objective']),
-                        'tasks_count' => count($data['tasks'] ?? [])
-                    ]);
-                    
-                    return $data;
-                } else {
-                    $this->logger->error('Format de réponse invalide: pas de clé objective', [
+                // Normaliser les tâches (peut être 'tasks' ou 'suggestions')
+                if (isset($data['suggestions']) && !isset($data['tasks'])) {
+                    $data['tasks'] = $data['suggestions'];
+                }
+                // S'assurer qu'on a toujours un tableau tasks
+                if (!isset($data['tasks'])) {
+                    $data['tasks'] = [];
+                }
+                
+                // Si on ne doit pas générer d'objectif, supprimer la clé objective si elle existe
+                if (!$generateObjective && isset($data['objective'])) {
+                    unset($data['objective']);
+                }
+                
+                // Si on doit générer un objectif, vérifier qu'il existe
+                if ($generateObjective && !isset($data['objective'])) {
+                    $this->logger->error('Format de réponse invalide: pas de clé objective alors que demandé', [
                         'data_keys' => array_keys($data ?? []),
                         'content_preview' => substr($content, 0, 500)
                     ]);
-                    throw new \Exception('Format de réponse invalide: pas de clé "objective"');
+                    throw new \Exception('Format de réponse invalide: pas de clé "objective" alors que demandé');
                 }
+                
+                $this->logger->debug('Parsing réussi', [
+                    'has_objective' => isset($data['objective']),
+                    'tasks_count' => count($data['tasks'] ?? []),
+                    'generateObjective' => $generateObjective
+                ]);
+                
+                return $data;
             }
             
             $this->logger->error('Aucun JSON trouvé dans la réponse', [

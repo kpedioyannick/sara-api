@@ -6,11 +6,20 @@ deux boutons modifier et modifier le MDP
 
 
 Objectif : 
-Problème IA modidifie le titre et description , ne plus d'abord soummettre au user 
+http://localhost:8000/admin/objectives => Création  
+
+Problème IA ne doit plus modifier le titre et description ou ajouter des taches  => 
+Commenter la function IA DANS LE Controlleur qui permet de le faire 
+Créer l'oojectif et rediriger vers la page détail 
+Su cette pag => Ajouter un bouton discret aide IA => au click => righesset qui s'vouvre => avec un champ description qui contient la description de l'objectif que le user peut modifier => au click prend en compte cette info plus la classe de l'élève .  Dans le righesset, afficher les taches proposé et ilpeut selectionner des taches il faut l'ajouter dicctement à l'objectif 
+ as tu des questions ? 
+
+Solution : 
 Creation Objectif sans IA => Juste Titre et Description et choix élève 
 chekbox . Reformuler le besoin et le titre
 Detail Objectif => demander à IA => righesset qui s'vouvre => avec un champ description qui contient la description de l'objectif que le user peut modifier => au click prend en compte cette info plus la classe de l'élève .  Dans le righesset, afficher les taches proposé et ilpeut selectionner des taches il faut l'ajouter dicctement à l'objectif 
 
+Proposition d'un meilleur affichage des Taches d'un obecjtifs 
 Affichage des taches 
 Checkbox
 Titre      
@@ -38,8 +47,13 @@ Si type == Tache activité scolaire  => Preremplir Titre et Description et ajout
 
 Actités : http://localhost:8000/admin/activities/new
 Possilité d'ajouter des images et des liens 
-Objectifs => en mode tags à ajouter , supprimer ou créer des noouveau 
+Objectifs => en mode tags à ajouter , supprimer ou créer des noouveau  utiliser le meme systeme meme api que pour les taches 
+
+
+
 => changer le design 
+
+
 
 Demandes
 http://localhost:8000/admin/requests
@@ -54,25 +68,39 @@ http://localhost:8000/admin/specialists
 
 
 
-http://localhost:8000/admin/planning
-Type = Activités avec Famille
+http://localhost:8000/admin/planning => create event in righsheet 
+
+Type = Mon planning 
+
+Type = Famille (de type groupe - famille )
   => Famille 
   => orgonisateurs/spécialistes   
   => participants 
   => Lien des activités 
   => Retour de séances 
   Title => autogénére pas visible
-Type = Activités avec enfant
+
+Type = enfant
   => enfant 
   => orgonisateurs/spécialistes   
   => Lien des activités 
   => Retour de séances 
   Title => autogénére pas visible
-Type => Tache 
-Type => Tache activité 
-Type => Tache activité scolaire 
+
+Affichage visuel : les tâches doivent-elles être différenciées des événements Planning (icône et  badge) Filtre : ajouter un filtre pour afficher/masquer les tâches . au clic sur une tâche, => righsheet qui s'ouvre avec les info de event | Permissions : respecter les mêmes permissions que pour les événements Planning (selon l’utilisateur connecté) ?
+
 Type => scolaire 
   Title => Liste matière possibilité d'ajouter d'autres 
+
+Type => Tache 
+
+Type => Tache activité 
+
+Type => Tache activité scolaire 
+
+
+Design  notion 
+Bilans et notes pour élèves 
 
 Dasshobard 
 Visibilité par enfant : 

@@ -152,9 +152,6 @@ class ActivityController extends AbstractController
             if (empty($data['ageRange'])) {
                 return new JsonResponse(['success' => false, 'message' => 'La tranche d\'âge est requise'], 400);
             }
-            if (empty($data['type'])) {
-                return new JsonResponse(['success' => false, 'message' => 'Le type est requis'], 400);
-            }
             $category = null;
             if (!empty($data['categoryId'])) {
                 $category = $this->categoryRepository->find($data['categoryId']);
@@ -169,9 +166,10 @@ class ActivityController extends AbstractController
                 'description' => $data['description'],
                 'duration' => $data['duration'],
                 'ageRange' => $data['ageRange'],
-                'type' => $data['type'],
+                'type' => $data['type'] ?? Activity::TYPE_INDIVIDUAL,
                 'objectives' => $data['objectives'] ?? [],
                 'workedPoints' => $data['workedPoints'] ?? [],
+                'links' => $data['links'] ?? [],
             ], $createdBy, $category);
 
             // Validation
@@ -186,10 +184,33 @@ class ActivityController extends AbstractController
 
             $this->em->persist($activity);
 
-            // Gérer les images uploadées
+            // Gérer les images uploadées (base64)
             if (isset($data['images']) && is_array($data['images'])) {
                 foreach ($data['images'] as $index => $imageData) {
-                    if (isset($imageData['filePath'])) {
+                    if (isset($imageData['fileBase64']) && isset($imageData['fileName'])) {
+                        try {
+                            $extension = pathinfo($imageData['fileName'], PATHINFO_EXTENSION) ?: 'jpg';
+                            $filePath = $this->fileStorageService->saveBase64File(
+                                $imageData['fileBase64'],
+                                $extension,
+                                'activities'
+                            );
+                            
+                            $activityImage = new ActivityImage();
+                            $activityImage->setFilePath($filePath);
+                            $activityImage->setCaption($imageData['caption'] ?? null);
+                            $activityImage->setSortOrder($index);
+                            $activityImage->setActivity($activity);
+                            $this->em->persist($activityImage);
+                        } catch (\Exception $e) {
+                            $this->logger->error('Erreur lors de l\'upload d\'image d\'activité', [
+                                'error' => $e->getMessage(),
+                                'index' => $index
+                            ]);
+                            // Continue avec les autres images même si une échoue
+                        }
+                    } elseif (isset($imageData['filePath'])) {
+                        // Ancien format (filePath direct)
                         $activityImage = new ActivityImage();
                         $activityImage->setFilePath($imageData['filePath']);
                         $activityImage->setCaption($imageData['caption'] ?? null);

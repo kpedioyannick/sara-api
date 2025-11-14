@@ -310,9 +310,14 @@
         x-transition:leave="transition-transform ease-in duration-200"
         x-transition:leave-start="translate-x-0"
         x-transition:leave-end="translate-x-full"
-        class="fixed right-0 top-0 z-50 h-full w-full max-w-md overflow-y-auto bg-white shadow-2xl dark:bg-gray-900"
+        class="fixed right-0 top-0 z-50 h-full w-full max-w-2xl overflow-y-auto bg-white shadow-2xl dark:bg-gray-900"
         style="display: none;"
     >
+        <!-- Contenu chargé dynamiquement pour les élèves -->
+        <template x-if="currentType === 'student'">
+            <div id="student-rightsheet-container"></div>
+        </template>
+        
         <!-- Parent Sheet -->
         <template x-if="currentType === 'parent' && currentData">
             <div class="flex h-full flex-col">
@@ -676,293 +681,8 @@
             </div>
         </template>
 
-        <!-- Student Sheet -->
-        <template x-if="currentType === 'student' && currentData">
-            <div class="flex h-full flex-col">
-                <!-- Header -->
-                <div class="sticky top-0 z-10 border-b border-gray-200 bg-white px-6 py-4 dark:border-gray-800 dark:bg-gray-900">
-                    <div class="flex items-center justify-between">
-                        <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">
-                            <span x-show="!editMode">Informations Élève</span>
-                            <span x-show="editMode">Modifier Élève</span>
-                        </h3>
-                        <button
-                            @click="closeSheet()"
-                            class="rounded-lg p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-300"
-                        >
-                            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                            </svg>
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Content -->
-                <div class="flex-1 p-6">
-                    <!-- View Mode -->
-                    <template x-if="!editMode && currentData">
-                        <div class="space-y-6">
-                            <div>
-                                <label class="text-sm font-medium text-gray-500 dark:text-gray-400">Prénom</label>
-                                <p class="mt-1 text-base text-gray-800 dark:text-white/90" x-text="currentData?.firstName || ''"></p>
-                            </div>
-                            <div>
-                                <label class="text-sm font-medium text-gray-500 dark:text-gray-400">Nom</label>
-                                <p class="mt-1 text-base text-gray-800 dark:text-white/90" x-text="currentData?.lastName || ''"></p>
-                            </div>
-                            <div>
-                                <label class="text-sm font-medium text-gray-500 dark:text-gray-400">Pseudo</label>
-                                <p class="mt-1 text-base text-gray-800 dark:text-white/90" x-text="currentData?.pseudo || 'Non renseigné'"></p>
-                            </div>
-                            <div>
-                                <label class="text-sm font-medium text-gray-500 dark:text-gray-400">Classe</label>
-                                <p class="mt-1 text-base text-gray-800 dark:text-white/90" x-text="currentData?.class || 'Non renseignée'"></p>
-                            </div>
-                            <div>
-                                <label class="text-sm font-medium text-gray-500 dark:text-gray-400">Nom de l'établissement</label>
-                                <p class="mt-1 text-base text-gray-800 dark:text-white/90" x-text="currentData?.schoolName || 'Non renseigné'"></p>
-                            </div>
-                            <div>
-                                <label class="text-sm font-medium text-gray-500 dark:text-gray-400">Tags des besoins</label>
-                                <div class="mt-1">
-                                    <template x-if="currentData?.needTags && currentData?.needTags?.length > 0">
-                                        <div class="flex flex-wrap gap-2">
-                                            <template x-for="tag in currentData.needTags" :key="tag">
-                                                <span class="inline-flex items-center rounded-full bg-brand-100 px-3 py-1 text-xs font-medium text-brand-700 dark:bg-brand-900/30 dark:text-brand-400" x-text="tag"></span>
-                                            </template>
-                                        </div>
-                                    </template>
-                                    <p x-show="!currentData?.needTags || currentData?.needTags?.length === 0" class="text-base text-gray-500 dark:text-gray-400">Aucun tag</p>
-                                </div>
-                            </div>
-                            <div>
-                                <label class="text-sm font-medium text-gray-500 dark:text-gray-400">Spécialistes assignés</label>
-                                <div class="mt-1">
-                                    <template x-if="currentData?.specialists && currentData?.specialists?.length > 0">
-                                        <div class="flex flex-wrap gap-2">
-                                            <template x-for="specialist in currentData.specialists" :key="specialist.id">
-                                                <span class="inline-flex items-center rounded-full bg-brand-50 px-2.5 py-0.5 text-xs font-medium text-brand-600 dark:bg-brand-500/15 dark:text-brand-400">
-                                                    <span x-text="specialist.firstName + ' ' + specialist.lastName"></span>
-                                                </span>
-                                            </template>
-                                        </div>
-                                    </template>
-                                    <p x-show="!currentData?.specialists || currentData?.specialists?.length === 0" class="text-base text-gray-500 dark:text-gray-400">Aucun spécialiste assigné</p>
-                                </div>
-                            </div>
-                            <div>
-                                <label class="text-sm font-medium text-gray-500 dark:text-gray-400">Statistiques</label>
-                                <div class="mt-2 space-y-2">
-                                    <div class="flex items-center justify-between">
-                                        <span class="text-sm text-gray-600 dark:text-gray-400">Objectifs</span>
-                                        <span class="text-base font-semibold text-gray-800 dark:text-white/90" x-text="currentData?.objectivesCount || 0"></span>
-                                    </div>
-                                    <div class="flex items-center justify-between">
-                                        <span class="text-sm text-gray-600 dark:text-gray-400">Demandes</span>
-                                        <span class="text-base font-semibold text-gray-800 dark:text-white/90" x-text="currentData?.requestsCount || 0"></span>
-                                    </div>
-                                    <div class="flex items-center justify-between">
-                                        <span class="text-sm text-gray-600 dark:text-gray-400">Événements planning</span>
-                                        <span class="text-base font-semibold text-gray-800 dark:text-white/90" x-text="currentData?.planningsCount || 0"></span>
-                                    </div>
-                                </div>
-                            </div>
-                            <div>
-                                <label class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2 block">Statut</label>
-                                <div class="flex items-center justify-between">
-                                    <span class="text-sm text-gray-600 dark:text-gray-400">
-                                        <span x-show="currentData?.isActive" class="text-green-600 dark:text-green-400">Actif</span>
-                                        <span x-show="!currentData?.isActive" class="text-red-600 dark:text-red-400">Inactif</span>
-                                    </span>
-                                    <button
-                                        type="button"
-                                        @click="toggleStudentStatus()"
-                                        :class="currentData?.isActive ? 'bg-green-500 hover:bg-green-600' : 'bg-gray-300 hover:bg-gray-400'"
-                                        class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2"
-                                    >
-                                        <span
-                                            :class="currentData?.isActive ? 'translate-x-6' : 'translate-x-1'"
-                                            class="inline-block h-4 w-4 transform rounded-full bg-white transition-transform"
-                                        ></span>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </template>
-
-                    <!-- Edit Mode -->
-                    <template x-if="editMode && currentData">
-                        <form class="space-y-6">
-                            <div>
-                                <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Prénom</label>
-                                <input
-                                    type="text"
-                                    x-model="currentData.firstName"
-                                    class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
-                                />
-                            </div>
-                            <div>
-                                <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Nom</label>
-                                <input
-                                    type="text"
-                                    x-model="currentData.lastName"
-                                    class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
-                                />
-                            </div>
-                            <div>
-                                <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Pseudo</label>
-                                <input
-                                    type="text"
-                                    x-model="currentData.pseudo"
-                                    class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
-                                />
-                            </div>
-                            <div>
-                                <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Classe</label>
-                                <select
-                                    x-model="currentData.class"
-                                    class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
-                                >
-                                    <option value="">Sélectionner une classe</option>
-                                    <optgroup label="École primaire">
-                                        <option value="CP">CP</option>
-                                        <option value="CE1">CE1</option>
-                                        <option value="CE2">CE2</option>
-                                        <option value="CM1">CM1</option>
-                                        <option value="CM2">CM2</option>
-                                    </optgroup>
-                                    <optgroup label="Collège">
-                                        <option value="6ème">6ème</option>
-                                        <option value="5ème">5ème</option>
-                                        <option value="4ème">4ème</option>
-                                        <option value="3ème">3ème</option>
-                                    </optgroup>
-                                    <optgroup label="Lycée">
-                                        <option value="2nde">2nde</option>
-                                        <option value="1ère">1ère</option>
-                                        <option value="Terminale">Terminale</option>
-                                    </optgroup>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Nom de l'établissement</label>
-                                <input
-                                    type="text"
-                                    x-model="currentData.schoolName"
-                                    placeholder="Nom de l'établissement"
-                                    autocomplete="off"
-                                    class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
-                                />
-                            </div>
-                            <div>
-                                <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                                    Tags des besoins
-                                </label>
-                                <select
-                                    id="student-tags-edit-select"
-                                    x-ref="studentTagsEditSelect"
-                                    multiple
-                                    class="w-full"
-                                >
-                                </select>
-                                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                                    Tapez pour rechercher ou créer un nouveau tag
-                                </p>
-                            </div>
-                            <div>
-                                <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Statut</label>
-                                <div class="flex items-center justify-between rounded-lg border border-gray-200 bg-white px-4 py-3 dark:border-gray-700 dark:bg-gray-800">
-                                    <span class="text-sm text-gray-700 dark:text-gray-300">
-                                        <span x-show="currentData?.isActive" class="text-green-600 dark:text-green-400 font-medium">Actif</span>
-                                        <span x-show="!currentData?.isActive" class="text-red-600 dark:text-red-400 font-medium">Inactif</span>
-                                    </span>
-                                    <label class="relative inline-flex items-center cursor-pointer">
-                                        <input
-                                            type="checkbox"
-                                            x-model="currentData.isActive"
-                                            class="sr-only peer"
-                                        />
-                                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-brand-300 dark:peer-focus:ring-brand-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-brand-500"></div>
-                                    </label>
-                                </div>
-                            </div>
-                            {% if app.user.isCoach() %}
-                            <div>
-                                <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Spécialistes</label>
-                                <div class="space-y-2 max-h-60 overflow-y-auto border border-gray-200 rounded-lg p-3 dark:border-gray-700">
-                                    <template x-for="specialist in specialistsData" :key="specialist.id">
-                                        <label class="flex items-center space-x-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 p-2 rounded">
-                                            <input
-                                                type="checkbox"
-                                                :value="specialist.id"
-                                                x-model="currentData.specialistIds"
-                                                class="rounded border-gray-300 text-brand-500 focus:ring-brand-500 dark:border-gray-600 dark:bg-gray-800"
-                                            />
-                                            <span class="text-sm text-gray-700 dark:text-gray-300" x-text="specialist.firstName + ' ' + specialist.lastName"></span>
-                                        </label>
-                                    </template>
-                                    <p x-show="!specialistsData || specialistsData.length === 0" class="text-sm text-gray-500 dark:text-gray-400">Aucun spécialiste disponible</p>
-                                </div>
-                                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                                    Sélectionnez un ou plusieurs spécialistes à assigner à cet élève
-                                </p>
-                            </div>
-                            {% endif %}
-                            <div>
-                                <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Nouveau mot de passe</label>
-                                <input
-                                    type="password"
-                                    x-model="currentData.newPassword"
-                                    placeholder="Laisser vide pour ne pas modifier"
-                                    autocomplete="new-password"
-                                    class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
-                                />
-                                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                                    Laisser vide si vous ne souhaitez pas modifier le mot de passe
-                                </p>
-                            </div>
-                        </form>
-                    </template>
-                </div>
-
-                <!-- Footer -->
-                <div class="sticky bottom-0 border-t border-gray-200 bg-white px-6 py-4 dark:border-gray-800 dark:bg-gray-900">
-                    <div class="flex gap-3">
-                        <button
-                            x-show="!editMode"
-                            @click="toggleEdit()"
-                            class="flex-1 rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white shadow-theme-xs hover:bg-brand-600"
-                        >
-                            Modifier
-                        </button>
-                        <template x-if="editMode">
-                            <div class="flex flex-1 gap-3">
-                                <button
-                                    @click="toggleEdit()"
-                                    class="flex-1 rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
-                                >
-                                    Annuler
-                                </button>
-                                <button
-                                    x-show="currentType === 'parent'"
-                                    @click="saveParent()"
-                                    class="flex-1 rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white shadow-theme-xs hover:bg-brand-600"
-                                >
-                                    Enregistrer
-                                </button>
-                                <button
-                                    x-show="currentType === 'student'"
-                                    @click="saveStudent()"
-                                    class="flex-1 rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white shadow-theme-xs hover:bg-brand-600"
-                                >
-                                    Enregistrer
-                                </button>
-                            </div>
-                        </template>
-                    </div>
-                </div>
-            </div>
-        </template>
+        <!-- Student Sheet - Contenu chargé via AJAX -->
+        <!-- Le contenu est injecté dans rightSheetContent via openStudentEdit() -->
     </div>
 </div>
 
@@ -973,6 +693,7 @@ function familyManager() {
         editMode: false,
         currentType: '',
         currentData: null,
+        rightSheetContent: '', // Contenu HTML chargé via AJAX pour les élèves
         familiesData: [],
         specialistsData: [],
         expandedFamilies: {}, // Pour gérer l'état pliant/dépliant de chaque famille
@@ -1658,32 +1379,120 @@ function familyManager() {
                 }
             }
         },
-        openStudentEdit(familyId, studentId) {
-            const family = this.familiesData.find(f => f.id === familyId);
-            if (family) {
-                const student = family.students.find(s => s.id === studentId);
-                if (student) {
-                    this.currentType = 'student';
-                    this.currentFamilyId = familyId;
-                    this.currentStudentId = studentId;
-                    this.currentData = JSON.parse(JSON.stringify(student));
-                    // Initialiser les valeurs par défaut pour éviter les erreurs null
-                    this.currentData.newPassword = ''; // Initialiser le champ mot de passe
-                    this.currentData.pseudo = this.currentData.pseudo || '';
-                    this.currentData.specialists = this.currentData.specialists || [];
-                    this.currentData.needTags = this.currentData.needTags || [];
-                    this.currentData.isActive = this.currentData.isActive !== undefined ? this.currentData.isActive : true;
-                    // Initialiser les IDs des spécialistes assignés
-                    this.currentData.specialistIds = student.specialists ? student.specialists.map(s => s.id) : [];
-                    this.editMode = false;
-                    this.rightSheetOpen = true;
-                    // Initialiser Choices.js pour les tags après que le DOM soit mis à jour
-                    this.$nextTick(() => {
-                        setTimeout(() => {
-                            this.initStudentTagsEditChoices();
-                        }, 100);
-                    });
+        async openStudentEdit(familyId, studentId) {
+            this.currentType = 'student';
+            this.currentFamilyId = familyId;
+            this.currentStudentId = studentId;
+            this.rightSheetOpen = true;
+            
+            // Afficher un loader
+            this.$nextTick(() => {
+                const container = document.getElementById('student-rightsheet-container');
+                if (container) {
+                    container.innerHTML = '<div class="flex items-center justify-center h-full"><div class="text-center"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-500 mx-auto"></div><p class="mt-2 text-sm text-gray-500">Chargement...</p></div></div>';
                 }
+            });
+            
+            try {
+                const response = await fetch(`/admin/families/${familyId}/students/${studentId}/rightsheet`, {
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Erreur lors du chargement');
+                }
+                
+                const html = await response.text();
+                
+                // Injecter le HTML dans le conteneur et initialiser Alpine.js
+                this.$nextTick(() => {
+                    setTimeout(() => {
+                        const container = document.getElementById('student-rightsheet-container');
+                        if (container) {
+                            // Vider le conteneur d'abord
+                            container.innerHTML = '';
+                            
+                            // Créer un div temporaire pour parser le HTML
+                            const tempDiv = document.createElement('div');
+                            tempDiv.innerHTML = html;
+                            
+                            // Extraire et exécuter les scripts avant d'injecter le HTML
+                            const scripts = tempDiv.querySelectorAll('script');
+                            const scriptPromises = [];
+                            
+                            scripts.forEach(oldScript => {
+                                const newScript = document.createElement('script');
+                                if (oldScript.src) {
+                                    const promise = new Promise((resolve, reject) => {
+                                        newScript.onload = resolve;
+                                        newScript.onerror = reject;
+                                        newScript.src = oldScript.src;
+                                    });
+                                    scriptPromises.push(promise);
+                                    document.head.appendChild(newScript);
+                                } else {
+                                    // Pour les scripts inline, on les ajoute au DOM pour qu'ils s'exécutent
+                                    newScript.textContent = oldScript.textContent;
+                                    // Ajouter le script au head pour qu'il s'exécute dans le scope global
+                                    document.head.appendChild(newScript);
+                                    // Les scripts inline s'exécutent immédiatement quand ajoutés au DOM
+                                }
+                                oldScript.remove();
+                            });
+                            
+                            // Attendre que tous les scripts soient chargés et exécutés
+                            Promise.all(scriptPromises).then(() => {
+                                // Attendre un peu pour s'assurer que les scripts inline sont exécutés
+                                setTimeout(() => {
+                                    // Vérifier que la fonction est bien définie
+                                    if (typeof studentRightSheetManager === 'undefined') {
+                                        console.error('studentRightSheetManager n\'est toujours pas défini après l\'exécution des scripts');
+                                    }
+                                    
+                                    // Injecter le HTML (sans les scripts qui ont été extraits)
+                                    container.innerHTML = tempDiv.innerHTML;
+                                    
+                                    // Initialiser Alpine.js sur le contenu injecté
+                                    if (typeof Alpine !== 'undefined') {
+                                        Alpine.initTree(container);
+                                    }
+                                }, 50);
+                            }).catch(() => {
+                                // Même en cas d'erreur, on injecte le HTML après un délai
+                                setTimeout(() => {
+                                    container.innerHTML = tempDiv.innerHTML;
+                                    if (typeof Alpine !== 'undefined') {
+                                        Alpine.initTree(container);
+                                    }
+                                }, 50);
+                            });
+                            
+                            // Si pas de scripts avec src, injecter après un court délai pour laisser les scripts inline s'exécuter
+                            if (scriptPromises.length === 0) {
+                                setTimeout(() => {
+                                    // Vérifier que la fonction est bien définie
+                                    if (typeof studentRightSheetManager === 'undefined') {
+                                        console.error('studentRightSheetManager n\'est pas défini');
+                                    }
+                                    
+                                    container.innerHTML = tempDiv.innerHTML;
+                                    if (typeof Alpine !== 'undefined') {
+                                        Alpine.initTree(container);
+                                    }
+                                }, 50);
+                            }
+                        }
+                    }, 100);
+                });
+            } catch (error) {
+                console.error('Erreur lors du chargement du RightSheet:', error);
+                const container = document.getElementById('student-rightsheet-container');
+                if (container) {
+                    container.innerHTML = '<div class="flex items-center justify-center h-full p-6"><div class="text-center"><p class="text-red-600 dark:text-red-400">Erreur lors du chargement des données</p><button onclick="document.querySelector(\'[x-show=\\\'rightSheetOpen\\\']\').__x.$data.closeSheet()" class="mt-4 px-4 py-2 bg-brand-500 text-white rounded-lg">Fermer</button></div></div>';
+                }
+                this.showMessage('Erreur lors du chargement des données de l\'élève', 'error');
             }
         },
         saveStudent() {
