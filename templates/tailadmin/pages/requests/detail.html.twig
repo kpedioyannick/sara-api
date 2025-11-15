@@ -1,148 +1,115 @@
 {% extends 'tailadmin/layouts/base.html.twig' %}
 
 {% block content %}
-<div class="mx-auto max-w-screen-2xl p-4 md:p-6 2xl:p-10">
-    {% include 'tailadmin/components/breadcrumb.html.twig' with { items: breadcrumbs } %}
-
-    <!-- Request Details Card -->
-    <div class="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03] mb-6">
-        <div class="p-4 xl:p-6">
-            <div class="flex items-start justify-between mb-4">
-                <div class="flex-1">
-                    <h3 class="text-2xl font-semibold mb-2">
-                        <span class="inline-block rounded-lg bg-blue-100 dark:bg-blue-900/30 px-4 py-2 text-gray-800 dark:text-white/90">
+<div class="flex flex-col h-[calc(100vh-80px)] max-h-screen overflow-hidden">
+    <!-- Compact Header - Sticky -->
+    <div class="sticky top-0 z-10 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 shadow-sm">
+        <div class="px-4 py-3 md:px-6">
+            <div class="flex items-center justify-between gap-3 flex-wrap">
+                <!-- Left: Title & Badges -->
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-2 flex-wrap mb-2">
+                        <a href="{{ path('admin_requests_list') }}" class="inline-flex items-center text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors" title="Retour">
+                            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                            </svg>
+                        </a>
+                        <h1 class="text-lg md:text-xl font-semibold text-gray-900 dark:text-white truncate">
                             {{ request.title }}
-                        </span>
-                    </h3>
-                    <div class="flex flex-wrap items-center gap-3 mb-4">
-                        <span class="inline-flex rounded-full bg-brand-50 px-3 py-1 text-sm font-medium text-brand-500 dark:bg-brand-500/15 dark:text-brand-400">
+                        </h1>
+                    </div>
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <span class="inline-flex items-center rounded-full bg-brand-50 dark:bg-brand-500/15 px-2 py-0.5 text-xs font-medium text-brand-600 dark:text-brand-400">
                             {{ request.type|upper }}
                         </span>
                         {% if request.priority == 'high' %}
-                        <span class="inline-flex items-center rounded-full bg-error-100 px-2.5 py-0.5 text-xs font-medium text-error-600 dark:bg-error-900/30 dark:text-error-400">
-                            Priorité: Haute
+                        <span class="inline-flex items-center rounded-full bg-error-100 dark:bg-error-900/30 px-2 py-0.5 text-xs font-medium text-error-600 dark:text-error-400">
+                            Haute
                         </span>
                         {% elseif request.priority == 'medium' %}
-                        <span class="inline-flex items-center rounded-full bg-warning-100 px-2.5 py-0.5 text-xs font-medium text-warning-600 dark:bg-warning-900/30 dark:text-warning-400">
-                            Priorité: Moyenne
+                        <span class="inline-flex items-center rounded-full bg-warning-100 dark:bg-warning-900/30 px-2 py-0.5 text-xs font-medium text-warning-600 dark:text-warning-400">
+                            Moyenne
                         </span>
                         {% else %}
-                        <span class="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-600 dark:bg-gray-800 dark:text-gray-400">
-                            Priorité: Basse
+                        <span class="inline-flex items-center rounded-full bg-gray-100 dark:bg-gray-800 px-2 py-0.5 text-xs font-medium text-gray-600 dark:text-gray-400">
+                            Basse
                         </span>
                         {% endif %}
                         {% if request.status == 'resolved' %}
-                        <span class="inline-flex items-center rounded-full bg-success-100 px-2.5 py-0.5 text-xs font-medium text-success-600 dark:bg-success-900/30 dark:text-success-400">
+                        <span class="inline-flex items-center rounded-full bg-success-100 dark:bg-success-900/30 px-2 py-0.5 text-xs font-medium text-success-600 dark:text-success-400">
                             Résolue
                         </span>
                         {% elseif request.status == 'in_progress' %}
-                        <span class="inline-flex items-center rounded-full bg-brand-100 px-2.5 py-0.5 text-xs font-medium text-brand-600 dark:bg-brand-900/30 dark:text-brand-400">
+                        <span class="inline-flex items-center rounded-full bg-brand-100 dark:bg-brand-900/30 px-2 py-0.5 text-xs font-medium text-brand-600 dark:text-brand-400">
                             En cours
                         </span>
                         {% else %}
-                        <span class="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-600 dark:bg-gray-800 dark:text-gray-400">
+                        <span class="inline-flex items-center rounded-full bg-gray-100 dark:bg-gray-800 px-2 py-0.5 text-xs font-medium text-gray-600 dark:text-gray-400">
                             En attente
                         </span>
                         {% endif %}
+                        <span class="text-xs text-gray-500 dark:text-gray-400 hidden sm:inline">
+                            {{ request.creatorName }} → {{ request.recipientName }}
+                        </span>
                     </div>
                 </div>
-                <a href="{{ path('admin_requests_list') }}" class="inline-flex items-center gap-2 rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-white/[0.03]">
-                    <svg class="fill-current" width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path fill-rule="evenodd" clip-rule="evenodd" d="M9.70711 16.7071C9.31658 17.0976 8.68342 17.0976 8.29289 16.7071L2.29289 10.7071C1.90237 10.3166 1.90237 9.68342 2.29289 9.29289L8.29289 3.29289C8.68342 2.90237 9.31658 2.90237 9.70711 3.29289C10.0976 3.68342 10.0976 4.31658 9.70711 4.70711L5.41421 9H17C17.5523 9 18 9.44772 18 10C18 10.5523 17.5523 11 17 11H5.41421L9.70711 15.2929C10.0976 15.6834 10.0976 16.3166 9.70711 16.7071Z" fill=""/>
-                    </svg>
-                    Retour
-                </a>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                <div class="flex items-center gap-3">
-                    <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-brand-50 dark:bg-brand-500/15">
-                        <svg class="fill-current text-brand-500 dark:text-brand-400" width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M10 2C5.58172 2 2 5.58172 2 10C2 14.4183 5.58172 18 10 18C14.4183 18 18 14.4183 18 10C18 5.58172 14.4183 2 10 2ZM10 16C6.68629 16 4 13.3137 4 10C4 6.68629 6.68629 4 10 4C13.3137 4 16 6.68629 16 10C16 13.3137 13.3137 16 10 16ZM9 11V9H11V11H9ZM9 13V11H11V13H9Z" fill=""/>
+                
+                <!-- Right: Quick Info (Desktop) -->
+                <div class="hidden lg:flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400">
+                    <div class="flex items-center gap-1">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                         </svg>
-                    </div>
-                    <div>
-                        <p class="text-sm text-gray-500 dark:text-gray-400">Créée par</p>
-                        <p class="text-base font-medium">
-                            <span class="inline-block rounded-md bg-purple-100 dark:bg-purple-900/30 px-2.5 py-0.5 text-purple-700 dark:text-purple-300">{{ request.creatorName }}</span>
-                        </p>
-                    </div>
-                </div>
-                <div class="flex items-center gap-3">
-                    <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-warning-50 dark:bg-warning-500/15">
-                        <svg class="fill-current text-warning-500 dark:text-warning-400" width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M10 2C5.58172 2 2 5.58172 2 10C2 14.4183 5.58172 18 10 18C14.4183 18 18 14.4183 18 10C18 5.58172 14.4183 2 10 2ZM10 16C6.68629 16 4 13.3137 4 10C4 6.68629 6.68629 4 10 4C13.3137 4 16 6.68629 16 10C16 13.3137 13.3137 16 10 16ZM13.7071 8.29289C14.0976 7.90237 14.0976 7.26921 13.7071 6.87868C13.3166 6.48816 12.6834 6.48816 12.2929 6.87868L9 10.1716L7.70711 8.87868C7.31658 8.48816 6.68342 8.48816 6.29289 8.87868C5.90237 9.26921 5.90237 9.90237 6.29289 10.2929L8.29289 12.2929C8.68342 12.6834 9.31658 12.6834 9.70711 12.2929L13.7071 8.29289Z" fill=""/>
-                        </svg>
-                    </div>
-                    <div>
-                        <p class="text-sm text-gray-500 dark:text-gray-400">Destinataire</p>
-                        <p class="text-base font-medium">
-                            <span class="inline-block rounded-md bg-indigo-100 dark:bg-indigo-900/30 px-2.5 py-0.5 text-indigo-700 dark:text-indigo-300">{{ request.recipientName }}</span>
-                        </p>
+                        <span>{{ request.creatorName }}</span>
                     </div>
                 </div>
             </div>
-
-            <div class="mb-4">
-                <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Description</h4>
-                <p class="text-base whitespace-pre-wrap">
-                    <span class="inline-block rounded-lg bg-gray-100 dark:bg-gray-800 px-3 py-2 text-gray-700 dark:text-gray-300">{{ request.description }}</span>
-                </p>
-            </div>
-
-            {% if request.response %}
-            <div class="mt-4">
-                <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Réponse</h4>
-                <p class="text-base whitespace-pre-wrap">
-                    <span class="inline-block rounded-lg bg-green-100 dark:bg-green-900/30 px-3 py-2 text-green-700 dark:text-green-300">{{ request.response }}</span>
-                </p>
+            
+            <!-- Description (Always visible) -->
+            {% if request.description %}
+            <div class="mt-2 px-2 py-1.5 bg-gray-50 dark:bg-gray-800 rounded text-xs text-gray-600 dark:text-gray-400 line-clamp-2">
+                {{ request.description }}
             </div>
             {% endif %}
         </div>
     </div>
 
-    <!-- ====== Chat Section Start ====== -->
-    <div class="rounded-lg border border-gray-200 bg-white shadow-default dark:border-gray-800 dark:bg-gray-900">
-        <!-- Header -->
-        <div class="border-b border-gray-200 px-6 py-4 dark:border-gray-800">
-            <div class="flex items-center justify-between">
-                <div class="flex items-center gap-3">
-                    {% if otherUser %}
-                    <div class="flex h-10 w-10 items-center justify-center rounded-full bg-gray-200 dark:bg-gray-700">
-                        <span class="font-semibold text-gray-600 dark:text-gray-300">
-                            {{ otherUser.firstName|first|upper }}{{ otherUser.lastName|first|upper }}
-                        </span>
-                    </div>
-                    <div>
-                        <h3 class="font-semibold text-gray-800 dark:text-white">
-                            {{ otherUser.firstName }} {{ otherUser.lastName }}
-                        </h3>
-                        <p class="text-xs text-gray-500 dark:text-gray-400">
-                            {{ otherUser.email }}
-                            {% if otherUser.userType %}
-                                <span class="ml-2">({{ otherUser.userType|capitalize }})</span>
-                            {% endif %}
-                        </p>
-                    </div>
-                    {% else %}
-                    <div>
-                        <h3 class="font-semibold text-gray-800 dark:text-white">Messages</h3>
-                    </div>
-                    {% endif %}
+    <!-- Chat Container - Flex Grow -->
+    <div class="flex-1 flex flex-col min-h-0 bg-white dark:bg-gray-900 relative">
+        <!-- Chat Header -->
+        <div class="border-b border-gray-200 dark:border-gray-800 px-4 py-3 bg-gray-50 dark:bg-gray-800/50 flex-shrink-0">
+            <div class="flex items-center gap-3">
+                {% if otherUser %}
+                <div class="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-brand-500 to-brand-600 text-white text-sm font-semibold shadow-sm">
+                    {{ otherUser.firstName|first|upper }}{{ otherUser.lastName|first|upper }}
                 </div>
+                <div class="flex-1 min-w-0">
+                    <h3 class="font-semibold text-sm text-gray-900 dark:text-white truncate">
+                        {{ otherUser.firstName }} {{ otherUser.lastName }}
+                    </h3>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 truncate">
+                        {% if otherUser.userType %}{{ otherUser.userType|capitalize }} • {% endif %}{{ otherUser.email }}
+                    </p>
+                </div>
+                {% else %}
+                <div>
+                    <h3 class="font-semibold text-sm text-gray-900 dark:text-white">Messages</h3>
+                </div>
+                {% endif %}
             </div>
         </div>
 
-        <!-- Messages Area -->
+        <!-- Messages Area - Scrollable -->
         <div 
-            class="flex h-[600px] flex-col"
+            class="flex-1 flex flex-col min-h-0 overflow-hidden relative"
             x-data="requestChatManager({{ requestId }})"
             x-init="init()"
         >
-            <!-- Messages List -->
+            <!-- Messages List - Scrollable -->
             <div
                 id="messages-container"
-                class="flex-1 space-y-4 overflow-y-auto p-6"
+                class="flex-1 overflow-y-auto overscroll-contain p-4 md:p-6 space-y-4"
+                style="scroll-behavior: smooth; padding-bottom: 200px;"
             >
                 {% for message in messages %}
                     <div class="flex {% if message.isFromMe %}justify-end{% else %}justify-start{% endif %} gap-2" data-message-id="{{ message.id }}" data-message-type="{{ message.type|default('text') }}">
@@ -296,9 +263,9 @@
                 </div>
             </div>
 
-            <!-- Message Input -->
-            <div class="border-t border-gray-200 p-4 dark:border-gray-800">
-                <form @submit.prevent="sendMessage()" class="space-y-2">
+            <!-- Message Input - Fixed Bottom -->
+            <div class="absolute bottom-0 left-0 right-0 border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-lg z-20">
+                <form @submit.prevent="sendMessage()" class="p-4 space-y-2">
                     <!-- Boutons d'upload - Ligne séparée sur mobile -->
                     <div class="flex flex-wrap gap-2 justify-center sm:justify-start">
                         <!-- Bouton Assistance IA -->
@@ -306,7 +273,7 @@
                             type="button"
                             @click="toggleAIAssist()"
                             :class="aiAssistMode ? 'bg-brand-500 text-white' : 'border border-gray-300 bg-white text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700'"
-                            class="rounded-lg p-2 transition-colors flex-shrink-0"
+                            class="rounded-lg p-2 transition-colors flex-shrink-0 hover:scale-105 active:scale-95"
                             title="Assistance IA"
                         >
                             <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -314,7 +281,7 @@
                             </svg>
                         </button>
                         <!-- Upload Image -->
-                        <label class="cursor-pointer rounded-lg border border-gray-300 bg-white p-2 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:hover:bg-gray-700 flex-shrink-0" title="Envoyer une image">
+                        <label class="cursor-pointer rounded-lg border border-gray-300 bg-white p-2 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:hover:bg-gray-700 flex-shrink-0 transition-colors" title="Envoyer une image">
                             <input
                                 type="file"
                                 accept="image/*"
@@ -356,7 +323,7 @@
                             type="button"
                             @click="toggleAudioRecording()"
                             :class="isRecording ? 'bg-error-500 text-white hover:bg-error-600' : 'border border-gray-300 bg-white text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700'"
-                            class="rounded-lg p-2 transition-colors flex-shrink-0"
+                            class="rounded-lg p-2 transition-colors flex-shrink-0 hover:scale-105 active:scale-95"
                             :title="isRecording ? 'Arrêter l\'enregistrement' : 'Enregistrer un audio'"
                         >
                             <svg x-show="!isRecording" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -369,20 +336,29 @@
                     </div>
                     <!-- Input et bouton Envoyer -->
                     <div class="flex gap-2 items-end">
-                        <input
-                            type="text"
+                        <textarea
                             x-model="messageContent"
                             placeholder="Tapez votre message..."
-                            class="flex-1 min-w-0 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-                        />
+                            rows="1"
+                            @input="$event.target.style.height = 'auto'; $event.target.style.height = $event.target.scrollHeight + 'px';"
+                            class="flex-1 min-w-0 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm resize-none focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-gray-700 dark:bg-gray-800 dark:text-white max-h-32 overflow-y-auto"
+                            style="min-height: 42px;"
+                        ></textarea>
                         <button
                             type="submit"
-                            :disabled="sending || uploading"
-                            class="rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 disabled:opacity-50 flex-shrink-0 sm:px-6"
+                            :disabled="sending || uploading || !messageContent.trim()"
+                            class="rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white hover:bg-brand-600 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0 transition-all shadow-sm hover:shadow-md"
+                            style="min-height: 42px;"
                         >
-                            <span x-show="!sending && !uploading" class="hidden sm:inline">Envoyer</span>
-                            <span x-show="!sending && !uploading" class="sm:hidden">→</span>
-                            <span x-show="sending || uploading">...</span>
+                            <svg x-show="!sending && !uploading" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                            </svg>
+                            <span x-show="sending || uploading" class="inline-flex items-center">
+                                <svg class="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                            </span>
                         </button>
                     </div>
                 </form>
@@ -509,10 +485,17 @@ function requestChatManager(requestId) {
             this.messagesContainer = document.getElementById('messages-container');
             this.scrollToBottom();
             
+            // Se connecter à Firebase pour les messages en temps réel
+            this.subscribeToFirebase();
+            
             // Nettoyer l'enregistrement si l'utilisateur quitte la page
             window.addEventListener('beforeunload', () => {
                 if (this.isRecording) {
                     this.stopAudioRecording();
+                }
+                // Nettoyer l'intervalle Firebase
+                if (this.firebasePollInterval) {
+                    clearInterval(this.firebasePollInterval);
                 }
             });
         },
@@ -527,6 +510,29 @@ function requestChatManager(requestId) {
             if ((!this.messageContent.trim() && !this.pendingFile) || this.sending || this.uploading) return;
             
             const content = this.messageContent.trim();
+            const currentUser = {{ app.user ? app.user.id : 'null' }};
+            
+            // Optimistic update : afficher le message immédiatement
+            const tempMessageId = 'temp-' + Date.now();
+            const optimisticMessage = {
+                id: tempMessageId,
+                requestId: String(this.requestId),
+                content: content,
+                type: 'text',
+                filePath: null,
+                sender: {
+                    id: currentUser,
+                    firstName: '{{ app.user ? app.user.firstName : '' }}',
+                    lastName: '{{ app.user ? app.user.lastName : '' }}',
+                },
+                createdAt: new Date().toISOString().slice(0, 19).replace('T', ' '),
+                isRead: false,
+            };
+            
+            // Afficher le message immédiatement
+            this.handleNewMessage(optimisticMessage);
+            
+            // Vider le champ de saisie immédiatement
             this.messageContent = '';
             this.sending = true;
             
@@ -543,6 +549,12 @@ function requestChatManager(requestId) {
                 });
                 
                 if (!response.ok) {
+                    // En cas d'erreur, supprimer le message optimiste
+                    const tempElement = this.messagesContainer?.querySelector(`[data-message-id="${tempMessageId}"]`);
+                    if (tempElement) {
+                        tempElement.remove();
+                    }
+                    
                     const errorData = await response.json().catch(() => ({ success: false, message: 'Erreur lors de l\'envoi' }));
                     const errorMessage = errorData.message || `Erreur ${response.status}: ${response.statusText}`;
                     if (window.showToast) {
@@ -554,9 +566,26 @@ function requestChatManager(requestId) {
                 
                 const result = await response.json().catch(() => ({ success: false, message: 'Erreur lors de l\'envoi' }));
                 
-                if (result.success) {
-                    window.location.reload();
+                if (result.success && result.data) {
+                    // Remplacer le message optimiste par le vrai message
+                    const tempElement = this.messagesContainer?.querySelector(`[data-message-id="${tempMessageId}"]`);
+                    if (tempElement) {
+                        tempElement.remove();
+                    }
+                    
+                    // Afficher le vrai message avec les bonnes données
+                    this.handleNewMessage(result.data);
+                    
+                    if (window.showToast) {
+                        window.showToast('Message envoyé', 'success');
+                    }
                 } else {
+                    // En cas d'erreur, supprimer le message optimiste
+                    const tempElement = this.messagesContainer?.querySelector(`[data-message-id="${tempMessageId}"]`);
+                    if (tempElement) {
+                        tempElement.remove();
+                    }
+                    
                     const errorMessage = result.message || 'Erreur lors de l\'envoi du message';
                     if (window.showToast) {
                         window.showToast(errorMessage, 'error');
@@ -564,6 +593,12 @@ function requestChatManager(requestId) {
                     this.messageContent = content;
                 }
             } catch (error) {
+                // En cas d'erreur, supprimer le message optimiste
+                const tempElement = this.messagesContainer?.querySelector(`[data-message-id="${tempMessageId}"]`);
+                if (tempElement) {
+                    tempElement.remove();
+                }
+                
                 console.error('Erreur lors de l\'envoi du message:', error);
                 if (window.showToast) {
                     window.showToast('Une erreur est survenue', 'error');
@@ -593,7 +628,14 @@ function requestChatManager(requestId) {
                 const data = await response.json();
                 
                 if (data.success) {
-                    window.location.reload();
+                    // Ne pas recharger la page, Firebase va mettre à jour en temps réel
+                    if (window.showToast) {
+                        window.showToast('Image envoyée', 'success');
+                    }
+                    // Optionnel : ajouter le message immédiatement à l'UI
+                    if (data.data) {
+                        this.handleNewMessage(data.data);
+                    }
                 } else {
                     if (window.showToast) {
                         window.showToast('Erreur: ' + data.message, 'error');
@@ -638,7 +680,14 @@ function requestChatManager(requestId) {
                     const data = await response.json();
                     
                     if (data.success) {
-                        window.location.reload();
+                        // Ne pas recharger la page, Firebase va mettre à jour en temps réel
+                        if (window.showToast) {
+                            window.showToast('Photo envoyée', 'success');
+                        }
+                        // Optionnel : ajouter le message immédiatement à l'UI
+                        if (data.data) {
+                            this.handleNewMessage(data.data);
+                        }
                     } else {
                         if (window.showToast) {
                             window.showToast('Erreur: ' + data.message, 'error');
@@ -676,7 +725,14 @@ function requestChatManager(requestId) {
                 const data = await response.json();
                 
                 if (data.success) {
-                    window.location.reload();
+                    // Ne pas recharger la page, Firebase va mettre à jour en temps réel
+                    if (window.showToast) {
+                        window.showToast('Audio envoyé', 'success');
+                    }
+                    // Optionnel : ajouter le message immédiatement à l'UI
+                    if (data.data) {
+                        this.handleNewMessage(data.data);
+                    }
                 } else {
                     if (window.showToast) {
                         window.showToast('Erreur: ' + data.message, 'error');
@@ -855,7 +911,14 @@ function requestChatManager(requestId) {
                     this.recordingTime = 0;
                     this.messageContent = '';
                     
-                    window.location.reload();
+                    // Ne pas recharger la page, Firebase va mettre à jour en temps réel
+                    if (window.showToast) {
+                        window.showToast('Audio envoyé', 'success');
+                    }
+                    // Optionnel : ajouter le message immédiatement à l'UI
+                    if (data.data) {
+                        this.handleNewMessage(data.data);
+                    }
                 } else {
                     if (window.showToast) {
                         window.showToast('Erreur: ' + (data.message || 'Erreur inconnue'), 'error');
@@ -946,6 +1009,268 @@ function requestChatManager(requestId) {
                     window.showToast('Réponse copiée dans le champ de message', 'success');
                 }
             }
+        },
+        
+        async subscribeToFirebase() {
+            try {
+                // Récupérer la configuration Firebase
+                const configResponse = await fetch('{{ path('admin_firebase_config') }}', {
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    credentials: 'same-origin'
+                });
+                
+                if (!configResponse.ok) {
+                    console.error('Failed to get Firebase config');
+                    return;
+                }
+                
+                const configData = await configResponse.json();
+                
+                if (!configData.success || !configData.config) {
+                    console.error('Invalid Firebase config');
+                    return;
+                }
+
+                // Initialiser Firebase si pas déjà fait
+                if (typeof firebase !== 'undefined' && !firebase.apps.length) {
+                    firebase.initializeApp(configData.config);
+                }
+
+                const database = firebase.database();
+                
+                // Vérifier que la base de données est accessible
+                if (!database) {
+                    console.error('❌ Firebase Database non disponible');
+                    return;
+                }
+                
+                // S'assurer que requestId est une string
+                const requestIdStr = String(this.requestId);
+                
+                // Utiliser une référence avec un timestamp pour éviter les conflits avec les données existantes
+                // On va écouter uniquement les messages publiés APRÈS la connexion
+                const connectionTime = Date.now();
+                const messagesRef = database.ref(`/requests/${requestIdStr}/messages`);
+                
+                console.log('🔍 Écoute configurée sur: /requests/' + requestIdStr + '/messages');
+                console.log('⏰ Connexion établie à:', new Date(connectionTime).toLocaleTimeString());
+                
+                // Stocker la référence pour pouvoir la déconnecter si nécessaire
+                this.firebaseMessagesRef = messagesRef;
+                
+                // Solution pour éviter l'erreur e.insert : utiliser un polling manuel
+                // au lieu d'écouter directement (qui cause le bug d'indexation)
+                let lastMessageKey = null;
+                let lastMessageTime = Date.now();
+                let knownMessageIds = new Set();
+                
+                // Fonction pour vérifier les nouveaux messages
+                const checkForNewMessages = () => {
+                    try {
+                        // Récupérer les 5 derniers messages pour être sûr de ne pas rater un message
+                        messagesRef.limitToLast(5).once('value', (snapshot) => {
+                            if (snapshot.exists()) {
+                                const messages = [];
+                                snapshot.forEach((child) => {
+                                    try {
+                                        const data = child.val();
+                                        if (!data || typeof data !== 'object') {
+                                            return false;
+                                        }
+                                        
+                                        const messageId = String(data?.id || child.key);
+                                        const messageTime = data.createdAt ? new Date(data.createdAt).getTime() : Date.now();
+                                        
+                                        messages.push({
+                                            key: child.key,
+                                            id: messageId,
+                                            time: messageTime,
+                                            data: data,
+                                            snapshot: child
+                                        });
+                                        
+                                        return false;
+                                    } catch (err) {
+                                        return false;
+                                    }
+                                });
+                                
+                                // Trier par temps (plus récent en premier)
+                                messages.sort((a, b) => b.time - a.time);
+                                
+                                // Traiter uniquement les nouveaux messages
+                                let foundNew = false;
+                                for (const msg of messages) {
+                                    // Ignorer si déjà traité
+                                    if (knownMessageIds.has(msg.id)) {
+                                        continue;
+                                    }
+                                    
+                                    // Vérifier si c'est un nouveau message (après le dernier check)
+                                    if (msg.time > lastMessageTime || lastMessageKey === null) {
+                                        console.log('🆕 Nouveau message détecté:', msg.id, 'à', new Date(msg.time).toLocaleTimeString());
+                                        knownMessageIds.add(msg.id);
+                                        
+                                        // Extraire les données du snapshot et les normaliser
+                                        const messageData = msg.data;
+                                        // S'assurer que tous les IDs sont des strings
+                                        if (messageData.id) messageData.id = String(messageData.id);
+                                        if (messageData.requestId) messageData.requestId = String(messageData.requestId);
+                                        if (messageData.receiverId) messageData.receiverId = String(messageData.receiverId);
+                                        if (messageData.sender && messageData.sender.id) {
+                                            messageData.sender.id = String(messageData.sender.id);
+                                        }
+                                        
+                                        this.handleNewMessage(messageData);
+                                        foundNew = true;
+                                        
+                                        // Mettre à jour la référence
+                                        if (!lastMessageKey || msg.time > lastMessageTime) {
+                                            lastMessageKey = msg.key;
+                                            lastMessageTime = msg.time;
+                                        }
+                                    }
+                                }
+                                
+                                if (!foundNew && messages.length > 0) {
+                                    // Mettre à jour la référence même si pas de nouveau message
+                                    const latest = messages[0];
+                                    if (latest.time > lastMessageTime) {
+                                        lastMessageKey = latest.key;
+                                        lastMessageTime = latest.time;
+                                    }
+                                }
+                            }
+                        }, (error) => {
+                            // Log uniquement les erreurs importantes
+                            if (error && error.code !== 'PERMISSION_DENIED') {
+                                console.warn('⚠️ Erreur polling Firebase:', error.message || error);
+                            }
+                        });
+                    } catch (error) {
+                        console.warn('⚠️ Erreur checkForNewMessages:', error.message || error);
+                    }
+                };
+                
+                // Vérifier immédiatement
+                console.log('🔄 Premier check des messages...');
+                checkForNewMessages();
+                
+                // Puis vérifier toutes les 1.5 secondes pour être plus réactif
+                this.firebasePollInterval = setInterval(() => {
+                    checkForNewMessages();
+                }, 1500);
+                
+                console.log('✅ Polling Firebase configuré (vérification toutes les 1.5 secondes)');
+                
+                console.log('✅ Connecté à Firebase pour les messages de la demande', this.requestId);
+                console.log('📡 Écoute active sur /requests/' + this.requestId + '/messages');
+            } catch (error) {
+                console.error('Error setting up Firebase:', error);
+            }
+        },
+        
+        handleNewMessage(data) {
+            // Vérifier que le message appartient bien à cette demande
+            if (data.requestId && parseInt(data.requestId) !== parseInt(this.requestId)) {
+                return;
+            }
+            
+            // Vérifier si le message existe déjà (éviter les doublons)
+            const existingMessage = this.messagesContainer?.querySelector(`[data-message-id="${data.id}"]`);
+            if (existingMessage) {
+                return;
+            }
+            
+            // Déterminer si le message vient de l'utilisateur actuel
+            const currentUser = {{ app.user ? app.user.id : 'null' }};
+            const isFromMe = data.sender && currentUser && parseInt(data.sender.id) === parseInt(currentUser);
+            
+            // Créer l'élément HTML du message
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `flex ${isFromMe ? 'justify-end' : 'justify-start'} gap-2`;
+            messageDiv.setAttribute('data-message-id', data.id);
+            messageDiv.setAttribute('data-message-type', data.type || 'text');
+            
+            let messageContentHtml = '';
+            
+            if (data.type === 'image' && data.filePath) {
+                const imagePath = data.filePath;
+                messageContentHtml = `
+                    <img 
+                        src="${imagePath}" 
+                        alt="Image" 
+                        class="max-w-full h-auto rounded cursor-pointer hover:opacity-90 transition-opacity request-message-image"
+                        data-image-path="${imagePath}"
+                        style="max-height: 300px;"
+                    />
+                    ${data.content ? `<p class="text-sm mt-2 ${isFromMe ? 'text-black' : '!text-gray-950 dark:!text-gray-100'}">${this.escapeHtml(data.content)}</p>` : ''}
+                `;
+            } else if (data.type === 'audio' && data.filePath) {
+                messageContentHtml = `
+                    <div class="flex items-center gap-2">
+                        <audio 
+                            controls 
+                            class="w-full max-w-xs" 
+                            style="min-width: 250px; height: 40px;"
+                            preload="metadata"
+                            data-audio-id="${data.id}"
+                        >
+                            <source src="${data.filePath}" type="audio/webm">
+                            <source src="${data.filePath}" type="audio/mpeg">
+                            <source src="${data.filePath}" type="audio/wav">
+                            <source src="${data.filePath}" type="audio/ogg">
+                            <source src="${data.filePath}" type="audio/mp3">
+                            Votre navigateur ne supporte pas l'élément audio.
+                        </audio>
+                    </div>
+                    ${data.content ? `<p class="text-sm mt-2 ${isFromMe ? 'text-black' : '!text-gray-950 dark:!text-gray-100'}">${this.escapeHtml(data.content)}</p>` : ''}
+                `;
+            } else {
+                messageContentHtml = `
+                    <p class="text-sm whitespace-pre-wrap ${isFromMe ? 'text-black' : '!text-gray-950 dark:!text-gray-100'}">
+                        ${data.content ? this.escapeHtml(data.content) : '<span class="italic opacity-75 ' + (isFromMe ? 'text-black' : 'text-gray-600 dark:text-gray-400') + '">(Message vide)</span>'}
+                    </p>
+                `;
+            }
+            
+            messageDiv.innerHTML = `
+                <div class="flex max-w-[70%] flex-col ${isFromMe ? 'items-end' : 'items-start'}">
+                    <span class="mb-1 text-xs text-gray-500 dark:text-gray-400">
+                        ${data.sender ? `${this.escapeHtml(data.sender.firstName)} ${this.escapeHtml(data.sender.lastName)}` : 'Utilisateur'}
+                    </span>
+                    <div class="rounded-lg px-4 py-2 ${isFromMe ? 'bg-brand-600' : 'bg-gray-100 dark:bg-gray-700'}">
+                        ${messageContentHtml}
+                    </div>
+                    <span class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                        ${data.createdAt ? new Date(data.createdAt).toLocaleString('fr-FR') : ''}
+                    </span>
+                </div>
+            `;
+            
+            // Ajouter le message au conteneur
+            if (this.messagesContainer) {
+                this.messagesContainer.appendChild(messageDiv);
+                
+                // Ajouter l'event listener pour les images
+                const imageElement = messageDiv.querySelector('.request-message-image');
+                if (imageElement) {
+                    imageElement.addEventListener('click', () => {
+                        this.openImageModal(imageElement.getAttribute('data-image-path'));
+                    });
+                }
+                
+                this.scrollToBottom();
+            }
+        },
+        
+        escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
         },
     };
 }

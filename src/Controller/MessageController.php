@@ -10,15 +10,13 @@ use App\Repository\MessageRepository;
 use App\Repository\RequestRepository;
 use App\Repository\UserRepository;
 use App\Service\FileStorageService;
-use App\Service\MercureJwtProvider;
+use App\Service\FirebaseService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\Mercure\HubInterface;
-use Symfony\Component\Mercure\Update;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
@@ -35,8 +33,7 @@ class MessageController extends AbstractController
         private readonly Security $security,
         private readonly EntityManagerInterface $em,
         private readonly ValidatorInterface $validator,
-        private readonly HubInterface $hub,
-        private readonly MercureJwtProvider $mercureJwtProvider,
+        private readonly FirebaseService $firebaseService,
         private readonly FileStorageService $fileStorageService
     ) {
     }
@@ -270,43 +267,47 @@ class MessageController extends AbstractController
         $this->em->persist($message);
         $this->em->flush();
 
-        // Publier le message via Mercure pour le temps réel (avec gestion d'erreur)
+        // Publier le message via Firebase pour le temps réel (avec gestion d'erreur)
         try {
-            $update = new Update(
-                topics: ["/conversations/{$conversationId}"],
-                data: json_encode([
-                    'id' => $message->getId(),
-                    'conversationId' => $conversationId,
-                    'content' => $message->getContent(),
-                    'type' => $message->getType(),
-                    'filePath' => $message->getFilePath() ? $this->fileStorageService->generateSecureUrl($message->getFilePath()) : null,
-                    'sender' => [
-                        'id' => $user->getId(),
-                        'firstName' => $user->getFirstName(),
-                        'lastName' => $user->getLastName(),
-                    ],
-                    'receiverId' => $receiver->getId(),
-                    'createdAt' => $message->getCreatedAt()?->format('Y-m-d H:i:s'),
-                    'isRead' => false,
-                ]),
-                private: true
-            );
-            $this->hub->publish($update);
+            // S'assurer que tous les types sont compatibles avec Firebase
+            $messageData = [
+                'id' => (string)$message->getId(), // Convertir en string
+                'conversationId' => (string)$conversationId, // Convertir en string
+                'content' => $message->getContent() ?? '', // Toujours une string
+                'type' => $message->getType() ?? 'text', // Toujours une string
+                'filePath' => $message->getFilePath() ? $this->fileStorageService->generateSecureUrl($message->getFilePath()) : '', // String vide au lieu de null
+                'sender' => [
+                    'id' => (string)$user->getId(), // Convertir en string
+                    'firstName' => $user->getFirstName() ?? '',
+                    'lastName' => $user->getLastName() ?? '',
+                ],
+                'receiverId' => (string)$receiver->getId(), // Convertir en string
+                'createdAt' => $message->getCreatedAt()?->format('Y-m-d H:i:s') ?? date('Y-m-d H:i:s'),
+                'isRead' => false, // Boolean OK
+            ];
+            
+            // Nettoyer les valeurs null
+            $messageData = array_filter($messageData, function($value) {
+                return $value !== null;
+            });
+
+            // Publier dans Firebase Realtime Database
+            $this->firebaseService->publishMessage("/conversations/{$conversationId}/messages", $messageData);
 
             // Publier aussi une notification pour la liste des conversations
-            $updateList = new Update(
-                topics: ["/conversations/user/{$user->getId()}", "/conversations/user/{$receiver->getId()}"],
-                data: json_encode([
-                    'type' => 'new_message',
-                    'conversationId' => $conversationId,
-                    'unreadCount' => $this->messageRepository->countUnreadMessages($receiver),
-                ]),
-                private: true
-            );
-            $this->hub->publish($updateList);
+            $this->firebaseService->publishMessage("/conversations/user/{$user->getId()}/updates", [
+                'type' => 'new_message',
+                'conversationId' => $conversationId,
+                'unreadCount' => $this->messageRepository->countUnreadMessages($receiver),
+            ]);
+            $this->firebaseService->publishMessage("/conversations/user/{$receiver->getId()}/updates", [
+                'type' => 'new_message',
+                'conversationId' => $conversationId,
+                'unreadCount' => $this->messageRepository->countUnreadMessages($receiver),
+            ]);
         } catch (\Exception $e) {
             // Log l'erreur mais ne bloque pas l'envoi du message
-            error_log('Erreur Mercure: ' . $e->getMessage());
+            error_log('Erreur Firebase: ' . $e->getMessage());
         }
 
         return new JsonResponse([
@@ -373,7 +374,6 @@ class MessageController extends AbstractController
                 'lastName' => $otherUser->getLastName(),
                 'email' => $otherUser->getEmail(),
             ],
-            'mercureUrl' => 'https://localhost:8443/.well-known/mercure',
             'breadcrumbs' => [
                 ['label' => 'Dashboard', 'url' => $this->generateUrl('admin_dashboard')],
                 ['label' => 'Messages', 'url' => $this->generateUrl('admin_messages_list')],
@@ -415,23 +415,5 @@ class MessageController extends AbstractController
         ]);
     }
 
-    #[Route('/admin/messages/mercure-token', name: 'admin_messages_mercure_token', methods: ['GET'])]
-    #[IsGranted('ROLE_USER')]
-    public function getMercureToken(): JsonResponse
-    {
-        $user = $this->getUser();
-        if (!$user) {
-            return new JsonResponse(['success' => false, 'message' => 'Non authentifié'], 401);
-        }
-
-        // Utiliser le JWT Provider pour générer un token Mercure
-        // Le token doit permettre de s'abonner aux topics de l'utilisateur
-        $token = $this->mercureJwtProvider->getJwt();
-
-        return new JsonResponse([
-            'success' => true,
-            'token' => $token,
-        ]);
-    }
 }
 

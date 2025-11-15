@@ -59,30 +59,10 @@ services:
             $contactEmail: '%env(default::CONTACT_EMAIL)%'
             $appName: 'SARA'
 
-    # HttpClient pour Mercure (ignore SSL verification)
-    mercure.http_client:
-        class: Symfony\Component\HttpClient\HttpClient
-        factory: [Symfony\Component\HttpClient\HttpClient, create]
+    # Firebase Service
+    App\Service\FirebaseService:
         arguments:
-            - verify_peer: false
-              verify_host: false
-        tags:
-            - { name: 'http_client.client' }
-
-    # JWT Provider pour Mercure
-    App\Service\MercureJwtProvider:
-        arguments:
-            $jwtSecret: '!ChangeThisMercureHubJWTSecretKey!'
-
-    # Publisher personnalisé pour Mercure
-    App\Service\MercurePublisher:
-        arguments:
-            $hubUrl: 'https://localhost:8443/.well-known/mercure'
-            $jwtProvider: '@App\Service\MercureJwtProvider'
-            $httpClient: '@mercure.http_client'
-
-    # Configuration du Hub Mercure par défaut
-    Symfony\Component\Mercure\Hub:
-        arguments:
-            - '@App\Service\MercurePublisher'
-            - '@App\Service\MercureJwtProvider'
+            $projectId: '%env(default::FIREBASE_PROJECT_ID)%'
+            $privateKey: '%env(default::FIREBASE_PRIVATE_KEY)%'
+            $clientEmail: '%env(default::FIREBASE_CLIENT_EMAIL)%'
+            $databaseUrl: '%env(default::FIREBASE_DATABASE_URL)%'

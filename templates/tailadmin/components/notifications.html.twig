@@ -116,15 +116,14 @@ function notificationManager() {
     panelOpen: false,
     notifications: [],
     unreadCount: 0,
-    eventSource: null,
-    mercureUrl: 'https://localhost:8443/.well-known/mercure',
-    mercureToken: null,
+    firebaseDatabase: null,
+    firebaseConfig: null,
     userId: {{ app.user.id }},
 
     async init() {
       await this.loadUnreadCount();
       await this.loadNotifications();
-      await this.connectToMercure();
+      await this.initFirebase();
     },
 
     async loadUnreadCount() {
@@ -149,54 +148,74 @@ function notificationManager() {
       }
     },
 
-    async connectToMercure() {
+    async initFirebase() {
       try {
-        // Récupérer le token Mercure
-        const tokenResponse = await fetch('{{ path('admin_messages_mercure_token') }}');
-        const tokenData = await tokenResponse.json();
+        // Récupérer la configuration Firebase depuis le serveur
+        const configResponse = await fetch('{{ path('admin_firebase_config') }}', {
+          headers: {
+            'Accept': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+          },
+          credentials: 'same-origin'
+        });
         
-        if (!tokenData.success) {
-          console.error('Échec récupération token Mercure');
+        if (!configResponse.ok) {
+          console.error('Échec récupération config Firebase');
           return;
         }
 
-        this.mercureToken = tokenData.token;
-
-        // Construire l'URL Mercure
-        const url = new URL(this.mercureUrl);
-        url.searchParams.append('topic', `/notifications/user/${this.userId}`);
-
-        // Utiliser EventSourcePolyfill si disponible, sinon EventSource standard
-        if (typeof EventSourcePolyfill !== 'undefined') {
-          this.eventSource = new EventSourcePolyfill(url.toString(), {
-            headers: {
-              'Authorization': `Bearer ${this.mercureToken}`
-            },
-            withCredentials: false
-          });
-        } else {
-          // Fallback : utiliser EventSource standard (sans auth)
-          this.eventSource = new EventSource(url.toString());
+        const configData = await configResponse.json();
+        
+        if (!configData.success || !configData.config) {
+          console.error('Configuration Firebase invalide');
+          return;
         }
 
-        this.eventSource.onmessage = (event) => {
-          try {
-            const data = JSON.parse(event.data);
-            this.handleRealtimeNotification(data);
-          } catch (error) {
-            console.error('Erreur parsing notification:', error);
-          }
-        };
+        this.firebaseConfig = configData.config;
 
-        this.eventSource.onopen = () => {
-          console.log('✅ Connecté aux notifications temps réel');
-        };
+        // Initialiser Firebase
+        if (typeof firebase !== 'undefined') {
+          firebase.initializeApp(this.firebaseConfig);
+          this.firebaseDatabase = firebase.database();
 
-        this.eventSource.onerror = (error) => {
-          console.error('Erreur connexion notifications:', error);
-        };
+          // Écouter les nouvelles notifications
+          const notificationsRef = this.firebaseDatabase.ref(`/notifications/user/${this.userId}/notifications`);
+          notificationsRef.limitToLast(1).on('child_added', (snapshot) => {
+            const notification = snapshot.val();
+            this.handleRealtimeNotification(notification);
+          });
+
+          // Écouter les mises à jour
+          const updatesRef = this.firebaseDatabase.ref(`/notifications/user/${this.userId}/updates`);
+          updatesRef.limitToLast(1).on('child_added', (snapshot) => {
+            const update = snapshot.val();
+            this.handleRealtimeUpdate(update);
+          });
+
+          console.log('✅ Connecté à Firebase pour les notifications temps réel');
+        } else {
+          console.error('Firebase SDK non chargé');
+        }
       } catch (error) {
-        console.error('Erreur initialisation Mercure:', error);
+        console.error('Erreur initialisation Firebase:', error);
+      }
+    },
+    
+    handleRealtimeUpdate(update) {
+      if (update.type === 'all_read') {
+        this.notifications.forEach(n => n.isRead = true);
+        this.unreadCount = 0;
+        this.updateBadge();
+      } else if (update.type === 'notification_read') {
+        const notification = this.notifications.find(n => n.id === update.id);
+        if (notification) {
+          notification.isRead = true;
+          if (this.unreadCount > 0) this.unreadCount--;
+          this.updateBadge();
+        }
+      } else if (update.type === 'notification_deleted') {
+        this.notifications = this.notifications.filter(n => n.id !== update.id);
+        this.loadUnreadCount();
       }
     },
 

@@ -9,8 +9,7 @@ use App\Entity\Task;
 use App\Entity\User;
 use App\Repository\NotificationRepository;
 use Doctrine\ORM\EntityManagerInterface;
-use Symfony\Component\Mercure\HubInterface;
-use Symfony\Component\Mercure\Update;
+use App\Service\FirebaseService;
 use Symfony\Component\Routing\RouterInterface;
 
 class NotificationService
@@ -18,7 +17,7 @@ class NotificationService
     public function __construct(
         private readonly EntityManagerInterface $em,
         private readonly NotificationRepository $notificationRepository,
-        private readonly HubInterface $hub,
+        private readonly FirebaseService $firebaseService,
         private readonly RouterInterface $router,
         private readonly ?EmailNotificationService $emailNotificationService = null
     ) {
@@ -52,7 +51,7 @@ class NotificationService
         $this->em->persist($notification);
         $this->em->flush();
 
-        // Publier via Mercure pour notification en temps réel
+        // Publier via Firebase pour notification en temps réel
         $this->publishRealtimeNotification($notification);
 
         // Envoyer un email pour la notification
@@ -69,20 +68,18 @@ class NotificationService
     }
 
     /**
-     * Publie la notification via Mercure
+     * Publie la notification via Firebase
      */
     private function publishRealtimeNotification(Notification $notification): void
     {
         try {
-            $update = new Update(
-                topics: ["/notifications/user/{$notification->getRecipient()->getId()}"],
-                data: json_encode($notification->toArray()),
-                private: true
+            $this->firebaseService->publishMessage(
+                "/notifications/user/{$notification->getRecipient()->getId()}/notifications",
+                $notification->toArray()
             );
-            $this->hub->publish($update);
         } catch (\Exception $e) {
             // Log l'erreur mais ne bloque pas la création de la notification
-            error_log('Erreur Mercure notification: ' . $e->getMessage());
+            error_log('Erreur Firebase notification: ' . $e->getMessage());
         }
     }
 
@@ -94,20 +91,18 @@ class NotificationService
         $notification->setIsRead(true);
         $this->em->flush();
 
-        // Publier la mise à jour via Mercure
+        // Publier la mise à jour via Firebase
         try {
-            $update = new Update(
-                topics: ["/notifications/user/{$notification->getRecipient()->getId()}"],
-                data: json_encode([
+            $this->firebaseService->publishMessage(
+                "/notifications/user/{$notification->getRecipient()->getId()}/updates",
+                [
                     'type' => 'notification_read',
                     'id' => $notification->getId(),
                     'isRead' => true,
-                ]),
-                private: true
+                ]
             );
-            $this->hub->publish($update);
         } catch (\Exception $e) {
-            error_log('Erreur Mercure notification read: ' . $e->getMessage());
+            error_log('Erreur Firebase notification read: ' . $e->getMessage());
         }
     }
 
@@ -118,16 +113,14 @@ class NotificationService
     {
         $this->notificationRepository->markAllAsRead($user);
 
-        // Publier la mise à jour
+        // Publier la mise à jour via Firebase
         try {
-            $update = new Update(
-                topics: ["/notifications/user/{$user->getId()}"],
-                data: json_encode(['type' => 'all_read']),
-                private: true
+            $this->firebaseService->publishMessage(
+                "/notifications/user/{$user->getId()}/updates",
+                ['type' => 'all_read']
             );
-            $this->hub->publish($update);
         } catch (\Exception $e) {
-            error_log('Erreur Mercure mark all read: ' . $e->getMessage());
+            error_log('Erreur Firebase mark all read: ' . $e->getMessage());
         }
     }
 
@@ -140,19 +133,17 @@ class NotificationService
         $this->em->remove($notification);
         $this->em->flush();
 
-        // Publier la suppression via Mercure
+        // Publier la suppression via Firebase
         try {
-            $update = new Update(
-                topics: ["/notifications/user/{$recipientId}"],
-                data: json_encode([
+            $this->firebaseService->publishMessage(
+                "/notifications/user/{$recipientId}/updates",
+                [
                     'type' => 'notification_deleted',
                     'id' => $notification->getId(),
-                ]),
-                private: true
+                ]
             );
-            $this->hub->publish($update);
         } catch (\Exception $e) {
-            error_log('Erreur Mercure notification delete: ' . $e->getMessage());
+            error_log('Erreur Firebase notification delete: ' . $e->getMessage());
         }
     }
 
