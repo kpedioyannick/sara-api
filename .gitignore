@@ -2,6 +2,8 @@
 ###> symfony/framework-bundle ###
 /.env
 .env
+sara-6c71d-firebase-adminsdk-fbsvc-b1947682e7.json
+/sara-6c71d-firebase-adminsdk-fbsvc-b1947682e7.json
 /.env.local
 /.env.local.php
 /.env.*.local
@@ -34,3 +36,7 @@
 # Node.js dependencies
 node_modules/
 **/node_modules/
+
+# Firebase credentials (NE JAMAIS COMMITER)
+**/firebase-adminsdk*.json
+sara-6c71d-firebase-adminsdk-fbsvc-b1947682e7.json
