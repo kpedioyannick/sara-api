@@ -352,6 +352,48 @@ class NotificationService
     }
 
     /**
+     * Notifie qu'un nouveau message a été reçu
+     */
+    public function notifyNewMessage(\App\Entity\Message $message, User $recipient): void
+    {
+        $sender = $message->getSender();
+        $request = $message->getRequest();
+        
+        // Déterminer l'URL de redirection
+        $url = null;
+        if ($request) {
+            $url = $this->router->generate('admin_requests_detail', ['id' => $request->getId()]);
+        } else {
+            $url = $this->router->generate('admin_messages_list');
+        }
+
+        // Créer le titre et le message
+        $senderName = "{$sender->getFirstName()} {$sender->getLastName()}";
+        $title = 'Nouveau message';
+        $messageText = $message->getContent();
+        if ($messageText && strlen($messageText) > 100) {
+            $messageText = substr($messageText, 0, 100) . '...';
+        }
+        $notificationMessage = $messageText ? "{$senderName}: {$messageText}" : "Nouveau message de {$senderName}";
+
+        $this->createNotification(
+            recipient: $recipient,
+            type: Notification::TYPE_NEW_MESSAGE,
+            title: $title,
+            message: $notificationMessage,
+            url: $url,
+            data: [
+                'messageId' => $message->getId(),
+                'senderId' => $sender->getId(),
+                'senderName' => $senderName,
+                'conversationId' => $message->getConversationId(),
+                'requestId' => $request?->getId(),
+            ],
+            request: $request
+        );
+    }
+
+    /**
      * Récupère l'utilisateur assigné à une tâche
      */
     private function getTaskAssignee(Task $task): ?User

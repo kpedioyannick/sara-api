@@ -11,6 +11,7 @@ use App\Repository\RequestRepository;
 use App\Repository\UserRepository;
 use App\Service\FileStorageService;
 use App\Service\FirebaseService;
+use App\Service\NotificationService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Bundle\SecurityBundle\Security;
@@ -34,11 +35,12 @@ class MessageController extends AbstractController
         private readonly EntityManagerInterface $em,
         private readonly ValidatorInterface $validator,
         private readonly FirebaseService $firebaseService,
-        private readonly FileStorageService $fileStorageService
+        private readonly FileStorageService $fileStorageService,
+        private readonly NotificationService $notificationService
     ) {
     }
 
-    #[Route('/admin/notifications', name: 'admin_notifications', methods: ['GET'])]
+    #[Route('/admin/messages/notifications', name: 'admin_messages_notifications', methods: ['GET'])]
     #[IsGranted('ROLE_USER')]
     public function notifications(): JsonResponse
     {
@@ -308,6 +310,14 @@ class MessageController extends AbstractController
         } catch (\Exception $e) {
             // Log l'erreur mais ne bloque pas l'envoi du message
             error_log('Erreur Firebase: ' . $e->getMessage());
+        }
+
+        // Créer une notification pour le destinataire
+        try {
+            $this->notificationService->notifyNewMessage($message, $receiver);
+        } catch (\Exception $e) {
+            // Log l'erreur mais ne bloque pas l'envoi du message
+            error_log('Erreur notification nouveau message: ' . $e->getMessage());
         }
 
         return new JsonResponse([

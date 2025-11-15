@@ -31,6 +31,9 @@ class NotificationController extends AbstractController
             throw $this->createAccessDeniedException('Vous devez être connecté');
         }
 
+        // Forcer le format HTML pour cette route (ignorer Accept: application/json)
+        $request->setRequestFormat('html');
+
         $page = $request->query->getInt('page', 1);
         $limit = 20;
 

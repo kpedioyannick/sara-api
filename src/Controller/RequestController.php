@@ -772,6 +772,14 @@ class RequestController extends AbstractController
             error_log('Erreur Firebase: ' . $e->getMessage() . ' - Trace: ' . $e->getTraceAsString());
         }
 
+        // Créer une notification pour le destinataire
+        try {
+            $this->notificationService->notifyNewMessage($message, $receiver);
+        } catch (\Exception $e) {
+            // Log l'erreur mais ne bloque pas l'envoi du message
+            error_log('Erreur notification nouveau message: ' . $e->getMessage());
+        }
+
         return new JsonResponse([
             'success' => true,
             'message' => 'Message envoyé avec succès',
