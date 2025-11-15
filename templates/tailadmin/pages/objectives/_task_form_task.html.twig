@@ -42,32 +42,6 @@
     </select>
   </div>
 
-  <!-- Dates et Heures -->
-  <div class="grid grid-cols-2 gap-4">
-    <!-- Date et heure de début -->
-    <div>
-      <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-        Date et heure de début
-      </label>
-      <input
-        type="datetime-local"
-        x-model="taskConfig.createdAt"
-        class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
-      />
-    </div>
-    <!-- Date et heure de fin -->
-    <div>
-      <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-        Date et heure de fin
-      </label>
-      <input
-        type="datetime-local"
-        x-model="taskConfig.dueDate"
-        class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
-      />
-    </div>
-  </div>
-
   <!-- Affectation -->
   <div>
     <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -121,24 +95,86 @@
     </select>
   </div>
 
-  <!-- Fréquence -->
-  <div>
-    <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-      Fréquence
-    </label>
-    <select
-      x-model="taskConfig.frequency"
-      class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
-    >
-      <option value="none">Aucune</option>
-      <option value="hourly">Toutes les heures</option>
-      <option value="daily">Quotidienne</option>
-      <option value="half_day">Une demi-journée</option>
-      <option value="every_2_days">Tous les 2 jours</option>
-      <option value="weekly">Hebdomadaire</option>
-      <option value="monthly">Mensuelle</option>
-      <option value="yearly">Annuelle</option>
-    </select>
+  <!-- Période et fréquence (regroupées) -->
+  <div class="space-y-4 rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-800/50">
+    <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4">📅 Période et fréquence</h3>
+    
+    <!-- Dates -->
+    <div class="grid grid-cols-2 gap-4">
+      <!-- Date et heure de début -->
+      <div>
+        <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+          Date et heure de début
+        </label>
+        <input
+          type="datetime-local"
+          x-model="taskConfig.startDate"
+          class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+        />
+      </div>
+      
+      <!-- Date et heure de fin -->
+      <div>
+        <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+          Date et heure de fin
+        </label>
+        <input
+          type="datetime-local"
+          x-model="taskConfig.dueDate"
+          :min="taskConfig.startDate"
+          class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+        />
+      </div>
+    </div>
+    
+    <!-- Fréquence -->
+    <div>
+      <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+        🔄 Fréquence
+      </label>
+      <select
+        x-model="taskConfig.frequency"
+        @change="onFrequencyChange()"
+        class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+      >
+        <option value="none">Aucune</option>
+        <option value="daily">Quotidienne</option>
+        <option value="weekly">Hebdomadaire</option>
+        <option value="monthly">Mensuelle</option>
+      </select>
+    </div>
+
+    <!-- Jours de la semaine (si hebdomadaire) -->
+    <div x-show="taskConfig.frequency === 'weekly'" x-cloak class="space-y-2">
+      <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+        📆 Jours de la semaine
+      </label>
+      <div class="flex flex-wrap gap-2">
+        <template x-for="(day, index) in [
+          { value: 1, label: 'Lun' },
+          { value: 2, label: 'Mar' },
+          { value: 3, label: 'Mer' },
+          { value: 4, label: 'Jeu' },
+          { value: 5, label: 'Ven' },
+          { value: 6, label: 'Sam' },
+          { value: 0, label: 'Dim' }
+        ]" :key="day.value">
+          <label class="flex cursor-pointer items-center gap-2 rounded-lg border border-gray-300 px-3 py-2 text-sm transition-colors hover:bg-gray-100 dark:border-gray-600 dark:hover:bg-gray-700"
+                 :class="(taskConfig.repeatDaysOfWeek || []).includes(day.value) ? 'bg-brand-100 border-brand-500 text-brand-700 dark:bg-brand-900/30 dark:border-brand-500' : 'bg-white text-gray-700 dark:bg-gray-800 dark:text-gray-300'">
+            <input
+              type="checkbox"
+              :value="day.value"
+              x-model="taskConfig.repeatDaysOfWeek"
+              class="h-4 w-4 rounded border-gray-300 text-brand-500 focus:ring-brand-500 dark:border-gray-600"
+            />
+            <span x-text="day.label"></span>
+          </label>
+        </template>
+      </div>
+      <p class="text-xs text-gray-500 dark:text-gray-400" x-show="!taskConfig.repeatDaysOfWeek || taskConfig.repeatDaysOfWeek.length === 0">
+        Sélectionnez au moins un jour
+      </p>
+    </div>
   </div>
 
   <!-- Preuve requise -->

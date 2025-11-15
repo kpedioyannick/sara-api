@@ -128,6 +128,20 @@ class TaskController extends AbstractController
             'created_at' => $data['createdAt'] ?? null,
         ], $objective, $assignedTo, $assignedType);
 
+        // Gérer startDate
+        if (isset($data['startDate']) && $data['startDate']) {
+            try {
+                $task->setStartDate(new \DateTimeImmutable($data['startDate']));
+            } catch (\Exception $e) {
+                // Ignorer les erreurs de format de date
+            }
+        }
+
+        // Gérer repeatDaysOfWeek
+        if (isset($data['repeatDaysOfWeek']) && is_array($data['repeatDaysOfWeek'])) {
+            $task->setRepeatDaysOfWeek($data['repeatDaysOfWeek']);
+        }
+
         // Définir le type de tâche
         if (isset($data['type'])) {
             try {
@@ -300,6 +314,18 @@ class TaskController extends AbstractController
             } catch (\Exception $e) {
                 // Ignorer les erreurs de format de date
             }
+        }
+        if (isset($data['startDate']) && $data['startDate']) {
+            try {
+                $task->setStartDate(new \DateTimeImmutable($data['startDate']));
+            } catch (\Exception $e) {
+                // Ignorer les erreurs de format de date
+            }
+        }
+        if (isset($data['repeatDaysOfWeek']) && is_array($data['repeatDaysOfWeek'])) {
+            $task->setRepeatDaysOfWeek($data['repeatDaysOfWeek']);
+        } elseif (isset($data['repeatDaysOfWeek']) && $data['repeatDaysOfWeek'] === null) {
+            $task->setRepeatDaysOfWeek(null);
         }
         if (isset($data['proofType'])) $task->setProofType($data['proofType']);
         

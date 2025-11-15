@@ -17,25 +17,17 @@ class Task
     public const STATUS_IN_PROGRESS = 'in_progress';
     public const STATUS_COMPLETED = 'completed';
 
-    // Constantes pour les temporalités/fréquences
+    // Constantes pour les temporalités/fréquences (simplifiées)
     public const FREQUENCY_NONE = 'none';
-    public const FREQUENCY_HOURLY = 'hourly';
     public const FREQUENCY_DAILY = 'daily';
-    public const FREQUENCY_HALF_DAY = 'half_day';
-    public const FREQUENCY_EVERY_2_DAYS = 'every_2_days';
     public const FREQUENCY_WEEKLY = 'weekly';
     public const FREQUENCY_MONTHLY = 'monthly';
-    public const FREQUENCY_YEARLY = 'yearly';
 
     public const FREQUENCIES = [
         self::FREQUENCY_NONE => 'Aucune',
-        self::FREQUENCY_HOURLY => 'Toutes les heures',
         self::FREQUENCY_DAILY => 'Quotidienne',
-        self::FREQUENCY_HALF_DAY => 'Une demi-journée',
-        self::FREQUENCY_EVERY_2_DAYS => 'Tous les 2 jours',
         self::FREQUENCY_WEEKLY => 'Hebdomadaire',
         self::FREQUENCY_MONTHLY => 'Mensuelle',
-        self::FREQUENCY_YEARLY => 'Annuelle',
     ];
 
     #[ORM\Id]
@@ -64,6 +56,11 @@ class Task
     #[ORM\Column(type: 'datetime_immutable', nullable: true)]
     private ?\DateTimeImmutable $dueDate = null;
 
+    #[ORM\Column(type: 'datetime_immutable', nullable: true)]
+    private ?\DateTimeImmutable $startDate = null;
+
+    #[ORM\Column(type: 'json', nullable: true)]
+    private ?array $repeatDaysOfWeek = null;
 
     #[ORM\Column(type: 'datetime_immutable')]
     private ?\DateTimeImmutable $createdAt = null;
@@ -209,6 +206,27 @@ class Task
         return $this;
     }
 
+    public function getStartDate(): ?\DateTimeImmutable
+    {
+        return $this->startDate;
+    }
+
+    public function setStartDate(?\DateTimeImmutable $startDate): static
+    {
+        $this->startDate = $startDate;
+        return $this;
+    }
+
+    public function getRepeatDaysOfWeek(): ?array
+    {
+        return $this->repeatDaysOfWeek;
+    }
+
+    public function setRepeatDaysOfWeek(?array $repeatDaysOfWeek): static
+    {
+        $this->repeatDaysOfWeek = $repeatDaysOfWeek;
+        return $this;
+    }
 
     public function getCreatedAt(): ?\DateTimeImmutable
     {
@@ -412,7 +430,9 @@ class Task
             'frequency' => $this->getFrequency(),
             'requiresProof' => $this->isRequiresProof(),
             'proofType' => $this->getProofType(),
+            'startDate' => $this->getStartDate()?->format('Y-m-d H:i:s'),
             'dueDate' => $this->getDueDate()?->format('Y-m-d H:i:s'),
+            'repeatDaysOfWeek' => $this->getRepeatDaysOfWeek(),
             'assignedType' => $this->getAssignedType(),
             'assignedTo' => $this->getAssignedToSimpleArray(),
             'objective' => $this->getObjective()?->toArray(),
@@ -433,7 +453,9 @@ class Task
             'frequency' => $this->getFrequency(),
             'requiresProof' => $this->isRequiresProof(),
             'proofType' => $this->getProofType(),
+            'startDate' => $this->getStartDate()?->format('Y-m-d H:i:s'),
             'dueDate' => $this->getDueDate()?->format('Y-m-d H:i:s'),
+            'repeatDaysOfWeek' => $this->getRepeatDaysOfWeek(),
             'assignedType' => $this->getAssignedType(),
             'assignedTo' => $this->getAssignedToSimpleArray(),
             'coach' => $this->getCoach()?->toSimpleArray(),
@@ -566,7 +588,9 @@ class Task
                 'firstName' => $this->getSpecialist()->getFirstName(),
                 'lastName' => $this->getSpecialist()->getLastName(),
             ] : null,
+            'startDate' => $this->getStartDate()?->format('Y-m-d H:i:s'),
             'dueDate' => $this->getDueDate()?->format('Y-m-d H:i:s'),
+            'repeatDaysOfWeek' => $this->getRepeatDaysOfWeek(),
             'createdAt' => $this->getCreatedAt()?->format('Y-m-d H:i:s'),
             'activity' => $this->getActivity() ? [
                 'id' => $this->getActivity()->getId(),
@@ -594,12 +618,20 @@ class Task
             return [];
         }
 
-        $createdAt = $this->getCreatedAt();
-        $dueDate = $this->getDueDate() ?? $createdAt->modify('+1 day');
+        // Utiliser startDate/dueDate de la tâche si disponibles, sinon createdAt/dueDate
+        $taskStartDate = $this->getStartDate() ?? $this->getCreatedAt();
+        $taskDueDate = $this->getDueDate() ?? $taskStartDate->modify('+1 day');
+        $frequency = $this->getFrequency();
+        $repeatDaysOfWeek = $this->getRepeatDaysOfWeek() ?? [];
 
-        // Si la tâche s'étend sur plusieurs jours, créer un événement par jour
-        $currentDate = $createdAt > $weekStart ? $createdAt : $weekStart;
-        $endDate = $dueDate < $weekEnd ? $dueDate : $weekEnd;
+        // Si la tâche a une fréquence, générer les événements selon la fréquence
+        if ($frequency && $frequency !== self::FREQUENCY_NONE) {
+            return $this->generateRecurringEventsForPlanning($weekStart, $weekEnd, $taskStartDate, $taskDueDate, $frequency, $repeatDaysOfWeek, $student);
+        }
+
+        // Sinon, créer un événement simple pour la période
+        $currentDate = $taskStartDate > $weekStart ? $taskStartDate : $weekStart;
+        $endDate = $taskDueDate < $weekEnd ? $taskDueDate : $weekEnd;
 
         // Créer un événement pour chaque jour où la tâche est active
         while ($currentDate <= $endDate && $currentDate <= $weekEnd) {
@@ -607,14 +639,14 @@ class Task
                 $dayStart = $currentDate->setTime(9, 0, 0); // 9h du matin par défaut
                 $dayEnd = $currentDate->setTime(17, 0, 0); // 17h par défaut
 
-                // Si c'est le premier jour, utiliser l'heure de createdAt si disponible
-                if ($currentDate->format('Y-m-d') === $createdAt->format('Y-m-d')) {
-                    $dayStart = $createdAt;
+                // Si c'est le premier jour, utiliser l'heure de startDate si disponible
+                if ($currentDate->format('Y-m-d') === $taskStartDate->format('Y-m-d')) {
+                    $dayStart = $taskStartDate;
                 }
 
                 // Si c'est le dernier jour, utiliser l'heure de dueDate si disponible
-                if ($currentDate->format('Y-m-d') === $dueDate->format('Y-m-d')) {
-                    $dayEnd = $dueDate;
+                if ($currentDate->format('Y-m-d') === $taskDueDate->format('Y-m-d')) {
+                    $dayEnd = $taskDueDate;
                 }
 
                 $events[] = [
@@ -640,6 +672,112 @@ class Task
         }
 
         return $events;
+    }
+
+    /**
+     * Génère des événements récurrents pour le planning selon la fréquence
+     */
+    private function generateRecurringEventsForPlanning(
+        \DateTimeImmutable $weekStart,
+        \DateTimeImmutable $weekEnd,
+        \DateTimeImmutable $taskStartDate,
+        \DateTimeImmutable $taskDueDate,
+        string $frequency,
+        array $repeatDaysOfWeek,
+        $student
+    ): array {
+        $events = [];
+        $objective = $this->getObjective();
+        $currentDate = $taskStartDate > $weekStart ? $taskStartDate : $weekStart;
+        $endDate = $taskDueDate < $weekEnd ? $taskDueDate : $weekEnd;
+
+        while ($currentDate <= $endDate && $currentDate <= $weekEnd) {
+            // Pour les répétitions hebdomadaires, vérifier si le jour correspond
+            if ($frequency === self::FREQUENCY_WEEKLY && !empty($repeatDaysOfWeek)) {
+                $dayOfWeek = (int)$currentDate->format('w'); // 0 = dimanche, 1 = lundi, etc.
+                if (!in_array($dayOfWeek, $repeatDaysOfWeek)) {
+                    // Passer au jour suivant (pas à la semaine suivante)
+                    $currentDate = $currentDate->modify('+1 day')->setTime(0, 0, 0);
+                    continue;
+                }
+            }
+
+            if ($currentDate >= $weekStart) {
+                // Utiliser les heures de startDate pour chaque occurrence
+                $dayStart = $currentDate->setTime(
+                    (int)$taskStartDate->format('H'),
+                    (int)$taskStartDate->format('i'),
+                    (int)$taskStartDate->format('s')
+                );
+                
+                // Calculer la date de fin selon la fréquence
+                if ($frequency === self::FREQUENCY_WEEKLY) {
+                    // Pour les répétitions hebdomadaires, chaque occurrence est d'une journée
+                    if ($currentDate->format('Y-m-d') === $taskDueDate->format('Y-m-d')) {
+                        $dayEnd = $taskDueDate;
+                    } else {
+                        // Utiliser l'heure de dueDate si disponible, sinon fin de journée
+                        $dayEnd = $currentDate->setTime(
+                            (int)$taskDueDate->format('H'),
+                            (int)$taskDueDate->format('i'),
+                            (int)$taskDueDate->format('s')
+                        );
+                        // Si l'heure de dueDate est avant l'heure de startDate, utiliser fin de journée
+                        if ($dayEnd <= $dayStart) {
+                            $dayEnd = $currentDate->setTime(23, 59, 59);
+                        }
+                    }
+                } else {
+                    // Pour daily et monthly, calculer selon la fréquence
+                    $dayEnd = match ($frequency) {
+                        self::FREQUENCY_DAILY => $dayStart->modify('+1 day')->setTime(23, 59, 59),
+                        self::FREQUENCY_MONTHLY => $dayStart->modify('+1 month')->setTime(23, 59, 59),
+                        default => $dayStart->modify('+1 day')->setTime(23, 59, 59),
+                    };
+                    
+                    // Si c'est le dernier jour, utiliser l'heure de dueDate
+                    if ($currentDate->format('Y-m-d') === $taskDueDate->format('Y-m-d')) {
+                        $dayEnd = $taskDueDate;
+                    }
+                }
+
+                $events[] = [
+                    'id' => 'task_' . $this->getId() . '_' . $currentDate->format('Y-m-d'),
+                    'title' => $this->getTitle(),
+                    'description' => $this->getDescription(),
+                    'startDate' => $dayStart->format('Y-m-d H:i:s'),
+                    'endDate' => $dayEnd->format('Y-m-d H:i:s'),
+                    'userId' => $student->getId(),
+                    'userName' => $student->getFirstName() . ' ' . $student->getLastName(),
+                    'type' => 'task',
+                    'typeLabel' => 'Tâche d\'objectif',
+                    'status' => $this->getMappedStatus(),
+                    'backgroundColor' => '#10B981',
+                    'sourceType' => 'task',
+                    'sourceId' => $this->getId(),
+                    'objectiveId' => $objective->getId(),
+                    'clickUrl' => '/admin/objectives/' . $objective->getId(),
+                ];
+            }
+
+            // Passer à la prochaine occurrence
+            $currentDate = $this->getNextDateForFrequency($currentDate, $frequency);
+        }
+
+        return $events;
+    }
+
+    /**
+     * Calcule la prochaine date selon la fréquence
+     */
+    private function getNextDateForFrequency(\DateTimeImmutable $currentDate, string $frequency): \DateTimeImmutable
+    {
+        return match ($frequency) {
+            self::FREQUENCY_DAILY => $currentDate->modify('+1 day')->setTime(0, 0, 0),
+            self::FREQUENCY_WEEKLY => $currentDate->modify('+1 week')->setTime(0, 0, 0),
+            self::FREQUENCY_MONTHLY => $currentDate->modify('+1 month')->setTime(0, 0, 0),
+            default => $currentDate->modify('+1 day')->setTime(0, 0, 0),
+        };
     }
 
     public static function createForCoach(array $data, Objective $objective, $assignedTo, string $assignedType): self

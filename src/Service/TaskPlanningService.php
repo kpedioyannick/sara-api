@@ -34,10 +34,11 @@ class TaskPlanningService
         }
 
         // Déterminer les dates de début et fin
-        $startDate = $objective->getCreatedAt();
-        $endDate = $objective->getDeadline();
+        // Priorité : utiliser startDate/dueDate de la tâche, sinon utiliser les dates de l'objectif
+        $startDate = $task->getStartDate() ?? $objective->getCreatedAt();
+        $endDate = $task->getDueDate() ?? $objective->getDeadline();
         
-        // Si pas de deadline, utiliser createdAt + 3 semaines
+        // Si pas de dueDate, utiliser startDate + 3 semaines
         if (!$endDate) {
             $endDate = $startDate->modify('+3 weeks');
         }
@@ -60,26 +61,10 @@ class TaskPlanningService
         \DateTimeImmutable $startDate,
         \DateTimeImmutable $endDate
     ): array {
-        // Vérifier si un événement existe déjà pour cette tâche
-        $existingPlanning = $this->planningRepository->findOneBy([
-            'student' => $student,
-            'type' => Planning::TYPE_TASK,
-            'metadata' => ['taskId' => $task->getId()]
-        ]);
+        // Supprimer les anciens événements de cette tâche pour régénérer
+        $this->removeExistingPlanningForTask($task);
 
-        if ($existingPlanning) {
-            // Mettre à jour l'événement existant
-            $existingPlanning->setTitle($task->getTitle());
-            $existingPlanning->setDescription($task->getDescription());
-            $existingPlanning->setStartDate($startDate);
-            $existingPlanning->setEndDate($endDate);
-            $existingPlanning->setStatus(Planning::STATUS_TO_DO);
-            
-            $this->em->persist($existingPlanning);
-            return [$existingPlanning];
-        }
-
-        // Créer un nouvel événement
+        // Créer un nouvel événement avec les dates de la tâche
         $planning = new Planning();
         $planning->setTitle($task->getTitle());
         $planning->setDescription($task->getDescription());
@@ -91,7 +76,8 @@ class TaskPlanningService
         $planning->setMetadata([
             'taskId' => $task->getId(),
             'objectiveId' => $task->getObjective()?->getId(),
-            'frequency' => $task->getFrequency(),
+            'frequency' => $task->getFrequency() ?? Task::FREQUENCY_NONE,
+            'repeatDaysOfWeek' => $task->getRepeatDaysOfWeek() ?? [],
         ]);
 
         $this->em->persist($planning);
@@ -110,11 +96,74 @@ class TaskPlanningService
         $events = [];
         $currentDate = $startDate;
         $frequency = $task->getFrequency();
+        $repeatDaysOfWeek = $task->getRepeatDaysOfWeek() ?? [];
 
         // Supprimer les anciens événements de cette tâche
         $this->removeExistingPlanningForTask($task);
 
+        // Pour les répétitions hebdomadaires, on doit itérer jour par jour
+        if ($frequency === Task::FREQUENCY_WEEKLY && !empty($repeatDaysOfWeek)) {
+            $currentDate = $startDate;
+            while ($currentDate <= $endDate) {
+                $dayOfWeek = (int)$currentDate->format('w'); // 0 = dimanche, 1 = lundi, etc.
+                
+                // Si le jour correspond aux jours sélectionnés, créer un événement
+                if (in_array($dayOfWeek, $repeatDaysOfWeek)) {
+                    // Utiliser les heures de startDate pour chaque occurrence
+                    $eventStartDate = $currentDate->setTime(
+                        (int)$startDate->format('H'),
+                        (int)$startDate->format('i'),
+                        (int)$startDate->format('s')
+                    );
+                    
+                    // Pour les répétitions hebdomadaires, chaque occurrence est d'une journée
+                    // Utiliser l'heure de dueDate pour la fin de journée, ou 23:59:59 par défaut
+                    if ($currentDate->format('Y-m-d') === $endDate->format('Y-m-d')) {
+                        $eventEndDate = $endDate;
+                    } else {
+                        // Utiliser l'heure de dueDate si disponible, sinon fin de journée
+                        $eventEndDate = $currentDate->setTime(
+                            (int)$endDate->format('H'),
+                            (int)$endDate->format('i'),
+                            (int)$endDate->format('s')
+                        );
+                        // Si l'heure de dueDate est avant l'heure de startDate, utiliser fin de journée
+                        if ($eventEndDate <= $eventStartDate) {
+                            $eventEndDate = $currentDate->setTime(23, 59, 59);
+                        }
+                    }
+                    
+                    if ($eventStartDate <= $endDate) {
+                        $planning = new Planning();
+                        $planning->setTitle($task->getTitle());
+                        $planning->setDescription($task->getDescription());
+                        $planning->setStartDate($eventStartDate);
+                        $planning->setEndDate($eventEndDate);
+                        $planning->setType(Planning::TYPE_TASK);
+                        $planning->setStatus(Planning::STATUS_TO_DO);
+                        $planning->setUser($student);
+                        $planning->setMetadata([
+                            'taskId' => $task->getId(),
+                            'objectiveId' => $task->getObjective()?->getId(),
+                            'frequency' => $frequency,
+                            'repeatDaysOfWeek' => $repeatDaysOfWeek,
+                        ]);
+
+                        $this->em->persist($planning);
+                        $events[] = $planning;
+                    }
+                }
+                
+                // Passer au jour suivant
+                $currentDate = $currentDate->modify('+1 day')->setTime(0, 0, 0);
+            }
+            
+            return $events;
+        }
+
+        // Pour les autres fréquences (daily, monthly), utiliser la logique normale
         while ($currentDate <= $endDate) {
+
             $eventEndDate = $this->calculateEventEndDate($currentDate, $frequency);
 
             // Ne pas créer d'événement si la date de fin dépasse la deadline
@@ -134,6 +183,7 @@ class TaskPlanningService
                 'taskId' => $task->getId(),
                 'objectiveId' => $task->getObjective()?->getId(),
                 'frequency' => $frequency,
+                'repeatDaysOfWeek' => $repeatDaysOfWeek,
             ]);
 
             $this->em->persist($planning);
@@ -152,13 +202,9 @@ class TaskPlanningService
     private function calculateEventEndDate(\DateTimeImmutable $startDate, string $frequency): \DateTimeImmutable
     {
         return match ($frequency) {
-            Task::FREQUENCY_HOURLY => $startDate->modify('+1 hour'),
             Task::FREQUENCY_DAILY => $startDate->modify('+1 day')->setTime(23, 59, 59),
-            Task::FREQUENCY_HALF_DAY => $startDate->modify('+12 hours'),
-            Task::FREQUENCY_EVERY_2_DAYS => $startDate->modify('+2 days')->setTime(23, 59, 59),
             Task::FREQUENCY_WEEKLY => $startDate->modify('+1 week')->setTime(23, 59, 59),
             Task::FREQUENCY_MONTHLY => $startDate->modify('+1 month')->setTime(23, 59, 59),
-            Task::FREQUENCY_YEARLY => $startDate->modify('+1 year')->setTime(23, 59, 59),
             default => $startDate->modify('+1 day')->setTime(23, 59, 59),
         };
     }
@@ -169,13 +215,9 @@ class TaskPlanningService
     private function getNextOccurrenceDate(\DateTimeImmutable $currentDate, string $frequency): \DateTimeImmutable
     {
         return match ($frequency) {
-            Task::FREQUENCY_HOURLY => $currentDate->modify('+1 hour'),
             Task::FREQUENCY_DAILY => $currentDate->modify('+1 day')->setTime(0, 0, 0),
-            Task::FREQUENCY_HALF_DAY => $currentDate->modify('+12 hours'),
-            Task::FREQUENCY_EVERY_2_DAYS => $currentDate->modify('+2 days')->setTime(0, 0, 0),
             Task::FREQUENCY_WEEKLY => $currentDate->modify('+1 week')->setTime(0, 0, 0),
             Task::FREQUENCY_MONTHLY => $currentDate->modify('+1 month')->setTime(0, 0, 0),
-            Task::FREQUENCY_YEARLY => $currentDate->modify('+1 year')->setTime(0, 0, 0),
             default => $currentDate->modify('+1 day')->setTime(0, 0, 0),
         };
     }

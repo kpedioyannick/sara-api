@@ -358,13 +358,9 @@ class ObjectiveController extends AbstractController
                     $frequency = $taskData['frequency'] ?? 'none';
                     $validFrequencies = [
                         Task::FREQUENCY_NONE,
-                        Task::FREQUENCY_HOURLY,
                         Task::FREQUENCY_DAILY,
-                        Task::FREQUENCY_HALF_DAY,
-                        Task::FREQUENCY_EVERY_2_DAYS,
                         Task::FREQUENCY_WEEKLY,
-                        Task::FREQUENCY_MONTHLY,
-                        Task::FREQUENCY_YEARLY
+                        Task::FREQUENCY_MONTHLY
                     ];
                     if (!in_array($frequency, $validFrequencies)) {
                         $frequency = Task::FREQUENCY_NONE; // Fallback

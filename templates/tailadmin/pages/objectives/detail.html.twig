@@ -67,6 +67,9 @@ window.taskManager = function() {
       status: 'pending',
       requiresProof: true,
       frequency: 'none',
+      startDate: '',
+      dueDate: '',
+      repeatDaysOfWeek: [],
       assignedType: 'coach',
       studentId: '',
       parentId: '',
@@ -74,7 +77,6 @@ window.taskManager = function() {
       activityId: '',
       pathId: '',
       createdAt: '',
-      dueDate: '',
       location: '',
       familyId: '',
       assessmentNotes: '',
@@ -2076,27 +2078,28 @@ window.taskManager = function() {
       const taskStudentId = button.getAttribute('data-task-student-id') || '';
       const taskParentId = button.getAttribute('data-task-parent-id') || '';
       const taskSpecialistId = button.getAttribute('data-task-specialist-id') || '';
-      const taskCreatedAt = button.getAttribute('data-task-created-at') || '';
+      const taskStartDate = button.getAttribute('data-task-start-date') || '';
       const taskDueDate = button.getAttribute('data-task-due-date') || '';
+      const taskRepeatDaysOfWeek = button.getAttribute('data-task-repeat-days') || '';
       const taskActivityId = button.getAttribute('data-task-activity-id') || '';
       const taskPathId = button.getAttribute('data-task-path-id') || '';
       const taskType = button.getAttribute('data-task-type') || 'task';
       
-      console.log('Données de la tâche:', { taskId, taskStatus, taskFrequency, taskRequiresProof, taskTitle, taskDescription, taskAssignedType, taskCreatedAt, taskDueDate, taskActivityId, taskPathId, taskType });
+      console.log('Données de la tâche:', { taskId, taskStatus, taskFrequency, taskRequiresProof, taskTitle, taskDescription, taskAssignedType, taskStartDate, taskDueDate, taskActivityId, taskPathId, taskType });
       
       this.currentTaskId = taskId;
       this.configTaskTitle = taskTitle || 'Tâche #' + taskId;
       
       // Formater les dates pour datetime-local ou date selon le type
-      let formattedCreatedAt = '';
+      let formattedStartDate = '';
       let formattedDueDate = '';
-      if (taskCreatedAt) {
+      if (taskStartDate) {
         if (taskType === 'task') {
           // Pour datetime-local, format: YYYY-MM-DDTHH:mm
-          const date = new Date(taskCreatedAt);
-          formattedCreatedAt = date.toISOString().slice(0, 16);
+          const date = new Date(taskStartDate);
+          formattedStartDate = date.toISOString().slice(0, 16);
         } else {
-          formattedCreatedAt = taskCreatedAt.split(' ')[0]; // Format YYYY-MM-DD pour input date
+          formattedStartDate = taskStartDate.split(' ')[0]; // Format YYYY-MM-DD pour input date
         }
       }
       if (taskDueDate) {
@@ -2108,6 +2111,16 @@ window.taskManager = function() {
         }
       }
       
+      // Parser repeatDaysOfWeek depuis JSON
+      let repeatDaysOfWeek = [];
+      if (taskRepeatDaysOfWeek) {
+        try {
+          repeatDaysOfWeek = JSON.parse(taskRepeatDaysOfWeek);
+        } catch (e) {
+          console.error('Erreur parsing repeatDaysOfWeek:', e);
+        }
+      }
+      
       this.taskConfig = {
         isNew: false,
         type: taskType,
@@ -2116,14 +2129,16 @@ window.taskManager = function() {
         status: taskStatus || 'pending',
         requiresProof: taskRequiresProof,
         frequency: taskFrequency || 'none',
+        startDate: formattedStartDate,
+        dueDate: formattedDueDate,
+        repeatDaysOfWeek: repeatDaysOfWeek,
         assignedType: taskAssignedType,
         studentId: taskStudentId,
         parentId: taskParentId,
         specialistId: taskSpecialistId,
         activityId: taskActivityId,
         pathId: taskPathId,
-        createdAt: formattedCreatedAt,
-        dueDate: formattedDueDate,
+        createdAt: formattedStartDate || '',
       };
       
       this.configSheetOpen = true;
@@ -2150,11 +2165,13 @@ window.taskManager = function() {
       
       // Initialiser les dates avec la date/heure actuelle pour les champs datetime-local
       const now = new Date();
+      now.setHours(9, 0, 0, 0); // 9h00 par défaut
       const nowFormatted = now.toISOString().slice(0, 16); // Format: YYYY-MM-DDTHH:mm
       
-      // Date de fin par défaut: +1 jour
+      // Date de fin par défaut: +1 jour à 17h00
       const tomorrow = new Date(now);
       tomorrow.setDate(tomorrow.getDate() + 1);
+      tomorrow.setHours(17, 0, 0, 0); // 17h00 par défaut
       const tomorrowFormatted = tomorrow.toISOString().slice(0, 16);
       
       this.taskConfig = {
@@ -2165,6 +2182,9 @@ window.taskManager = function() {
         status: 'pending',
         requiresProof: true,
         frequency: 'none',
+        startDate: nowFormatted,
+        dueDate: tomorrowFormatted,
+        repeatDaysOfWeek: [],
         assignedType: 'coach',
         studentId: '',
         parentId: '',
@@ -2172,7 +2192,6 @@ window.taskManager = function() {
         activityId: '',
         pathId: '',
         createdAt: nowFormatted,
-        dueDate: tomorrowFormatted,
       };
       
       this.configSheetOpen = true;
@@ -2196,6 +2215,13 @@ window.taskManager = function() {
         this.taskConfig.parentId = this.objective.parent.id;
       }
       // Pour "specialist", on laisse vide (pas de valeur par défaut)
+    },
+    
+    onFrequencyChange() {
+      // Si la fréquence n'est pas "weekly", réinitialiser les jours de la semaine
+      if (this.taskConfig.frequency !== 'weekly') {
+        this.taskConfig.repeatDaysOfWeek = [];
+      }
     },
     
     closeConfigSheet() {
@@ -2427,6 +2453,28 @@ window.taskManager = function() {
         return;
       }
       
+      // Validation : si fréquence hebdomadaire, au moins un jour doit être sélectionné
+      if (this.taskConfig.frequency === 'weekly' && (!this.taskConfig.repeatDaysOfWeek || this.taskConfig.repeatDaysOfWeek.length === 0)) {
+        if (window.showToast) {
+          window.showToast('Veuillez sélectionner au moins un jour de la semaine', 'error');
+        }
+        this.configSubmitting = false;
+        return;
+      }
+      
+      // Validation : date de fin >= date de début
+      if (this.taskConfig.startDate && this.taskConfig.dueDate) {
+        const startDate = new Date(this.taskConfig.startDate);
+        const dueDate = new Date(this.taskConfig.dueDate);
+        if (dueDate < startDate) {
+          if (window.showToast) {
+            window.showToast('La date de fin doit être supérieure ou égale à la date de début', 'error');
+          }
+          this.configSubmitting = false;
+          return;
+        }
+      }
+      
       // Validation : en mode édition, currentTaskId doit être défini
       if (!this.taskConfig.isNew && !this.currentTaskId) {
         if (window.showToast) {
@@ -2451,11 +2499,18 @@ window.taskManager = function() {
         };
         
         // Ajouter les dates si elles sont définies
-        if (this.taskConfig.createdAt) {
-          dataToSend.createdAt = this.taskConfig.createdAt;
+        if (this.taskConfig.startDate) {
+          dataToSend.startDate = this.taskConfig.startDate;
         }
         if (this.taskConfig.dueDate) {
           dataToSend.dueDate = this.taskConfig.dueDate;
+        }
+        if (this.taskConfig.repeatDaysOfWeek && this.taskConfig.repeatDaysOfWeek.length > 0) {
+          dataToSend.repeatDaysOfWeek = this.taskConfig.repeatDaysOfWeek;
+        }
+        // Garder createdAt pour compatibilité (utiliser startDate si disponible)
+        if (this.taskConfig.createdAt) {
+          dataToSend.createdAt = this.taskConfig.createdAt;
         }
         
         // Ajouter l'ID selon le type d'affectation
