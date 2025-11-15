@@ -14,12 +14,14 @@ use App\Entity\Planning;
 use App\Entity\User;
 use App\Repository\TaskRepository;
 use App\Repository\RequestRepository;
+use Doctrine\ORM\EntityManagerInterface;
 
 class PermissionService
 {
     public function __construct(
         private readonly TaskRepository $taskRepository,
-        private readonly RequestRepository $requestRepository
+        private readonly RequestRepository $requestRepository,
+        private readonly EntityManagerInterface $em
     ) {
     }
     /**
@@ -34,7 +36,7 @@ class PermissionService
     /**
      * Vérifie si l'utilisateur peut voir un objectif
      */
-    public function canViewObjective(User $user, Objective $objective): bool
+public function canViewObjective(User $user, Objective $objective): bool
     {
         // Coach : peut voir tous les objectifs de ses étudiants
         if ($user instanceof Coach) {
@@ -51,13 +53,22 @@ class PermissionService
             return $student && $student->getFamily() === $family;
         }
 
-        // Student : peut voir ses propres objectifs
+        // Student : peut voir ses propres objectifs OU les objectifs partagés avec lui
         if ($user instanceof Student) {
-            return $objective->getStudent() === $user;
+            if ($objective->getStudent() === $user) {
+                return true;
+            }
+            // Vérifier si l'objectif est partagé avec cet élève
+            return $objective->getSharedStudents()->contains($user);
         }
 
-        // Specialist : peut voir les objectifs des tâches qui lui sont affectées
+        // Specialist : peut voir les objectifs des tâches qui lui sont affectées OU les objectifs partagés avec lui
         if ($user instanceof Specialist) {
+            // Vérifier d'abord si l'objectif est partagé avec ce spécialiste
+            if ($objective->getSharedSpecialists()->contains($user)) {
+                return true;
+            }
+            // Sinon, vérifier les tâches affectées
             foreach ($objective->getTasks() as $task) {
                 if ($task->getSpecialist() === $user) {
                     return true;
@@ -276,25 +287,39 @@ class PermissionService
      */
     public function canCompleteTask(User $user, Task $task): bool
     {
-        // Coach : peut compléter toutes les tâches de ses objectifs
-        if ($user instanceof Coach) {
-            $objective = $task->getObjective();
-            return $objective && $objective->getCoach() === $user;
+        $objective = $task->getObjective();
+        if (!$objective) {
+            return false;
         }
 
-        // Vérifier si la tâche est affectée à l'utilisateur
-        $assignedType = $task->getAssignedType();
-        
-        if ($assignedType === 'student' && $user instanceof Student) {
-            return $task->getStudent() === $user;
+        // Coach : peut compléter toutes les tâches de ses objectifs
+        if ($user instanceof Coach) {
+            return $objective->getCoach() === $user;
+        }
+
+        // Student : peut compléter si la tâche lui est affectée OU si l'objectif est partagé avec lui
+        if ($user instanceof Student) {
+            // Vérifier si la tâche est affectée à l'élève
+            if ($task->getAssignedType() === 'student' && $task->getStudent() === $user) {
+                return true;
+            }
+            // Vérifier si l'objectif est partagé avec cet élève (peut ajouter des preuves)
+            return $objective->getSharedStudents()->contains($user);
         }
         
-        if ($assignedType === 'parent' && $user instanceof ParentUser) {
-            return $task->getParent() === $user;
+        // Parent : peut compléter si la tâche lui est affectée
+        if ($user instanceof ParentUser) {
+            return $task->getAssignedType() === 'parent' && $task->getParent() === $user;
         }
         
-        if ($assignedType === 'specialist' && $user instanceof Specialist) {
-            return $task->getSpecialist() === $user;
+        // Specialist : peut compléter si la tâche lui est affectée OU si l'objectif est partagé avec lui
+        if ($user instanceof Specialist) {
+            // Vérifier si la tâche est affectée au spécialiste
+            if ($task->getAssignedType() === 'specialist' && $task->getSpecialist() === $user) {
+                return true;
+            }
+            // Vérifier si l'objectif est partagé avec ce spécialiste (peut ajouter des preuves)
+            return $objective->getSharedSpecialists()->contains($user);
         }
 
         return false;
@@ -614,12 +639,25 @@ class PermissionService
         }
 
         if ($user instanceof Student) {
-            // Ses propres objectifs
-            return $user->getObjectives()->toArray();
+            // Ses propres objectifs + objectifs partagés avec lui
+            $objectives = $user->getObjectives()->toArray();
+            // Ajouter les objectifs partagés
+            $sharedObjectives = $this->em
+                ->createQueryBuilder()
+                ->select('o')
+                ->from(Objective::class, 'o')
+                ->join('o.sharedStudents', 's')
+                ->where('s.id = :studentId')
+                ->setParameter('studentId', $user->getId())
+                ->getQuery()
+                ->getResult();
+            // Fusionner et supprimer les doublons
+            $allObjectives = array_merge($objectives, $sharedObjectives);
+            return array_values(array_unique($allObjectives, SORT_REGULAR));
         }
 
         if ($user instanceof Specialist) {
-            // Objectifs des tâches qui lui sont affectées
+            // Objectifs des tâches qui lui sont affectées + objectifs partagés avec lui
             $objectives = [];
             $tasks = $this->taskRepository->findBySpecialist($user);
             foreach ($tasks as $task) {
@@ -628,7 +666,19 @@ class PermissionService
                     $objectives[] = $objective;
                 }
             }
-            return $objectives;
+            // Ajouter les objectifs partagés
+            $sharedObjectives = $this->em
+                ->createQueryBuilder()
+                ->select('o')
+                ->from(Objective::class, 'o')
+                ->join('o.sharedSpecialists', 's')
+                ->where('s.id = :specialistId')
+                ->setParameter('specialistId', $user->getId())
+                ->getQuery()
+                ->getResult();
+            // Fusionner et supprimer les doublons
+            $allObjectives = array_merge($objectives, $sharedObjectives);
+            return array_values(array_unique($allObjectives, SORT_REGULAR));
         }
 
         return [];

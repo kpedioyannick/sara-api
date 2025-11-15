@@ -41,9 +41,17 @@ class Family
     #[ORM\OneToMany(targetEntity: Student::class, mappedBy: 'family', orphanRemoval: true)]
     private Collection $students;
 
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $location = null;
+
+    #[ORM\ManyToMany(targetEntity: Specialist::class)]
+    #[ORM\JoinTable(name: 'family_specialists')]
+    private Collection $specialists;
+
     public function __construct()
     {
         $this->students = new ArrayCollection();
+        $this->specialists = new ArrayCollection();
         $this->createdAt = new \DateTimeImmutable();
         $this->updatedAt = new \DateTimeImmutable();
         $this->familyIdentifier = 'FAM_' . uniqid();
@@ -158,6 +166,39 @@ class Family
         return $this;
     }
 
+    public function getLocation(): ?string
+    {
+        return $this->location;
+    }
+
+    public function setLocation(?string $location): static
+    {
+        $this->location = $location;
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Specialist>
+     */
+    public function getSpecialists(): Collection
+    {
+        return $this->specialists;
+    }
+
+    public function addSpecialist(Specialist $specialist): static
+    {
+        if (!$this->specialists->contains($specialist)) {
+            $this->specialists->add($specialist);
+        }
+        return $this;
+    }
+
+    public function removeSpecialist(Specialist $specialist): static
+    {
+        $this->specialists->removeElement($specialist);
+        return $this;
+    }
+
     public function toArray(): array
     {
         $parent = $this->getParent();
@@ -166,6 +207,8 @@ class Family
             'familyIdentifier' => $this->getFamilyIdentifier(),
             'type' => $this->getType()->value,
             'isActive' => $this->isActive(),
+            'location' => $this->getLocation(),
+            'specialists' => array_map(fn($specialist) => $specialist->toSimpleArray(), $this->getSpecialists()->toArray()),
             'parent' => $parent ? [
                 'id' => $parent->getId(),
                 'firstName' => $parent->getFirstName(),

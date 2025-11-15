@@ -86,7 +86,6 @@ class Proof
     #[ORM\JoinColumn(nullable: true)]
     private ?Request $request = null; // demande liée à cette preuve
 
-
     public function __construct()
     {
         $this->createdAt = new \DateTimeImmutable();

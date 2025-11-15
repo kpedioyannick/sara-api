@@ -343,6 +343,201 @@ class PlanningController extends AbstractController
         return new JsonResponse(['success' => true, 'message' => 'Événement supprimé avec succès']);
     }
 
+    #[Route('/admin/planning/event-sheet', name: 'admin_planning_event_sheet', methods: ['GET'])]
+    #[IsGranted('ROLE_USER')]
+    public function getEventSheet(Request $request): Response
+    {
+        $user = $this->getUser();
+        if (!$user) {
+            throw $this->createAccessDeniedException('Vous devez être connecté');
+        }
+
+        // Récupérer les paramètres de la requête
+        $mode = $request->query->get('mode', 'create'); // 'create', 'edit', 'view'
+        $eventId = $request->query->get('id');
+        $date = $request->query->get('date');
+
+        $isEdit = $mode === 'edit';
+        $isView = $mode === 'view';
+        $currentId = $eventId ? (int) $eventId : null;
+
+        // Récupérer les données nécessaires
+        $coach = null;
+        $students = [];
+        $specialists = [];
+        $parent = null;
+
+        if ($user->isCoach()) {
+            $coach = $this->getCurrentCoach($this->coachRepository, $this->security);
+            if ($coach) {
+                $families = $this->familyRepository->findBy(['coach' => $coach]);
+                foreach ($families as $family) {
+                    foreach ($family->getStudents() as $student) {
+                        $students[] = $student;
+                    }
+                }
+            }
+            $specialists = $this->specialistRepository->findAll();
+        } elseif ($user->isParent()) {
+            $parent = $user;
+            $families = $this->familyRepository->findBy(['parentUser' => $parent]);
+            foreach ($families as $family) {
+                foreach ($family->getStudents() as $student) {
+                    $students[] = $student;
+                }
+            }
+        } elseif ($user->isStudent()) {
+            $students = [$user];
+        } elseif ($user->isSpecialist()) {
+            $specialists = [$user];
+        }
+
+        // Préparer les données pour le template
+        $viewData = [];
+        $formData = [];
+
+        if ($isView || $isEdit) {
+            // Charger l'événement existant
+            $planning = $this->planningRepository->find($currentId);
+            if (!$planning) {
+                throw $this->createNotFoundException('Événement non trouvé');
+            }
+
+            // Vérifier les permissions
+            if (!$this->permissionService->canViewStudentPlanning($user, $planning->getUser())) {
+                throw $this->createAccessDeniedException('Vous n\'avez pas le droit de voir cet événement');
+            }
+
+            $startDate = $planning->getStartDate();
+            $endDate = $planning->getEndDate();
+
+            // Parser les dates
+            $dateStr = '';
+            $startTime = '';
+            $endTime = '';
+
+            if ($startDate) {
+                $dateStr = $startDate->format('Y-m-d');
+                $startTime = $startDate->format('H:i');
+            }
+
+            if ($endDate) {
+                $endTime = $endDate->format('H:i');
+            }
+
+            // Trouver le nom de l'utilisateur
+            $userName = 'N/A';
+            $planningUser = $planning->getUser();
+            if ($planningUser) {
+                $userName = $planningUser->getFirstName() . ' ' . $planningUser->getLastName();
+            }
+
+            // Mapper le statut
+            $statusMap = [
+                'completed' => 'Terminé',
+                'in_progress' => 'En cours',
+                'to_do' => 'À faire',
+                'scheduled' => 'Planifié',
+            ];
+
+            // Mapper le type
+            $typeMap = [
+                'homework' => 'Devoir',
+                'course' => 'Cours',
+                'revision' => 'Révision',
+                'activity' => 'Activité',
+                'assessment' => 'Évaluation',
+                'task' => 'Tâche',
+                'other' => 'Autre',
+            ];
+
+            $viewData = [
+                'id' => $planning->getId(),
+                'title' => $planning->getTitle() ?: 'N/A',
+                'description' => $planning->getDescription() ?: 'Aucune description',
+                'type' => $typeMap[$planning->getType()] ?? $planning->getType() ?: 'N/A',
+                'status' => $statusMap[$planning->getStatus()] ?? $planning->getStatus() ?: 'N/A',
+                'userId' => $planningUser ? $planningUser->getId() : '',
+                'studentName' => $userName,
+                'date' => $dateStr ?: 'N/A',
+                'startTime' => $startTime ?: 'N/A',
+                'endTime' => $endTime ?: 'N/A',
+                'startDate' => $startDate ? $startDate->format('c') : '',
+                'endDate' => $endDate ? $endDate->format('c') : '',
+            ];
+
+            if ($isEdit) {
+                // Déterminer le type d'utilisateur
+                $userType = '';
+                if ($planningUser) {
+                    if ($coach && $planningUser->getId() === $coach->getId()) {
+                        $userType = 'coach';
+                    } elseif ($parent && $planningUser->getId() === $parent->getId()) {
+                        $userType = 'parent';
+                    } elseif (in_array($planningUser, $students)) {
+                        $userType = 'student';
+                    } elseif (in_array($planningUser, $specialists)) {
+                        $userType = 'specialist';
+                    }
+                }
+
+                $formData = [
+                    'title' => $planning->getTitle() ?: '',
+                    'description' => $planning->getDescription() ?: '',
+                    'type' => $planning->getType() ?: '',
+                    'status' => $planning->getStatus() ?: 'scheduled',
+                    'userType' => $userType,
+                    'userId' => $planningUser ? $planningUser->getId() : '',
+                    'date' => $dateStr ?: (new \DateTime())->format('Y-m-d'),
+                    'startTime' => $startTime ?: '09:00',
+                    'endTime' => $endTime ?: '10:00',
+                    'startDate' => $startDate ? $startDate->format('c') : '',
+                    'endDate' => $endDate ? $endDate->format('c') : '',
+                ];
+            }
+        } else {
+            // Mode création
+            $selectedDate = $date ?: (new \DateTime())->format('Y-m-d');
+
+            // Préremplir selon le type d'utilisateur
+            $userType = '';
+            $userId = '';
+            if ($user->isStudent()) {
+                $userType = 'student';
+                $userId = $user->getId();
+            } elseif ($user->isSpecialist()) {
+                $userType = 'specialist';
+                $userId = $user->getId();
+            }
+
+            $formData = [
+                'title' => '',
+                'description' => '',
+                'type' => '',
+                'status' => 'scheduled',
+                'userType' => $userType,
+                'userId' => $userId,
+                'date' => $selectedDate,
+                'startTime' => '09:00',
+                'endTime' => '10:00',
+                'startDate' => '',
+                'endDate' => '',
+            ];
+        }
+
+        return $this->render('tailadmin/pages/planning/_planning_rightsheet.html.twig', [
+            'isEdit' => $isEdit,
+            'isView' => $isView,
+            'currentId' => $currentId,
+            'viewData' => $viewData,
+            'formData' => $formData,
+            'students' => $students,
+            'specialists' => $specialists,
+            'coach' => $coach,
+            'parent' => $parent,
+        ]);
+    }
+
     #[Route('/admin/planning/task/{taskId}/details', name: 'admin_planning_task_details', methods: ['GET'])]
     #[IsGranted('ROLE_USER')]
     public function getTaskDetails(int $taskId, Request $request): Response
@@ -367,9 +562,6 @@ class PlanningController extends AbstractController
             throw $this->createAccessDeniedException('Vous n\'avez pas le droit de voir cette tâche');
         }
 
-        // Récupérer les preuves
-        $proofs = $this->proofRepository->findBy(['task' => $task], ['createdAt' => 'DESC']);
-
         // Récupérer la date de l'événement depuis le planning si fournie (depuis le paramètre eventDate)
         $eventDate = null;
         if ($request->query->has('eventDate')) {
@@ -378,6 +570,26 @@ class PlanningController extends AbstractController
             } catch (\Exception $e) {
                 // Ignorer si la date est invalide
             }
+        }
+
+        // Récupérer les preuves
+        // Si eventDate est fourni, filtrer les preuves par date de soumission (même jour)
+        if ($eventDate) {
+            $startOfDay = $eventDate->setTime(0, 0, 0);
+            $endOfDay = $eventDate->setTime(23, 59, 59);
+            $proofs = $this->proofRepository->createQueryBuilder('p')
+                ->where('p.task = :task')
+                ->andWhere('p.submittedAt >= :startOfDay')
+                ->andWhere('p.submittedAt <= :endOfDay')
+                ->setParameter('task', $task)
+                ->setParameter('startOfDay', $startOfDay)
+                ->setParameter('endOfDay', $endOfDay)
+                ->orderBy('p.submittedAt', 'ASC')
+                ->getQuery()
+                ->getResult();
+        } else {
+            // Sinon, récupérer toutes les preuves
+            $proofs = $this->proofRepository->findBy(['task' => $task], ['createdAt' => 'DESC']);
         }
 
         // Récupérer les données nécessaires pour les champs ManyToMany selon le type de tâche
@@ -542,27 +754,40 @@ class PlanningController extends AbstractController
         }
 
         // Gérer la date de soumission (submittedAt)
-        // Si depuis planning et eventDate fournie : utiliser eventDate
-        // Sinon : utiliser submittedAt du formulaire ou date du jour par défaut
-        if (isset($data['eventDate']) && !empty($data['eventDate'])) {
-            // Depuis planning : utiliser la date de l'événement
-            try {
-                $proof->setSubmittedAt(new \DateTimeImmutable($data['eventDate']));
-            } catch (\Exception $e) {
-                // En cas d'erreur, utiliser la date du jour
+        // Priorité 1 : Si planningId fourni, utiliser planning.startDate
+        // Priorité 2 : Si eventDate fournie, utiliser eventDate (date de l'événement)
+        // Priorité 3 : Si submittedAt du formulaire fourni, l'utiliser
+        // Priorité 4 : Par défaut, date du jour
+        $planning = null;
+        if (isset($data['planningId']) && !empty($data['planningId'])) {
+            $planning = $this->planningRepository->find($data['planningId']);
+            if ($planning && $planning->getStartDate()) {
+                $proof->setSubmittedAt($planning->getStartDate());
+                $proof->setPlanning($planning);
+            }
+        }
+        
+        if (!$proof->getSubmittedAt()) {
+            if (isset($data['eventDate']) && !empty($data['eventDate'])) {
+                // Depuis planning : utiliser la date de l'événement
+                try {
+                    $proof->setSubmittedAt(new \DateTimeImmutable($data['eventDate']));
+                } catch (\Exception $e) {
+                    // En cas d'erreur, utiliser la date du jour
+                    $proof->setSubmittedAt(new \DateTimeImmutable());
+                }
+            } elseif (isset($data['submittedAt']) && !empty($data['submittedAt'])) {
+                // Depuis objectifs : utiliser la date du formulaire (modifiable via calendrier)
+                try {
+                    $proof->setSubmittedAt(new \DateTimeImmutable($data['submittedAt']));
+                } catch (\Exception $e) {
+                    // En cas d'erreur, utiliser la date du jour
+                    $proof->setSubmittedAt(new \DateTimeImmutable());
+                }
+            } else {
+                // Par défaut : date du jour
                 $proof->setSubmittedAt(new \DateTimeImmutable());
             }
-        } elseif (isset($data['submittedAt']) && !empty($data['submittedAt'])) {
-            // Depuis objectifs : utiliser la date du formulaire (modifiable via calendrier)
-            try {
-                $proof->setSubmittedAt(new \DateTimeImmutable($data['submittedAt']));
-            } catch (\Exception $e) {
-                // En cas d'erreur, utiliser la date du jour
-                $proof->setSubmittedAt(new \DateTimeImmutable());
-            }
-        } else {
-            // Par défaut : date du jour
-            $proof->setSubmittedAt(new \DateTimeImmutable());
         }
 
         // Validation

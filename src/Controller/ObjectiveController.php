@@ -1050,5 +1050,229 @@ class ObjectiveController extends AbstractController
             'tags' => array_values($allCategories) // array_values pour réindexer
         ]);
     }
+
+    #[Route('/admin/objectives/{id}/share-sheet', name: 'admin_objectives_share_sheet', methods: ['GET'])]
+    #[IsGranted('ROLE_USER')]
+    public function shareSheet(int $id): Response
+    {
+        $user = $this->getUser();
+        if (!$user) {
+            throw $this->createAccessDeniedException('Vous devez être connecté');
+        }
+
+        // Seul le coach peut partager un objectif
+        if (!$user instanceof \App\Entity\Coach) {
+            throw $this->createAccessDeniedException('Seul le coach peut partager un objectif');
+        }
+
+        $objective = $this->objectiveRepository->find($id);
+        if (!$objective) {
+            throw $this->createNotFoundException('Objectif non trouvé');
+        }
+
+        // Vérifier que le coach est le propriétaire de l'objectif
+        if ($objective->getCoach() !== $user) {
+            throw $this->createAccessDeniedException('Vous n\'avez pas le droit de partager cet objectif');
+        }
+
+        // Récupérer tous les élèves du coach
+        $students = [];
+        foreach ($user->getFamilies() as $family) {
+            foreach ($family->getStudents() as $student) {
+                $students[] = $student;
+            }
+        }
+
+        // Récupérer tous les spécialistes
+        $specialists = $this->specialistRepository->findAll();
+
+        // Récupérer les utilisateurs avec qui l'objectif est déjà partagé
+        $sharedStudents = $objective->getSharedStudents()->toArray();
+        $sharedSpecialists = $objective->getSharedSpecialists()->toArray();
+
+        return $this->render('tailadmin/pages/objectives/_share_sheet.html.twig', [
+            'objective' => $objective,
+            'students' => $students,
+            'specialists' => $specialists,
+            'sharedStudents' => $sharedStudents,
+            'sharedSpecialists' => $sharedSpecialists,
+        ]);
+    }
+
+    #[Route('/admin/objectives/{id}/share', name: 'admin_objectives_share', methods: ['POST'])]
+    #[IsGranted('ROLE_USER')]
+    public function share(int $id, Request $request): Response
+    {
+        $user = $this->getUser();
+        if (!$user) {
+            throw $this->createAccessDeniedException('Vous devez être connecté');
+        }
+
+        // Seul le coach peut partager un objectif
+        if (!$user instanceof \App\Entity\Coach) {
+            throw $this->createAccessDeniedException('Seul le coach peut partager un objectif');
+        }
+
+        $objective = $this->objectiveRepository->find($id);
+        if (!$objective) {
+            throw $this->createNotFoundException('Objectif non trouvé');
+        }
+
+        // Vérifier que le coach est le propriétaire de l'objectif
+        if ($objective->getCoach() !== $user) {
+            throw $this->createAccessDeniedException('Vous n\'avez pas le droit de partager cet objectif');
+        }
+
+        $data = json_decode($request->getContent(), true);
+        if (!$data) {
+            return $this->render('tailadmin/pages/objectives/_share_sheet.html.twig', [
+                'objective' => $objective,
+                'students' => [],
+                'specialists' => [],
+                'sharedStudents' => $objective->getSharedStudents()->toArray(),
+                'sharedSpecialists' => $objective->getSharedSpecialists()->toArray(),
+                'error' => 'Données invalides',
+            ]);
+        }
+
+        // Récupérer les IDs des élèves et spécialistes à partager
+        $studentIds = $data['studentIds'] ?? [];
+        $specialistIds = $data['specialistIds'] ?? [];
+
+        // Vérifier que les étudiants appartiennent aux familles du coach
+        if (!empty($studentIds)) {
+            $students = $this->studentRepository->findBy(['id' => $studentIds]);
+            foreach ($students as $student) {
+                $family = $student->getFamily();
+                if (!$family || $family->getCoach() !== $user) {
+                    // Récupérer tous les élèves du coach pour réafficher le formulaire
+                    $allStudents = [];
+                    foreach ($user->getFamilies() as $family) {
+                        foreach ($family->getStudents() as $s) {
+                            $allStudents[] = $s;
+                        }
+                    }
+                    return $this->render('tailadmin/pages/objectives/_share_sheet.html.twig', [
+                        'objective' => $objective,
+                        'students' => $allStudents,
+                        'specialists' => $this->specialistRepository->findAll(),
+                        'sharedStudents' => $objective->getSharedStudents()->toArray(),
+                        'sharedSpecialists' => $objective->getSharedSpecialists()->toArray(),
+                        'error' => 'Vous ne pouvez partager qu\'avec vos propres élèves',
+                    ]);
+                }
+            }
+        }
+
+        // Partager avec les élèves
+        $objective->getSharedStudents()->clear();
+        if (!empty($studentIds)) {
+            $students = $this->studentRepository->findBy(['id' => $studentIds]);
+            foreach ($students as $student) {
+                $objective->addSharedStudent($student);
+            }
+        }
+
+        // Partager avec les spécialistes
+        $objective->getSharedSpecialists()->clear();
+        if (!empty($specialistIds)) {
+            $specialists = $this->specialistRepository->findBy(['id' => $specialistIds]);
+            foreach ($specialists as $specialist) {
+                $objective->addSharedSpecialist($specialist);
+            }
+        }
+
+        $this->em->flush();
+
+        // Recharger l'objectif pour avoir les données à jour
+        $this->em->refresh($objective);
+
+        // Récupérer tous les élèves du coach pour réafficher le formulaire
+        $allStudents = [];
+        foreach ($user->getFamilies() as $family) {
+            foreach ($family->getStudents() as $student) {
+                $allStudents[] = $student;
+            }
+        }
+
+        return $this->render('tailadmin/pages/objectives/_share_sheet.html.twig', [
+            'objective' => $objective,
+            'students' => $allStudents,
+            'specialists' => $this->specialistRepository->findAll(),
+            'sharedStudents' => $objective->getSharedStudents()->toArray(),
+            'sharedSpecialists' => $objective->getSharedSpecialists()->toArray(),
+        ]);
+    }
+
+    #[Route('/api/objectives/{id}/share', name: 'api_objectives_share', methods: ['POST'])]
+    #[IsGranted('ROLE_USER')]
+    public function shareApi(int $id, Request $request): JsonResponse
+    {
+        $user = $this->getUser();
+        if (!$user) {
+            return new JsonResponse(['success' => false, 'message' => 'Vous devez être connecté'], 403);
+        }
+
+        // Seul le coach peut partager un objectif
+        if (!$user instanceof \App\Entity\Coach) {
+            return new JsonResponse(['success' => false, 'message' => 'Seul le coach peut partager un objectif'], 403);
+        }
+
+        $objective = $this->objectiveRepository->find($id);
+        if (!$objective) {
+            return new JsonResponse(['success' => false, 'message' => 'Objectif non trouvé'], 404);
+        }
+
+        // Vérifier que le coach est le propriétaire de l'objectif
+        if ($objective->getCoach() !== $user) {
+            return new JsonResponse(['success' => false, 'message' => 'Vous n\'avez pas le droit de partager cet objectif'], 403);
+        }
+
+        $data = json_decode($request->getContent(), true);
+        if (!$data) {
+            return new JsonResponse(['success' => false, 'message' => 'Données invalides'], 400);
+        }
+
+        // Récupérer les IDs des élèves et spécialistes à partager
+        $studentIds = $data['studentIds'] ?? [];
+        $specialistIds = $data['specialistIds'] ?? [];
+
+        // Vérifier que les étudiants appartiennent aux familles du coach
+        if (!empty($studentIds)) {
+            $students = $this->studentRepository->findBy(['id' => $studentIds]);
+            foreach ($students as $student) {
+                $family = $student->getFamily();
+                if (!$family || $family->getCoach() !== $user) {
+                    return new JsonResponse(['success' => false, 'message' => 'Vous ne pouvez partager qu\'avec vos propres élèves'], 403);
+                }
+            }
+        }
+
+        // Partager avec les élèves
+        $objective->getSharedStudents()->clear();
+        if (!empty($studentIds)) {
+            $students = $this->studentRepository->findBy(['id' => $studentIds]);
+            foreach ($students as $student) {
+                $objective->addSharedStudent($student);
+            }
+        }
+
+        // Partager avec les spécialistes
+        $objective->getSharedSpecialists()->clear();
+        if (!empty($specialistIds)) {
+            $specialists = $this->specialistRepository->findBy(['id' => $specialistIds]);
+            foreach ($specialists as $specialist) {
+                $objective->addSharedSpecialist($specialist);
+            }
+        }
+
+        $this->em->flush();
+
+        return new JsonResponse([
+            'success' => true,
+            'message' => 'Objectif partagé avec succès',
+            'objective' => $objective->toArray()
+        ]);
+    }
 }
 

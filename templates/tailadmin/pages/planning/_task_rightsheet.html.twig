@@ -76,7 +76,11 @@
         <!-- Preuves -->
         <div class="mb-8">
             <h4 class="mb-4 text-sm font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide">
-                Preuves ({{ proofs|length }})
+                {% if eventDate %}
+                    Historique des preuves à la date de l'événement ({{ eventDate|date('d/m/Y') }}) ({{ proofs|length }})
+                {% else %}
+                    Preuves ({{ proofs|length }})
+                {% endif %}
             </h4>
 
             <!-- Liste des preuves (dépliant/repliant) -->
@@ -238,6 +242,7 @@
                 </div>
                 {% endif %}
 
+                {% if not eventDate %}
                 <div>
                     <label class="mb-1.5 block text-xs font-medium text-gray-500 dark:text-gray-400">
                         Date de soumission
@@ -248,6 +253,13 @@
                         class="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
                     >
                 </div>
+                {% else %}
+                <div class="rounded-lg border border-brand-200 bg-brand-50 dark:bg-brand-900/20 dark:border-brand-800/30 px-3 py-2">
+                    <p class="text-xs text-brand-700 dark:text-brand-300">
+                        <strong>Date de soumission automatique :</strong> {{ eventDate|date('d/m/Y H:i') }}
+                    </p>
+                </div>
+                {% endif %}
 
                 {% if task.type.value == 'workshop' %}
                 <!-- Champs pour WORKSHOP -->
@@ -620,8 +632,8 @@ window.taskRightSheetManager = function(taskId) {
                 if (data.success) {
                     // Réinitialiser le formulaire
                     this.resetProofForm();
-                    // Recharger la page pour afficher la nouvelle preuve
-                    location.reload();
+                    // Recharger uniquement le contenu du rightsheet pour afficher la nouvelle preuve
+                    await this.reloadRightSheet();
                 } else {
                     alert(data.message || 'Erreur lors de l\'ajout de la preuve');
                 }
@@ -660,6 +672,64 @@ window.taskRightSheetManager = function(taskId) {
             }
             if (this.proofRequestChoicesInstance) {
                 this.proofRequestChoicesInstance.setValue('');
+            }
+        },
+        async reloadRightSheet() {
+            try {
+                // Recharger le rightsheet avec les mêmes paramètres
+                let url = `/admin/planning/task/${this.taskId}/details`;
+                if (this.eventDate) {
+                    url += `?eventDate=${encodeURIComponent(this.eventDate)}`;
+                }
+                
+                const response = await fetch(url, {
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Erreur lors du rechargement');
+                }
+                
+                const html = await response.text();
+                
+                // Trouver le conteneur du rightsheet
+                const container = document.getElementById('task-rightsheet-container');
+                if (!container) return;
+                
+                // Extraire et exécuter les scripts AVANT d'injecter le HTML
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = html;
+                const scripts = tempDiv.querySelectorAll('script');
+                const htmlWithoutScripts = html.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
+                
+                // Exécuter les scripts
+                scripts.forEach(script => {
+                    if (script.src) {
+                        const newScript = document.createElement('script');
+                        newScript.src = script.src;
+                        document.head.appendChild(newScript);
+                    } else {
+                        try {
+                            eval(script.textContent);
+                        } catch (e) {
+                            console.error('Erreur lors de l\'exécution du script:', e);
+                        }
+                    }
+                });
+                
+                // Injecter le HTML sans les scripts
+                container.innerHTML = htmlWithoutScripts;
+                
+                // Initialiser Alpine.js sur le nouveau contenu
+                setTimeout(() => {
+                    if (window.Alpine) {
+                        Alpine.initTree(container);
+                    }
+                }, 100);
+            } catch (error) {
+                console.error('Erreur lors du rechargement du rightsheet:', error);
             }
         },
         destroyProofChoices() {

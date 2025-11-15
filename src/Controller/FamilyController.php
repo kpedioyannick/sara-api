@@ -280,6 +280,22 @@ class FamilyController extends AbstractController
             }
         }
 
+        // Si c'est un groupe, ajouter le lieu et les spécialistes
+        if ($family->getType() === \App\Enum\FamilyType::GROUP) {
+            if (isset($data['location'])) {
+                $family->setLocation($data['location']);
+            }
+            
+            // Gérer les spécialistes
+            if (isset($data['specialistIds']) && is_array($data['specialistIds'])) {
+                $family->getSpecialists()->clear();
+                $specialists = $this->specialistRepository->findBy(['id' => $data['specialistIds']]);
+                foreach ($specialists as $specialist) {
+                    $family->addSpecialist($specialist);
+                }
+            }
+        }
+
         // Validation famille
         $errors = $this->validator->validate($family);
         if (count($errors) > 0) {
@@ -322,6 +338,23 @@ class FamilyController extends AbstractController
         if (isset($data['isActive'])) {
             $family->setIsActive($data['isActive']);
         }
+        
+        // Si c'est un groupe, mettre à jour le lieu et les spécialistes
+        if ($family->getType() === \App\Enum\FamilyType::GROUP) {
+            if (isset($data['location'])) {
+                $family->setLocation($data['location']);
+            }
+            
+            // Gérer les spécialistes
+            if (isset($data['specialistIds']) && is_array($data['specialistIds'])) {
+                $family->getSpecialists()->clear();
+                $specialists = $this->specialistRepository->findBy(['id' => $data['specialistIds']]);
+                foreach ($specialists as $specialist) {
+                    $family->addSpecialist($specialist);
+                }
+            }
+        }
+        
         $family->setUpdatedAt(new \DateTimeImmutable());
 
         // Validation

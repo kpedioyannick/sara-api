@@ -184,6 +184,16 @@
                                 <span class="inline-block rounded-md bg-purple-100 dark:bg-purple-900/30 px-2 py-0.5 text-purple-700 dark:text-purple-300">
                                     👨‍👩‍👧‍👦 {% if family.parent %}{{ family.parent.firstName }} {{ family.parent.lastName }}{% else %}Non renseigné{% endif %}
                                 </span>
+                                {% if family.type == 'GROUP' and family.location %}
+                                <span class="inline-block rounded-md bg-green-100 dark:bg-green-900/30 px-2 py-0.5 text-green-700 dark:text-green-300">
+                                    📍 {{ family.location }}
+                                </span>
+                                {% endif %}
+                                {% if family.type == 'GROUP' and family.specialists and family.specialists|length > 0 %}
+                                <span class="inline-block rounded-md bg-blue-100 dark:bg-blue-900/30 px-2 py-0.5 text-blue-700 dark:text-blue-300">
+                                    👨‍⚕️ {{ family.specialists|length }} spécialiste{{ family.specialists|length > 1 ? 's' : '' }}
+                                </span>
+                                {% endif %}
                                 <span class="inline-block rounded-md bg-gray-100 dark:bg-gray-800 px-2 py-0.5 text-gray-600 dark:text-gray-400">
                                     {{ family.createdAt }}
                                 </span>
@@ -478,6 +488,45 @@
                                 <option value="GROUP">Groupe</option>
                             </select>
                         </div>
+
+                        <!-- Champs spécifiques aux groupes -->
+                        <template x-if="newFamilyData.type === 'GROUP'">
+                            <div class="space-y-4 border-t border-gray-200 pt-6 dark:border-gray-800">
+                                <div>
+                                    <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                        Lieu
+                                    </label>
+                                    <input
+                                        type="text"
+                                        x-model="newFamilyData.location"
+                                        placeholder="Lieu du groupe"
+                                        class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+                                    />
+                                </div>
+                                <div>
+                                    <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                        Spécialistes
+                                    </label>
+                                    <div class="space-y-2 max-h-60 overflow-y-auto border border-gray-200 rounded-lg p-3 dark:border-gray-700">
+                                        <template x-for="specialist in specialistsData" :key="specialist.id">
+                                            <label class="flex items-center space-x-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 p-2 rounded">
+                                                <input
+                                                    type="checkbox"
+                                                    :value="specialist.id"
+                                                    x-model="newFamilyData.specialistIds"
+                                                    class="rounded border-gray-300 text-brand-500 focus:ring-brand-500 dark:border-gray-600 dark:bg-gray-800"
+                                                />
+                                                <span class="text-sm text-gray-700 dark:text-gray-300" x-text="specialist.firstName + ' ' + specialist.lastName"></span>
+                                            </label>
+                                        </template>
+                                        <template x-if="specialistsData.length === 0">
+                                            <p class="text-sm text-gray-500 dark:text-gray-400">Aucun spécialiste disponible</p>
+                                        </template>
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
+
                         <div class="border-t border-gray-200 pt-6 dark:border-gray-800">
                             <h4 class="mb-4 text-sm font-semibold text-gray-800 dark:text-white/90">
                                 Informations du Responsable
@@ -711,6 +760,8 @@ function familyManager() {
             parentFirstName: '',
             parentLastName: '',
             parentEmail: '',
+            location: '',
+            specialistIds: [],
         },
         isSaving: false,
         newStudentData: {
@@ -1264,6 +1315,8 @@ function familyManager() {
                 parentFirstName: '',
                 parentLastName: '',
                 parentEmail: '',
+                location: '',
+                specialistIds: [],
             };
             this.isSaving = false;
             this.rightSheetOpen = true;
@@ -1295,6 +1348,8 @@ function familyManager() {
                         lastName: this.newFamilyData.parentLastName,
                         email: this.newFamilyData.parentEmail,
                     },
+                    location: this.newFamilyData.type === 'GROUP' ? this.newFamilyData.location : null,
+                    specialistIds: this.newFamilyData.type === 'GROUP' ? this.newFamilyData.specialistIds : [],
                 }),
             })
             .then(response => response.json())

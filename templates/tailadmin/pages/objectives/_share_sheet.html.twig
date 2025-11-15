@@ -1,0 +1,255 @@
+<div class="flex h-full flex-col" x-data="shareManager()">
+  <!-- Header -->
+  <div class="sticky top-0 z-10 border-b border-gray-200 bg-white px-6 py-4 dark:border-gray-800 dark:bg-gray-900">
+    <div class="flex items-center justify-between">
+      <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">
+        Partager l'objectif
+      </h3>
+      <button
+        @click="$dispatch('close-share-sheet')"
+        class="rounded-lg p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-300"
+      >
+        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Content -->
+  <div class="flex-1 overflow-y-auto p-6">
+    {% if error is defined and error %}
+    <div class="mb-4 rounded-lg bg-red-50 border border-red-200 p-4 dark:bg-red-900/20 dark:border-red-800">
+      <p class="text-sm text-red-700 dark:text-red-300">{{ error }}</p>
+    </div>
+    {% endif %}
+
+    <form @submit.prevent="saveShare()" class="space-y-6">
+      <!-- Liste des utilisateurs avec qui l'objectif est déjà partagé -->
+      {% if sharedStudents|length > 0 or sharedSpecialists|length > 0 %}
+      <div class="border-b border-gray-200 pb-6 dark:border-gray-800">
+        <h4 class="mb-3 text-sm font-semibold text-gray-800 dark:text-white/90">
+          Actuellement partagé avec
+        </h4>
+        <div class="space-y-2">
+          {% if sharedStudents|length > 0 %}
+          <div>
+            <p class="mb-2 text-xs font-medium text-gray-500 dark:text-gray-400">Élèves :</p>
+            <div class="flex flex-wrap gap-2">
+              {% for student in sharedStudents %}
+              <span class="inline-flex items-center rounded-full bg-blue-100 dark:bg-blue-900/30 px-3 py-1 text-xs font-medium text-blue-700 dark:text-blue-300">
+                {{ student.firstName }} {{ student.lastName }}
+              </span>
+              {% endfor %}
+            </div>
+          </div>
+          {% endif %}
+          {% if sharedSpecialists|length > 0 %}
+          <div>
+            <p class="mb-2 text-xs font-medium text-gray-500 dark:text-gray-400">Spécialistes :</p>
+            <div class="flex flex-wrap gap-2">
+              {% for specialist in sharedSpecialists %}
+              <span class="inline-flex items-center rounded-full bg-purple-100 dark:bg-purple-900/30 px-3 py-1 text-xs font-medium text-purple-700 dark:text-purple-300">
+                {{ specialist.firstName }} {{ specialist.lastName }}
+              </span>
+              {% endfor %}
+            </div>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Sélection des élèves -->
+      <div>
+        <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+          Partager avec des élèves
+        </label>
+        <div class="space-y-2 max-h-60 overflow-y-auto border border-gray-200 rounded-lg p-3 dark:border-gray-700">
+          {% for student in students %}
+          <label class="flex items-center space-x-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 p-2 rounded">
+            <input
+              type="checkbox"
+              :value="{{ student.id }}"
+              x-model="shareData.studentIds"
+              :checked="shareData.studentIds.includes({{ student.id }})"
+              class="rounded border-gray-300 text-brand-500 focus:ring-brand-500 dark:border-gray-600 dark:bg-gray-800"
+            />
+            <span class="text-sm text-gray-700 dark:text-gray-300">{{ student.firstName }} {{ student.lastName }}{% if student.pseudo %} ({{ student.pseudo }}){% endif %}</span>
+          </label>
+          {% endfor %}
+          {% if students|length == 0 %}
+          <p class="text-sm text-gray-500 dark:text-gray-400">Aucun élève disponible</p>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Sélection des spécialistes -->
+      <div>
+        <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+          Partager avec des spécialistes
+        </label>
+        <div class="space-y-2 max-h-60 overflow-y-auto border border-gray-200 rounded-lg p-3 dark:border-gray-700">
+          {% for specialist in specialists %}
+          <label class="flex items-center space-x-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 p-2 rounded">
+            <input
+              type="checkbox"
+              :value="{{ specialist.id }}"
+              x-model="shareData.specialistIds"
+              :checked="shareData.specialistIds.includes({{ specialist.id }})"
+              class="rounded border-gray-300 text-brand-500 focus:ring-brand-500 dark:border-gray-600 dark:bg-gray-800"
+            />
+            <span class="text-sm text-gray-700 dark:text-gray-300">{{ specialist.firstName }} {{ specialist.lastName }}</span>
+          </label>
+          {% endfor %}
+          {% if specialists|length == 0 %}
+          <p class="text-sm text-gray-500 dark:text-gray-400">Aucun spécialiste disponible</p>
+          {% endif %}
+        </div>
+      </div>
+    </form>
+  </div>
+
+  <!-- Footer -->
+  <div class="sticky bottom-0 border-t border-gray-200 bg-white px-6 py-4 dark:border-gray-800 dark:bg-gray-900">
+    <div class="flex gap-3">
+      <button
+        @click="$dispatch('close-share-sheet')"
+        class="flex-1 rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+      >
+        Fermer
+      </button>
+      <button
+        @click="saveShare()"
+        :disabled="isSaving"
+        class="flex-1 rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white shadow-theme-xs hover:bg-brand-600 disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        <span x-show="!isSaving">Enregistrer</span>
+        <span x-show="isSaving">Enregistrement...</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+// Définir la fonction globalement pour qu'elle soit accessible après l'injection du HTML
+// Toujours redéfinir pour avoir les dernières données
+window.shareManager = function() {
+  return {
+    shareData: {
+      studentIds: {{ sharedStudents|map(s => s.id)|json_encode|raw }},
+      specialistIds: {{ sharedSpecialists|map(s => s.id)|json_encode|raw }},
+    },
+    isSaving: false,
+      async saveShare() {
+        if (this.isSaving) return;
+        
+        this.isSaving = true;
+
+        try {
+          const response = await fetch('/admin/objectives/{{ objective.id }}/share', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Requested-With': 'XMLHttpRequest',
+            },
+            body: JSON.stringify({
+              studentIds: this.shareData.studentIds.map(id => Number(id)),
+              specialistIds: this.shareData.specialistIds.map(id => Number(id)),
+            }),
+          });
+
+          if (response.ok) {
+            // Recharger le rightsheet avec le nouveau contenu
+            const html = await response.text();
+            
+            try {
+              // Extraire et exécuter les scripts AVANT d'injecter le HTML
+              const tempDiv = document.createElement('div');
+              tempDiv.innerHTML = html;
+              const scripts = tempDiv.querySelectorAll('script');
+              const htmlWithoutScripts = html.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
+              
+              // Exécuter les scripts de manière synchrone
+              scripts.forEach(script => {
+                if (script.src) {
+                  const newScript = document.createElement('script');
+                  newScript.src = script.src;
+                  document.head.appendChild(newScript);
+                } else {
+                  try {
+                    eval(script.textContent);
+                  } catch (e) {
+                    console.error('Erreur lors de l\'exécution du script:', e);
+                    // Ne pas bloquer si c'est juste une erreur de script
+                  }
+                }
+              });
+              
+              // Mettre à jour le contenu du rightsheet via un événement
+              // Cela permet de mettre à jour shareSheetContent dans le composant parent (taskManager)
+              const updateEvent = new CustomEvent('update-share-sheet', {
+                detail: { html: htmlWithoutScripts }
+              });
+              document.dispatchEvent(updateEvent);
+              
+              // Attendre que le HTML soit injecté et que les scripts soient exécutés
+              await new Promise(resolve => setTimeout(resolve, 100));
+              
+              // Réinitialiser Alpine.js sur le nouveau contenu
+              const container = document.querySelector('[x-show="shareSheetOpen"]');
+              if (container && typeof Alpine !== 'undefined') {
+                try {
+                  // Détruire l'ancien contexte Alpine.js
+                  const oldData = Alpine.$data(container.querySelector('[x-data]'));
+                  
+                  // Réinitialiser Alpine.js sur tout le conteneur
+                  Alpine.initTree(container);
+                  
+                  // Forcer la mise à jour des checkboxes en accédant au nouveau contexte
+                  setTimeout(() => {
+                    try {
+                      const newDataElement = container.querySelector('[x-data="shareManager()"]');
+                      if (newDataElement) {
+                        const newData = Alpine.$data(newDataElement);
+                        if (newData && newData.shareData) {
+                          // Forcer la réactivité en déclenchant un changement
+                          newData.shareData = { ...newData.shareData };
+                        }
+                      }
+                    } catch (e) {
+                      console.warn('Erreur mineure lors de la mise à jour des checkboxes:', e);
+                    }
+                  }, 50);
+                } catch (e) {
+                  console.warn('Erreur mineure lors de la réinitialisation d\'Alpine.js:', e);
+                  // Ne pas bloquer, le partage a réussi
+                }
+              }
+            } catch (updateError) {
+              console.warn('Erreur mineure lors de la mise à jour de l\'interface:', updateError);
+              // Le partage a réussi, donc on ne bloque pas l'utilisateur
+            }
+          } else {
+            // Vérifier le statut de la réponse pour un message d'erreur plus précis
+            const errorText = await response.text();
+            console.error('Erreur lors du partage:', response.status, errorText);
+            alert('Erreur lors du partage (statut: ' + response.status + ')');
+          }
+        } catch (error) {
+          console.error('Erreur:', error);
+          // Afficher l'alerte seulement si c'est une vraie erreur de connexion
+          if (error.name === 'TypeError' && error.message.includes('fetch')) {
+            alert('Erreur de connexion: Impossible de contacter le serveur');
+          } else {
+            // Pour les autres erreurs, juste logger sans alerter (le partage peut avoir réussi)
+            console.warn('Erreur non bloquante:', error);
+          }
+        } finally {
+          this.isSaving = false;
+        }
+      },
+    };
+  };
+</script>
+

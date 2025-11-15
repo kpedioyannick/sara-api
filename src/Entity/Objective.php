@@ -75,10 +75,20 @@ class Objective
     #[ORM\OneToMany(targetEntity: Comment::class, mappedBy: 'objective', orphanRemoval: true, fetch: 'EXTRA_LAZY')]
     private Collection $comments;
 
+    #[ORM\ManyToMany(targetEntity: Student::class)]
+    #[ORM\JoinTable(name: 'objective_shared_students')]
+    private Collection $sharedStudents;
+
+    #[ORM\ManyToMany(targetEntity: Specialist::class)]
+    #[ORM\JoinTable(name: 'objective_shared_specialists')]
+    private Collection $sharedSpecialists;
+
     public function __construct()
     {
         $this->tasks = new ArrayCollection();
         $this->comments = new ArrayCollection();
+        $this->sharedStudents = new ArrayCollection();
+        $this->sharedSpecialists = new ArrayCollection();
         $this->createdAt = new \DateTimeImmutable();
         $this->updatedAt = new \DateTimeImmutable();
     }
@@ -266,6 +276,50 @@ class Objective
         return $this;
     }
 
+    /**
+     * @return Collection<int, Student>
+     */
+    public function getSharedStudents(): Collection
+    {
+        return $this->sharedStudents;
+    }
+
+    public function addSharedStudent(Student $student): static
+    {
+        if (!$this->sharedStudents->contains($student)) {
+            $this->sharedStudents->add($student);
+        }
+        return $this;
+    }
+
+    public function removeSharedStudent(Student $student): static
+    {
+        $this->sharedStudents->removeElement($student);
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Specialist>
+     */
+    public function getSharedSpecialists(): Collection
+    {
+        return $this->sharedSpecialists;
+    }
+
+    public function addSharedSpecialist(Specialist $specialist): static
+    {
+        if (!$this->sharedSpecialists->contains($specialist)) {
+            $this->sharedSpecialists->add($specialist);
+        }
+        return $this;
+    }
+
+    public function removeSharedSpecialist(Specialist $specialist): static
+    {
+        $this->sharedSpecialists->removeElement($specialist);
+        return $this;
+    }
+
     public function toArray(): array
     {
         return [
@@ -281,6 +335,8 @@ class Objective
             'coach' => $this->getCoach()?->toSimpleArray(),
             'tasksCount' => $this->getTasks()->count(),
             'commentsCount' => $this->getComments()->count(),
+            'sharedStudents' => array_map(fn($student) => $student->toSimpleArray(), $this->getSharedStudents()->toArray()),
+            'sharedSpecialists' => array_map(fn($specialist) => $specialist->toSimpleArray(), $this->getSharedSpecialists()->toArray()),
             'createdAt' => $this->getCreatedAt()?->format('Y-m-d H:i:s'),
             'updatedAt' => $this->getUpdatedAt()?->format('Y-m-d H:i:s')
         ];
@@ -327,6 +383,8 @@ class Objective
             'coach' => $this->getCoach()?->toSimpleArray(),
             'tasksCount' => $this->getTasks()->count(),
             'commentsCount' => $this->getComments()->count(),
+            'sharedStudents' => array_map(fn($student) => $student->toSimpleArray(), $this->getSharedStudents()->toArray()),
+            'sharedSpecialists' => array_map(fn($specialist) => $specialist->toSimpleArray(), $this->getSharedSpecialists()->toArray()),
             'createdAt' => $this->getCreatedAt()?->format('Y-m-d H:i:s'),
             'updatedAt' => $this->getUpdatedAt()?->format('Y-m-d H:i:s')
         ];

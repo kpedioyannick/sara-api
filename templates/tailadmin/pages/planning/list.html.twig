@@ -75,7 +75,7 @@
                             {% for event in day.events %}
                             <div 
                                 {% if event.sourceType is defined and event.sourceType == 'task' and event.sourceId is defined %}
-                                    @click="openTaskDetails({{ event.sourceId }})"
+                                    @click="openTaskDetails({{ event.sourceId }}, '{{ event.startDate }}')"
                                 {% else %}
                                     @click="openView({{ event.id|default('null') }}, '{{ event.title|e('js') }}', '{{ event.description|e('js')|default('') }}', '{{ event.startDate }}', '{{ event.endDate }}', {{ event.userId }}, '{{ event.type }}', '{{ event.status }}')"
                                 {% endif %}
@@ -227,7 +227,7 @@
         <div id="task-rightsheet-container"></div>
     </div>
 
-    <!-- Right Sheet pour les événements Planning (ancien système) -->
+    <!-- Right Sheet pour les événements Planning -->
     <div
         x-show="rightSheetOpen"
         @click.away="closeSheet()"
@@ -240,316 +240,8 @@
         class="fixed right-0 top-0 z-50 h-full w-full max-w-md overflow-y-auto bg-white shadow-2xl dark:bg-gray-900"
         style="display: none;"
     >
-        <div class="flex h-full flex-col">
-            <div class="sticky top-0 z-10 border-b border-gray-200 bg-white px-6 py-4 dark:border-gray-800 dark:bg-gray-900">
-                <div class="flex items-center justify-between">
-                    <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">
-                        <span x-show="!isEdit && !isView">Nouvel Événement</span>
-                        <span x-show="isEdit && !isView">Modifier Événement</span>
-                        <span x-show="isView">Détails de l'Événement</span>
-                    </h3>
-                    <button
-                        @click="closeSheet()"
-                        class="rounded-lg p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-300"
-                    >
-                        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                    </button>
-                </div>
-            </div>
-
-            <div class="flex-1 p-6">
-                <!-- Mode lecture (view) -->
-                <div x-show="isView" class="space-y-6">
-                    <div>
-                        <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Titre</label>
-                        <div class="rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90">
-                            <span x-text="viewData.title || 'N/A'"></span>
-                        </div>
-                    </div>
-                    <div>
-                        <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Description</label>
-                        <div class="rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90 min-h-[60px]">
-                            <span x-text="viewData.description || 'Aucune description'"></span>
-                        </div>
-                    </div>
-                    <div>
-                        <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Type</label>
-                        <div class="rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90">
-                            <span x-text="viewData.type || 'N/A'"></span>
-                        </div>
-                    </div>
-                    <div>
-                        <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Statut</label>
-                        <div class="rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90">
-                            <span x-text="viewData.status || 'N/A'"></span>
-                        </div>
-                    </div>
-                    <div>
-                        <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Élève</label>
-                        <div class="rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90">
-                            <span x-text="viewData.studentName || 'N/A'"></span>
-                        </div>
-                    </div>
-                    <div>
-                        <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Date</label>
-                        <div class="rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90">
-                            <span x-text="viewData.date || 'N/A'"></span>
-                        </div>
-                    </div>
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Heure de début</label>
-                            <div class="rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90">
-                                <span x-text="viewData.startTime || 'N/A'"></span>
-                            </div>
-                        </div>
-                        <div>
-                            <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Heure de fin</label>
-                            <div class="rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90">
-                                <span x-text="viewData.endTime || 'N/A'"></span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Mode édition/création -->
-                <form x-show="!isView" @submit.prevent="saveEvent()" class="space-y-6">
-                    <div>
-                        <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Pour *</label>
-                        {% if app.user.isStudent() %}
-                        <div class="rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90">
-                            <span>Élève</span>
-                        </div>
-                        {% else %}
-                        <select
-                            x-model="formData.userType"
-                            @change="onUserTypeChange()"
-                            required
-                            class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
-                        >
-                            <option value="">Sélectionner un type...</option>
-                            {% if app.user.isCoach() %}
-                            <option value="coach">Moi (Coach)</option>
-                            <option value="student">Élève</option>
-                            <option value="specialist">Spécialiste</option>
-                            {% elseif app.user.isParent() %}
-                            <option value="parent">Moi</option>
-                            <option value="student">Élève</option>
-                            {% elseif app.user.isSpecialist() %}
-                            <option value="specialist">Moi</option>
-                            <option value="student">Élève</option>
-                            {% else %}
-                            <option value="student">Élève</option>
-                            {% endif %}
-                        </select>
-                        {% endif %}
-                    </div>
-                    <div>
-                        <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Titre *</label>
-                        <div class="space-y-2">
-                            <select
-                                x-model="formData.title"
-                                @change="handleTitleChange($event.target.value)"
-                                required
-                                class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
-                            >
-                                <option value="">Sélectionner un titre...</option>
-                                {% if app.user.isCoach() or app.user.isSpecialist() %}
-                                <optgroup label="Disponibilités">
-                                    <option value="Disponibilité pour échanger">Disponibilité pour échanger</option>
-                                    <option value="Disponibilité pour venir sur site">Disponibilité pour venir sur site</option>
-                                    <option value="Disponibilité pour aider à distance">Disponibilité pour aider à distance</option>
-                                </optgroup>
-                                {% elseif app.user.isParent() %}
-                                <optgroup label="Disponibilités">
-                                    <option value="Disponibilité pour échanger">Disponibilité pour échanger</option>
-                                </optgroup>
-                                {% endif %}
-                                <optgroup label="Matières">
-                                    <option value="Français">Français</option>
-                                    <option value="Mathématiques">Mathématiques</option>
-                                    <option value="Histoire">Histoire</option>
-                                    <option value="Géographie">Géographie</option>
-                                    <option value="Sciences">Sciences</option>
-                                    <option value="Physique-Chimie">Physique-Chimie</option>
-                                    <option value="SVT">SVT</option>
-                                    <option value="Anglais">Anglais</option>
-                                    <option value="Espagnol">Espagnol</option>
-                                    <option value="Allemand">Allemand</option>
-                                    <option value="Arts plastiques">Arts plastiques</option>
-                                    <option value="Musique">Musique</option>
-                                    <option value="EPS">EPS</option>
-                                    <option value="Technologie">Technologie</option>
-                                </optgroup>
-                                <option value="custom">+ Ajouter un titre personnalisé</option>
-                            </select>
-                            <input
-                                type="text"
-                                x-model="formData.title"
-                                x-show="showCustomTitle"
-                                x-cloak
-                                placeholder="Entrez le nom de la matière"
-                                required
-                                class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
-                            />
-                        </div>
-                    </div>
-                    <div>
-                        <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Description</label>
-                        <textarea
-                            x-model="formData.description"
-                            rows="3"
-                            class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
-                        ></textarea>
-                    </div>
-                    <div>
-                        <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Type *</label>
-                        <select
-                            x-model="formData.type"
-                            required
-                            class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
-                        >
-                            <option value="">Sélectionner...</option>
-                            <optgroup label="Disponibilités">
-                                <option value="availability_exchange">Disponibilité - Échange</option>
-                                <option value="availability_activity">Disponibilité - Activités</option>
-                            </optgroup>
-                            <optgroup label="Événements scolaires">
-                                <option value="homework">Devoir</option>
-                                <option value="revision">Révision</option>
-                                <option value="task">Tâche</option>
-                                <option value="assessment">Évaluation</option>
-                                <option value="course">Cours</option>
-                                <option value="training">Formation</option>
-                                <option value="activity">Activité</option>
-                                <option value="detention">Retenue</option>
-                                <option value="exam">Examen</option>
-                                <option value="objective">Objectif</option>
-                            </optgroup>
-                            <option value="other">Autre</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Statut *</label>
-                        <select
-                            x-model="formData.status"
-                            required
-                            class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
-                        >
-                            <option value="scheduled">Planifié</option>
-                            <option value="in_progress">En cours</option>
-                            <option value="to_do">À faire</option>
-                            <option value="completed">Terminé</option>
-                        </select>
-                    </div>
-                    <div x-show="formData.userType === 'student'{% if app.user.isStudent() %} || true{% endif %}">
-                        <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Élève *</label>
-                        {% if app.user.isStudent() %}
-                        <div class="rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90">
-                            <span x-text="studentsData.find(s => s.id == currentUserId) ? (studentsData.find(s => s.id == currentUserId).firstName + ' ' + studentsData.find(s => s.id == currentUserId).lastName) : 'Moi'"></span>
-                        </div>
-                        {% else %}
-                        <select
-                            x-model="formData.userId"
-                            :required="formData.userType === 'student'"
-                            class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
-                        >
-                            <option value="">Sélectionner un élève...</option>
-                            <template x-for="student in studentsData" :key="student.id">
-                                <option :value="student.id" x-text="student.firstName + ' ' + student.lastName"></option>
-                            </template>
-                        </select>
-                        {% endif %}
-                    </div>
-                    <div x-show="formData.userType === 'specialist'">
-                        <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Spécialiste *</label>
-                        {% if app.user.isSpecialist() %}
-                        <div class="rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90">
-                            <span x-text="specialistsData.find(s => s.id == currentUserId) ? (specialistsData.find(s => s.id == currentUserId).firstName + ' ' + specialistsData.find(s => s.id == currentUserId).lastName) : 'Moi'"></span>
-                        </div>
-                        {% else %}
-                        <select
-                            x-model="formData.userId"
-                            :required="formData.userType === 'specialist'"
-                            class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
-                        >
-                            <option value="">Sélectionner un spécialiste...</option>
-                            <template x-for="specialist in specialistsData" :key="specialist.id">
-                                <option :value="specialist.id" x-text="specialist.firstName + ' ' + specialist.lastName"></option>
-                            </template>
-                        </select>
-                        {% endif %}
-                    </div>
-                    <div>
-                        <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Date *</label>
-                        <input
-                            type="date"
-                            x-model="formData.date"
-                            @change="updateDateTime()"
-                            required
-                            class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
-                        />
-                    </div>
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Heure de début *</label>
-                            <input
-                                type="time"
-                                x-model="formData.startTime"
-                                @change="updateDateTime()"
-                                required
-                                class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
-                            />
-                        </div>
-                        <div>
-                            <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">Heure de fin *</label>
-                            <input
-                                type="time"
-                                x-model="formData.endTime"
-                                @change="updateDateTime()"
-                                required
-                                class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
-                            />
-                        </div>
-                    </div>
-                </form>
-            </div>
-
-            <div class="sticky bottom-0 border-t border-gray-200 bg-white px-6 py-4 dark:border-gray-800 dark:bg-gray-900">
-                <!-- Mode lecture -->
-                <div x-show="isView" class="flex gap-3">
-                    <button
-                        @click="closeSheet()"
-                        class="flex-1 rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
-                    >
-                        Fermer
-                    </button>
-                    <button
-                        @click="openEdit(viewData.id, viewData.title, viewData.startDate, viewData.endDate, viewData.userId, viewData.type, viewData.status)"
-                        class="flex-1 rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white shadow-theme-xs hover:bg-brand-600"
-                    >
-                        Modifier
-                    </button>
-                </div>
-                <!-- Mode édition/création -->
-                <div x-show="!isView" class="flex gap-3">
-                    <button
-                        @click="closeSheet()"
-                        class="flex-1 rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
-                    >
-                        Annuler
-                    </button>
-                    <button
-                        @click="saveEvent()"
-                        class="flex-1 rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white shadow-theme-xs hover:bg-brand-600"
-                    >
-                        Enregistrer
-                    </button>
-                </div>
-            </div>
-        </div>
+        <!-- Contenu chargé dynamiquement -->
+        <div id="planning-rightsheet-container"></div>
     </div>
 </div>
 
@@ -590,7 +282,81 @@ function planningManager() {
             endDate: '',
         },
         init() {
-            // Initialisation simplifiée
+            // Exposer les données nécessaires pour le template chargé via AJAX
+            window.planningManagerData = {
+                studentsData: this.studentsData,
+                specialistsData: this.specialistsData,
+                coachData: this.coachData,
+                parentData: this.parentData,
+                currentUserType: this.currentUserType,
+                currentUserId: this.currentUserId,
+                showMessage: (message, type) => this.showMessage(message, type),
+            };
+            
+            // Écouter les événements du rightsheet chargé
+            document.addEventListener('close-planning-rightsheet', () => {
+                this.closeSheet();
+            });
+            
+            document.addEventListener('open-planning-edit', (event) => {
+                const { id, title, startDate, endDate, userId, type, status } = event.detail;
+                this.openEdit(id, title, startDate, endDate, userId, type, status);
+            });
+            
+            // Écouter l'événement de rafraîchissement du calendrier (désactivé car on ne veut pas rafraîchir le calendrier)
+            // document.addEventListener('refresh-planning-calendar', () => {
+            //     this.refreshCalendar();
+            // });
+        },
+        async refreshCalendar() {
+            // Récupérer l'offset de semaine actuel depuis l'URL
+            const urlParams = new URLSearchParams(window.location.search);
+            const weekOffset = urlParams.get('week') || '0';
+            
+            try {
+                // Charger uniquement le calendrier via AJAX
+                const response = await fetch(`/admin/planning?week=${weekOffset}`, {
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Erreur lors du rafraîchissement');
+                }
+                
+                const html = await response.text();
+                
+                // Extraire uniquement la partie calendrier du HTML
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = html;
+                
+                // Trouver le conteneur du calendrier dans la réponse
+                const calendarContainer = tempDiv.querySelector('.rounded-2xl.border.border-gray-200');
+                
+                if (calendarContainer) {
+                    // Trouver le conteneur du calendrier dans la page actuelle
+                    const currentCalendar = document.querySelector('.rounded-2xl.border.border-gray-200');
+                    if (currentCalendar) {
+                        // Remplacer le contenu
+                        currentCalendar.outerHTML = calendarContainer.outerHTML;
+                        
+                        // Réinitialiser Alpine.js sur le nouveau contenu
+                        if (window.Alpine) {
+                            const newCalendar = document.querySelector('.rounded-2xl.border.border-gray-200');
+                            if (newCalendar) {
+                                Alpine.initTree(newCalendar);
+                            }
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Erreur lors du rafraîchissement du calendrier:', error);
+                // Ne pas recharger la page, juste afficher un message d'erreur
+                if (this.showMessage) {
+                    this.showMessage('Erreur lors du rafraîchissement du calendrier', 'error');
+                }
+            }
         },
         handleTitleChange(value) {
             if (value === 'custom') {
@@ -626,40 +392,76 @@ function planningManager() {
             const queryString = params.toString();
             return '/admin/planning' + (queryString ? '?' + queryString : '');
         },
-        openCreate(date = null) {
-            this.isEdit = false;
-            this.isView = false;
-            this.currentId = null;
-            this.showCustomTitle = false;
-            const selectedDate = date || new Date().toISOString().split('T')[0];
-            
-            // Préremplir les champs selon le type d'utilisateur
-            let userType = '';
-            let userId = '';
-            if (this.currentUserType === 'student' && this.currentUserId) {
-                userType = 'student';
-                userId = this.currentUserId;
-            } else if (this.currentUserType === 'specialist' && this.currentUserId) {
-                // Pour les spécialistes, préremplir avec "Moi" par défaut
-                userType = 'specialist';
-                userId = this.currentUserId;
-            }
-            
-            this.formData = {
-                title: '',
-                description: '',
-                type: '',
-                status: 'scheduled',
-                userType: userType,
-                userId: userId,
-                date: selectedDate,
-                startTime: '09:00',
-                endTime: '10:00',
-                startDate: '',
-                endDate: '',
-            };
-            this.updateDateTime();
+        async openCreate(date = null) {
             this.rightSheetOpen = true;
+            
+            // Afficher un loader
+            this.$nextTick(() => {
+                const container = document.getElementById('planning-rightsheet-container');
+                if (container) {
+                    container.innerHTML = '<div class="flex items-center justify-center h-full"><div class="text-center"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-500 mx-auto"></div><p class="mt-2 text-sm text-gray-500">Chargement...</p></div></div>';
+                }
+            });
+            
+            try {
+            const selectedDate = date || new Date().toISOString().split('T')[0];
+                const url = `/admin/planning/event-sheet?mode=create&date=${encodeURIComponent(selectedDate)}`;
+                
+                const response = await fetch(url, {
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Erreur lors du chargement');
+                }
+                
+                const html = await response.text();
+                
+                // Injecter le HTML dans le conteneur et initialiser Alpine.js
+                this.$nextTick(() => {
+                    const container = document.getElementById('planning-rightsheet-container');
+                    if (container) {
+                        // Extraire et exécuter les scripts AVANT d'injecter le HTML
+                        const tempDiv = document.createElement('div');
+                        tempDiv.innerHTML = html;
+                        const scripts = tempDiv.querySelectorAll('script');
+                        const htmlWithoutScripts = html.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
+                        
+                        // Exécuter les scripts
+                        scripts.forEach(script => {
+                            if (script.src) {
+                                const newScript = document.createElement('script');
+                                newScript.src = script.src;
+                                document.head.appendChild(newScript);
+                            } else {
+                                try {
+                                    eval(script.textContent);
+                                } catch (e) {
+                                    console.error('Erreur lors de l\'exécution du script:', e);
+                                }
+                            }
+                        });
+                        
+                        // Injecter le HTML sans les scripts
+                        container.innerHTML = htmlWithoutScripts;
+                        
+                        // Initialiser Alpine.js sur le nouveau contenu
+                        setTimeout(() => {
+                            if (window.Alpine) {
+                                Alpine.initTree(container);
+                            }
+                        }, 100);
+                    }
+                });
+            } catch (error) {
+                console.error('Erreur:', error);
+                const container = document.getElementById('planning-rightsheet-container');
+                if (container) {
+                    container.innerHTML = '<div class="flex items-center justify-center h-full"><div class="text-center text-red-500"><p class="text-sm">Erreur lors du chargement</p></div></div>';
+                }
+            }
         },
         
         onUserTypeChange() {
@@ -685,125 +487,145 @@ function planningManager() {
             }
             this.openCreate(date);
         },
-        openView(id, title, description, startDate, endDate, userId, type, status) {
-            this.isView = true;
-            this.isEdit = false;
-            this.currentId = id;
+        async openView(id, title, description, startDate, endDate, userId, type, status) {
+            this.rightSheetOpen = true;
             
-            // Trouver le nom de l'utilisateur
-            let userName = 'N/A';
-            if (userId && this.studentsData) {
-                const user = this.studentsData.find(s => s.id == userId);
-                if (user) {
-                    userName = user.firstName + ' ' + user.lastName;
+            // Afficher un loader
+            this.$nextTick(() => {
+                const container = document.getElementById('planning-rightsheet-container');
+                if (container) {
+                    container.innerHTML = '<div class="flex items-center justify-center h-full"><div class="text-center"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-500 mx-auto"></div><p class="mt-2 text-sm text-gray-500">Chargement...</p></div></div>';
+                }
+            });
+            
+            try {
+                const url = `/admin/planning/event-sheet?mode=view&id=${id}`;
+                
+                const response = await fetch(url, {
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Erreur lors du chargement');
+                }
+                
+                const html = await response.text();
+                
+                // Injecter le HTML dans le conteneur et initialiser Alpine.js
+                this.$nextTick(() => {
+                    const container = document.getElementById('planning-rightsheet-container');
+                    if (container) {
+                        // Extraire et exécuter les scripts AVANT d'injecter le HTML
+                        const tempDiv = document.createElement('div');
+                        tempDiv.innerHTML = html;
+                        const scripts = tempDiv.querySelectorAll('script');
+                        const htmlWithoutScripts = html.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
+                        
+                        // Exécuter les scripts
+                        scripts.forEach(script => {
+                            if (script.src) {
+                                const newScript = document.createElement('script');
+                                newScript.src = script.src;
+                                document.head.appendChild(newScript);
+                            } else {
+                                try {
+                                    eval(script.textContent);
+                                } catch (e) {
+                                    console.error('Erreur lors de l\'exécution du script:', e);
+                                }
+                            }
+                        });
+                        
+                        // Injecter le HTML sans les scripts
+                        container.innerHTML = htmlWithoutScripts;
+                        
+                        // Initialiser Alpine.js sur le nouveau contenu
+                        setTimeout(() => {
+                            if (window.Alpine) {
+                                Alpine.initTree(container);
+                            }
+                        }, 100);
+                    }
+                });
+            } catch (error) {
+                console.error('Erreur:', error);
+                const container = document.getElementById('planning-rightsheet-container');
+                if (container) {
+                    container.innerHTML = '<div class="flex items-center justify-center h-full"><div class="text-center text-red-500"><p class="text-sm">Erreur lors du chargement</p></div></div>';
                 }
             }
-            
-            // Parser les dates
-            let date = '';
-            let startTime = '';
-            let endTime = '';
-            
-            if (startDate) {
-                const start = new Date(startDate);
-                date = start.toISOString().split('T')[0];
-                startTime = start.toTimeString().slice(0, 5);
-            }
-            
-            if (endDate) {
-                const end = new Date(endDate);
-                endTime = end.toTimeString().slice(0, 5);
-            }
-            
-            // Mapper le statut
-            const statusMap = {
-                'completed': 'Terminé',
-                'in_progress': 'En cours',
-                'to_do': 'À faire',
-                'scheduled': 'Planifié',
-                'planifie': 'Planifié',
-                'en_cours': 'En cours',
-                'termine': 'Terminé'
-            };
-            
-            // Mapper le type
-            const typeMap = {
-                'homework': 'Devoir',
-                'course': 'Cours',
-                'revision': 'Révision',
-                'activity': 'Activité',
-                'assessment': 'Évaluation',
-                'task': 'Tâche',
-                'other': 'Autre'
-            };
-            
-            this.viewData = {
-                id: id,
-                title: title || 'N/A',
-                description: description || 'Aucune description',
-                type: typeMap[type] || type || 'N/A',
-                status: statusMap[status] || status || 'N/A',
-                userId: userId || '',
-                userName: userName,
-                date: date || 'N/A',
-                startTime: startTime || 'N/A',
-                endTime: endTime || 'N/A',
-                startDate: startDate || '',
-                endDate: endDate || '',
-            };
-            this.rightSheetOpen = true;
         },
-        openEdit(id, title, startDate, endDate, userId, type, status) {
-            this.isEdit = true;
-            this.isView = false;
-            this.currentId = id;
-            this.showCustomTitle = false;
+        async openEdit(id, title, startDate, endDate, userId, type, status) {
+            this.rightSheetOpen = true;
             
-            // Parser les dates
-            let date = '';
-            let startTime = '09:00';
-            let endTime = '10:00';
+            // Afficher un loader
+            this.$nextTick(() => {
+                const container = document.getElementById('planning-rightsheet-container');
+                if (container) {
+                    container.innerHTML = '<div class="flex items-center justify-center h-full"><div class="text-center"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-500 mx-auto"></div><p class="mt-2 text-sm text-gray-500">Chargement...</p></div></div>';
+                }
+            });
             
-            if (startDate) {
-                const start = new Date(startDate);
-                date = start.toISOString().split('T')[0];
-                startTime = start.toTimeString().slice(0, 5);
-            }
-            
-            if (endDate) {
-                const end = new Date(endDate);
-                endTime = end.toTimeString().slice(0, 5);
-            }
-            
-            // Déterminer le type d'utilisateur selon l'ID
-            let userType = '';
-            if (userId) {
-                if (this.coachData && userId == this.coachData.id) {
-                    userType = 'coach';
-                } else if (this.parentData && userId == this.parentData.id) {
-                    userType = 'parent';
-                } else if (this.studentsData.find(s => s.id == userId)) {
-                    userType = 'student';
-                } else if (this.specialistsData.find(s => s.id == userId)) {
-                    userType = 'specialist';
+            try {
+                const url = `/admin/planning/event-sheet?mode=edit&id=${id}`;
+                
+                const response = await fetch(url, {
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                    }
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Erreur lors du chargement');
+                }
+                
+                const html = await response.text();
+                
+                // Injecter le HTML dans le conteneur et initialiser Alpine.js
+                this.$nextTick(() => {
+                    const container = document.getElementById('planning-rightsheet-container');
+                    if (container) {
+                        // Extraire et exécuter les scripts AVANT d'injecter le HTML
+                        const tempDiv = document.createElement('div');
+                        tempDiv.innerHTML = html;
+                        const scripts = tempDiv.querySelectorAll('script');
+                        const htmlWithoutScripts = html.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
+                        
+                        // Exécuter les scripts
+                        scripts.forEach(script => {
+                            if (script.src) {
+                                const newScript = document.createElement('script');
+                                newScript.src = script.src;
+                                document.head.appendChild(newScript);
+                            } else {
+                                try {
+                                    eval(script.textContent);
+                                } catch (e) {
+                                    console.error('Erreur lors de l\'exécution du script:', e);
+                                }
+                            }
+                        });
+                        
+                        // Injecter le HTML sans les scripts
+                        container.innerHTML = htmlWithoutScripts;
+                        
+                        // Initialiser Alpine.js sur le nouveau contenu
+                        setTimeout(() => {
+                            if (window.Alpine) {
+                                Alpine.initTree(container);
+                            }
+                        }, 100);
+                    }
+                });
+            } catch (error) {
+                console.error('Erreur:', error);
+                const container = document.getElementById('planning-rightsheet-container');
+                if (container) {
+                    container.innerHTML = '<div class="flex items-center justify-center h-full"><div class="text-center text-red-500"><p class="text-sm">Erreur lors du chargement</p></div></div>';
                 }
             }
-            
-            this.formData = {
-                title: title || '',
-                description: '',
-                type: type || '',
-                status: status || 'scheduled',
-                userType: userType,
-                userId: userId || '',
-                date: date || new Date().toISOString().split('T')[0],
-                startTime: startTime,
-                endTime: endTime,
-                startDate: '',
-                endDate: '',
-            };
-            this.updateDateTime();
-            this.rightSheetOpen = true;
         },
         openDelete(id) {
             if (confirm('Êtes-vous sûr de vouloir supprimer cet événement ?')) {
@@ -815,7 +637,10 @@ function planningManager() {
                 .then(data => {
                     if (data.success) {
                         this.showMessage(data.message || 'Événement supprimé avec succès', 'success');
-                        setTimeout(() => location.reload(), 1000);
+                        // Fermer le rightsheet si ouvert
+                        this.closeSheet();
+                        // Ne pas rafraîchir le calendrier automatiquement
+                        // L'utilisateur peut rafraîchir manuellement si nécessaire
                     } else {
                         this.showMessage(data.message || 'Erreur lors de la suppression', 'error');
                     }
@@ -834,59 +659,11 @@ function planningManager() {
                 this.formData.endDate = `${this.formData.date}T${this.formData.endTime}:00`;
             }
         },
+        // Cette fonction saveEvent() n'est plus utilisée car le rightsheet est chargé via AJAX
+        // et utilise sa propre fonction saveEvent() dans _planning_rightsheet.html.twig
+        // On la garde pour compatibilité mais elle ne devrait plus être appelée
         saveEvent() {
-            // Mettre à jour les dates avant l'envoi
-            this.updateDateTime();
-            
-            // Vérifier que le titre est rempli
-            if (!this.formData.title || this.formData.title.trim() === '') {
-                this.showMessage('Veuillez sélectionner ou entrer un titre', 'error');
-                return;
-            }
-            
-            const url = this.isEdit 
-                ? `/admin/planning/${this.currentId}/update`
-                : '/admin/planning/create';
-            
-            // Préparer les données pour l'API
-            // Déterminer le userId selon le type sélectionné
-            let userId = this.formData.userId;
-            if (this.formData.userType === 'coach' && this.coachData) {
-                userId = this.coachData.id;
-            } else if (this.formData.userType === 'parent' && this.parentData) {
-                userId = this.parentData.id;
-            }
-            
-            const data = {
-                title: this.formData.title,
-                description: this.formData.description || '',
-                type: this.formData.type,
-                status: this.formData.status,
-                userId: userId,
-                startDate: this.formData.startDate,
-                endDate: this.formData.endDate,
-            };
-            
-            fetch(url, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest',
-                },
-                body: JSON.stringify(data),
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    this.showMessage(data.message || 'Événement enregistré avec succès', 'success');
-                    setTimeout(() => location.reload(), 1000);
-                } else {
-                    this.showMessage(data.message || 'Erreur lors de l\'enregistrement', 'error');
-                }
-            })
-            .catch(error => {
-                this.showMessage('Erreur de connexion', 'error');
-            });
+            console.warn('saveEvent() dans planningManager() ne devrait plus être appelée. Utilisez la fonction dans le rightsheet chargé via AJAX.');
         },
         showMessage(message, type = 'info') {
             if (window.showToast) {
@@ -900,25 +677,12 @@ function planningManager() {
         },
         closeSheet() {
             this.rightSheetOpen = false;
-            this.isEdit = false;
-            this.isView = false;
-            this.currentId = null;
-            this.viewData = {
-                id: null,
-                title: '',
-                description: '',
-                type: '',
-                status: '',
-                userId: '',
-                userName: '',
-                date: '',
-                startTime: '',
-                endTime: '',
-                startDate: '',
-                endDate: '',
-            };
+            const container = document.getElementById('planning-rightsheet-container');
+            if (container) {
+                container.innerHTML = '';
+            }
         },
-        async openTaskDetails(taskId) {
+        async openTaskDetails(taskId, eventDate = null) {
             this.taskRightSheetOpen = true;
             
             // Afficher un loader
@@ -930,7 +694,11 @@ function planningManager() {
             });
             
             try {
-                const response = await fetch(`/admin/planning/task/${taskId}/details`, {
+                let url = `/admin/planning/task/${taskId}/details`;
+                if (eventDate) {
+                    url += `?eventDate=${encodeURIComponent(eventDate)}`;
+                }
+                const response = await fetch(url, {
                     headers: {
                         'X-Requested-With': 'XMLHttpRequest',
                     }

@@ -21,6 +21,7 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 class ProofController extends AbstractController
@@ -122,8 +123,18 @@ class ProofController extends AbstractController
         $proof->setSubmittedBy($user);
 
         // Gérer la date de soumission (submittedAt)
-        // Depuis objectifs : utiliser submittedAt du formulaire ou date du jour par défaut
-        if (isset($data['submittedAt']) && !empty($data['submittedAt'])) {
+        // Si un planning est associé à la tâche, utiliser planning.startDate
+        $planning = null;
+        if (isset($data['planningId'])) {
+            $planning = $this->planningRepository->find($data['planningId']);
+        }
+        
+        if ($planning && $planning->getStartDate()) {
+            // Utiliser la date de l'événement Planning
+            $proof->setSubmittedAt($planning->getStartDate());
+            $proof->setPlanning($planning);
+        } elseif (isset($data['submittedAt']) && !empty($data['submittedAt'])) {
+            // Depuis objectifs : utiliser submittedAt du formulaire
             try {
                 $proof->setSubmittedAt(new \DateTimeImmutable($data['submittedAt']));
             } catch (\Exception $e) {
@@ -134,7 +145,7 @@ class ProofController extends AbstractController
             // Par défaut : date du jour
             $proof->setSubmittedAt(new \DateTimeImmutable());
         }
-
+        
         // Gestion du contenu selon le type
         if ($data['type'] === 'text' && isset($data['content'])) {
             $proof->setContent($data['content']);
@@ -354,6 +365,51 @@ class ProofController extends AbstractController
         $this->em->flush();
 
         return new JsonResponse(['success' => true, 'message' => 'Preuve supprimée avec succès']);
+    }
+
+    #[Route('/api/tasks/{id}/proofs', name: 'api_task_proofs_history', methods: ['GET'])]
+    #[IsGranted('ROLE_USER')]
+    public function getProofsHistory(int $id, Request $request): JsonResponse
+    {
+        $user = $this->getUser();
+        if (!$user) {
+            return new JsonResponse(['success' => false, 'message' => 'Vous devez être connecté'], 403);
+        }
+
+        $task = $this->taskRepository->find($id);
+        if (!$task) {
+            return new JsonResponse(['success' => false, 'message' => 'Tâche non trouvée'], 404);
+        }
+
+        // Vérifier que l'utilisateur peut voir cette tâche
+        if (!$this->permissionService->canViewTask($user, $task)) {
+            return new JsonResponse(['success' => false, 'message' => 'Vous n\'avez pas le droit de voir cette tâche'], 403);
+        }
+
+        // Récupérer toutes les preuves de la tâche, triées par date de soumission (chronologique)
+        $proofs = $this->proofRepository->createQueryBuilder('p')
+            ->where('p.task = :task')
+            ->setParameter('task', $task)
+            ->orderBy('p.submittedAt', 'ASC')
+            ->getQuery()
+            ->getResult();
+
+        $proofsData = array_map(fn($proof) => $proof->toArray(), $proofs);
+
+        return new JsonResponse([
+            'success' => true,
+            'proofs' => $proofsData,
+            'task' => [
+                'id' => $task->getId(),
+                'title' => $task->getTitle(),
+                'description' => $task->getDescription(),
+                'status' => $task->getStatus(),
+                'objective' => $task->getObjective() ? [
+                    'id' => $task->getObjective()->getId(),
+                    'title' => $task->getObjective()->getTitle(),
+                ] : null,
+            ]
+        ]);
     }
 }
 

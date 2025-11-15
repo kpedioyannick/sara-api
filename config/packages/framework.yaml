@@ -7,10 +7,10 @@ framework:
     # Note that the session will be started ONLY if you read or write from it.
     session:
         handler_id: null
-        cookie_lifetime: 31536000  # 1 an en secondes (pour une session vraiment persistante)
+        cookie_lifetime: 2147483647  # Valeur maximale (environ 68 ans) - session à vie
         cookie_httponly: true
         cookie_samesite: lax
-        gc_maxlifetime: 31536000  # 1 an en secondes pour le garbage collection
+        gc_maxlifetime: 0  # 0 = désactive le garbage collection (session jamais supprimée)
 
     #esi: true
     #fragments: true
