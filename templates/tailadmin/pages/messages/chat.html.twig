@@ -200,50 +200,53 @@ function chatManager(conversationId) {
             // Marquer les messages comme lus immédiatement
             this.markAsRead();
             
-            // S'abonner aux messages en temps réel via Mercure
-            this.subscribeToMercure();
+            // S'abonner aux messages en temps réel via Firebase
+            this.subscribeToFirebase();
         },
         
-        async subscribeToMercure() {
+        async subscribeToFirebase() {
             try {
-                // Récupérer le token JWT Mercure depuis le serveur
-                const tokenResponse = await fetch('{{ path('admin_messages_mercure_token') }}');
-                const tokenData = await tokenResponse.json();
+                // Récupérer la configuration Firebase
+                const configResponse = await fetch('{{ path('admin_firebase_config') }}', {
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    credentials: 'same-origin'
+                });
                 
-                if (!tokenData.success) {
-                    console.error('Failed to get Mercure token');
+                if (!configResponse.ok) {
+                    console.error('Failed to get Firebase config');
                     // Fallback: rafraîchir manuellement
                     setInterval(() => this.refreshMessages(), 5000);
                     return;
                 }
                 
-                const mercureUrl = '{{ mercureUrl }}';
-                const topic = `/conversations/${this.conversationId}`;
+                const configData = await configResponse.json();
                 
-                // URL avec le topic et le token JWT
-                const url = new URL(mercureUrl);
-                url.searchParams.append('topic', topic);
+                if (!configData.success || !configData.config) {
+                    console.error('Invalid Firebase config');
+                    setInterval(() => this.refreshMessages(), 5000);
+                    return;
+                }
+
+                // Initialiser Firebase si pas déjà fait
+                if (typeof firebase !== 'undefined' && !firebase.apps.length) {
+                    firebase.initializeApp(configData.config);
+                }
+
+                const database = firebase.database();
+                const messagesRef = database.ref(`/conversations/${this.conversationId}/messages`);
                 
-                // Créer l'EventSource pour SSE (Server-Sent Events)
-                // Note: EventSource ne supporte pas directement les headers Authorization
-                // Pour une authentification complète, utilisez l'URL avec le token en paramètre
-                // ou utilisez fetch avec EventSource polyfill
-                this.eventSource = new EventSource(`${url.toString()}&authorization=Bearer ${tokenData.token}`);
-                
-                this.eventSource.onmessage = (event) => {
-                    const data = JSON.parse(event.data);
+                // Écouter les nouveaux messages
+                messagesRef.limitToLast(1).on('child_added', (snapshot) => {
+                    const data = snapshot.val();
                     this.handleNewMessage(data);
-                };
+                });
                 
-                this.eventSource.onerror = (error) => {
-                    console.error('Mercure connection error:', error);
-                    // Fallback: rafraîchir manuellement si Mercure échoue
-                    setInterval(() => {
-                        this.refreshMessages();
-                    }, 5000);
-                };
+                console.log('✅ Connecté à Firebase pour les messages temps réel');
             } catch (error) {
-                console.error('Error setting up Mercure:', error);
+                console.error('Error setting up Firebase:', error);
                 // Fallback: rafraîchir manuellement
                 setInterval(() => this.refreshMessages(), 5000);
             }
@@ -502,7 +505,7 @@ function chatManager(conversationId) {
         },
         
         async refreshMessages() {
-            // Cette méthode n'est plus nécessaire avec Mercure, mais on la garde comme fallback
+            // Cette méthode n'est plus nécessaire avec Firebase, mais on la garde comme fallback
             try {
                 // Recharger la page pour récupérer les nouveaux messages
                 // Ou faire un fetch vers une API de refresh

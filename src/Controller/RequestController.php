@@ -21,8 +21,7 @@ use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request as HttpRequest;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\Mercure\HubInterface;
-use Symfony\Component\Mercure\Update;
+use App\Service\FirebaseService;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
@@ -41,7 +40,7 @@ class RequestController extends AbstractController
         private readonly SpecialistRepository $specialistRepository,
         private readonly ValidatorInterface $validator,
         private readonly MessageRepository $messageRepository,
-        private readonly HubInterface $hub,
+        private readonly FirebaseService $firebaseService,
         private readonly FileStorageService $fileStorageService,
         private readonly RequestAIService $requestAIService,
         private readonly PermissionService $permissionService,
@@ -736,32 +735,49 @@ class RequestController extends AbstractController
             error_log('Erreur notification réponse demande: ' . $e->getMessage());
         }
 
-        // Publier le message via Mercure pour le temps réel (avec gestion d'erreur)
+        // Publier le message via Firebase pour le temps réel (avec gestion d'erreur)
         try {
-            $update = new Update(
-                topics: ["/conversations/{$conversationId}", "/requests/{$id}/messages"],
-                data: json_encode([
-                    'id' => $message->getId(),
-                    'conversationId' => $conversationId,
-                    'requestId' => $id,
-                    'content' => $message->getContent(),
-                    'type' => $message->getType(),
-                    'filePath' => $message->getFilePath() ? $this->fileStorageService->generateSecureUrl($message->getFilePath()) : null,
-                    'sender' => [
-                        'id' => $sender->getId(),
-                        'firstName' => $sender->getFirstName(),
-                        'lastName' => $sender->getLastName(),
-                    ],
-                    'receiverId' => $receiver->getId(),
-                    'createdAt' => $message->getCreatedAt()?->format('Y-m-d H:i:s'),
-                    'isRead' => false,
-                ]),
-                private: true
-            );
-            $this->hub->publish($update);
+            // S'assurer que tous les types sont compatibles avec Firebase (pas d'entiers, que des strings/arrays/booleans)
+            $messageData = [
+                'id' => (string)$message->getId(), // Convertir en string
+                'conversationId' => (string)$conversationId, // Convertir en string
+                'requestId' => (string)$id, // S'assurer que c'est une string
+                'content' => $message->getContent() ?? '', // Toujours une string, jamais null
+                'type' => $message->getType() ?? 'text', // Toujours une string
+                'filePath' => $message->getFilePath() ? $this->fileStorageService->generateSecureUrl($message->getFilePath()) : '', // String vide au lieu de null
+                'sender' => [
+                    'id' => (string)$sender->getId(), // Convertir en string
+                    'firstName' => $sender->getFirstName() ?? '',
+                    'lastName' => $sender->getLastName() ?? '',
+                ],
+                'receiverId' => (string)$receiver->getId(), // Convertir en string
+                'createdAt' => $message->getCreatedAt()?->format('Y-m-d H:i:s') ?? date('Y-m-d H:i:s'),
+                'isRead' => false, // Boolean OK
+            ];
+            
+            // Nettoyer les valeurs null (Firebase n'aime pas les null dans certains contextes)
+            $messageData = array_filter($messageData, function($value) {
+                return $value !== null;
+            });
+
+            error_log('Firebase: Tentative de publication du message ID ' . $message->getId() . ' pour request ' . $id);
+            
+            // Publier dans Firebase Realtime Database
+            $this->firebaseService->publishMessage("/conversations/{$conversationId}/messages", $messageData);
+            $this->firebaseService->publishMessage("/requests/{$id}/messages", $messageData);
+            
+            error_log('Firebase: Messages publiés avec succès');
         } catch (\Exception $e) {
             // Log l'erreur mais ne bloque pas l'envoi du message
-            error_log('Erreur Mercure: ' . $e->getMessage());
+            error_log('Erreur Firebase: ' . $e->getMessage() . ' - Trace: ' . $e->getTraceAsString());
+        }
+
+        // Créer une notification pour le destinataire
+        try {
+            $this->notificationService->notifyNewMessage($message, $receiver);
+        } catch (\Exception $e) {
+            // Log l'erreur mais ne bloque pas l'envoi du message
+            error_log('Erreur notification nouveau message: ' . $e->getMessage());
         }
 
         return new JsonResponse([
@@ -770,10 +786,18 @@ class RequestController extends AbstractController
             'data' => [
                 'id' => $message->getId(),
                 'conversationId' => $conversationId,
-                'content' => $message->getContent(),
-                'type' => $message->getType(),
+                'requestId' => (string)$id, // Ajouté pour handleNewMessage
+                'content' => $message->getContent() ?? '',
+                'type' => $message->getType() ?? 'text',
                 'filePath' => $message->getFilePath() ? $this->fileStorageService->generateSecureUrl($message->getFilePath()) : null,
-                'createdAt' => $message->getCreatedAt()?->format('Y-m-d H:i:s'),
+                'sender' => [
+                    'id' => $sender->getId(),
+                    'firstName' => $sender->getFirstName() ?? '',
+                    'lastName' => $sender->getLastName() ?? '',
+                ],
+                'receiverId' => $receiver->getId(), // Ajouté pour référence
+                'createdAt' => $message->getCreatedAt()?->format('Y-m-d H:i:s') ?? date('Y-m-d H:i:s'),
+                'isRead' => false,
             ],
         ]);
     }

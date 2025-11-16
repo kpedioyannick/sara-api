@@ -23,6 +23,7 @@ class Notification
     public const TYPE_DEADLINE_REMINDER = 'deadline_reminder';
     public const TYPE_PROOF_SUBMITTED = 'proof_submitted';
     public const TYPE_NEW_TASK_ASSIGNED = 'new_task_assigned';
+    public const TYPE_NEW_MESSAGE = 'new_message';
 
     public const TYPES = [
         self::TYPE_TASK_COMPLETED => 'Tâche complétée',
@@ -36,7 +37,24 @@ class Notification
         self::TYPE_DEADLINE_REMINDER => 'Rappel de deadline',
         self::TYPE_PROOF_SUBMITTED => 'Preuve soumise',
         self::TYPE_NEW_TASK_ASSIGNED => 'Nouvelle tâche assignée',
+        self::TYPE_NEW_MESSAGE => 'Nouveau message',
     ];
+
+    /**
+     * Retourne la catégorie d'une notification
+     */
+    public function getCategory(): string
+    {
+        return match($this->type) {
+            self::TYPE_NEW_MESSAGE => 'message',
+            self::TYPE_NEW_TASK_ASSIGNED,
+            self::TYPE_TASK_COMPLETED,
+            self::TYPE_TASK_VALIDATED,
+            self::TYPE_DEADLINE_REMINDER,
+            self::TYPE_PROOF_SUBMITTED => 'task',
+            default => 'other',
+        };
+    }
 
     #[ORM\Id]
     #[ORM\GeneratedValue]
@@ -241,6 +259,7 @@ class Notification
             'id' => $this->getId(),
             'type' => $this->getType(),
             'typeLabel' => self::TYPES[$this->getType()] ?? $this->getType(),
+            'category' => $this->getCategory(),
             'title' => $this->getTitle(),
             'message' => $this->getMessage(),
             'data' => $this->getData(),
