@@ -16,6 +16,26 @@
     <script src="https://www.gstatic.com/firebasejs/11.0.1/firebase-database-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/11.0.1/firebase-messaging-compat.js"></script>
     
+    {# Protection contre les erreurs Firebase #}
+    <script>
+        // Gestionnaire d'erreur global pour Firebase
+        window.addEventListener('error', function(event) {
+            if (event.error && event.error.message && event.error.message.includes('insert is not a function')) {
+                console.warn('⚠️ Erreur Firebase détectée (e.insert is not a function) - Ignorée pour éviter de casser l\'application');
+                event.preventDefault(); // Empêcher l'erreur de remonter
+                return false;
+            }
+        }, true);
+        
+        // Gestionnaire pour les erreurs non capturées
+        window.addEventListener('unhandledrejection', function(event) {
+            if (event.reason && event.reason.message && event.reason.message.includes('insert is not a function')) {
+                console.warn('⚠️ Erreur Firebase Promise rejetée (e.insert is not a function) - Ignorée');
+                event.preventDefault();
+            }
+        });
+    </script>
+    
     {% block stylesheets %}{% endblock %}
 </head>
 <body

@@ -70,34 +70,46 @@
         <!-- Liste des parcours -->
         <div class="border-t border-gray-100 p-4 dark:border-gray-800 sm:p-6">
             <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3" x-show="filteredPaths.length > 0">
-                <template x-for="path in filteredPaths" :key="path.id">
-                    <div class="rounded-xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] sm:p-6 hover:shadow-lg transition-shadow cursor-pointer"
+                <template x-for="(path, index) in filteredPaths" :key="path.id">
+                    <div class="rounded-xl border-2 bg-white p-5 dark:bg-white/[0.03] sm:p-6 hover:shadow-lg transition-shadow cursor-pointer"
+                         :style="`border-color: ${['#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#ef4444'][index % 5]};`"
                          @click="viewPath(path.id)">
                         <div class="mb-4 flex items-center justify-between">
-                            <span class="text-theme-xs font-medium text-gray-500 dark:text-gray-400" x-text="path.type"></span>
+                            <span class="inline-block rounded-md px-2.5 py-0.5 text-xs font-medium"
+                                  :class="{
+                                      'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400': path.type === 'h5p',
+                                      'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400': path.type === 'video',
+                                      'bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-400': path.type === 'link',
+                                      'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400': path.type === 'kahoot',
+                                      'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400': !['h5p', 'video', 'link', 'kahoot'].includes(path.type)
+                                  }"
+                                  x-text="path.type?.toUpperCase()"></span>
                             <span 
                                 class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium"
                                 :class="{
                                     'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400': path.status === 'draft',
-                                    'bg-brand-100 text-brand-600 dark:bg-brand-900/30 dark:text-brand-400': path.status === 'generated',
-                                    'bg-success-100 text-success-600 dark:bg-success-900/30 dark:text-success-400': path.status === 'published'
+                                    'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400': path.status === 'generated',
+                                    'bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400': path.status === 'published'
                                 }"
                                 x-text="path.status === 'draft' ? 'Brouillon' : path.status === 'generated' ? 'Généré' : 'Publié'"
                             ></span>
                         </div>
 
-                        <h4 class="mb-3 text-theme-xl font-medium text-gray-800 dark:text-white/90" x-text="path.title"></h4>
+                        <h4 class="mb-3 text-theme-xl font-semibold text-gray-800 dark:text-white/90" x-text="path.title"></h4>
                         <p class="mb-4 text-sm text-gray-600 dark:text-gray-400 line-clamp-2" x-text="path.description"></p>
 
-                        <div class="mb-4 space-y-2 text-sm text-gray-600 dark:text-gray-400">
-                            <div x-show="path.chapter">
-                                <span class="font-medium">Chapitre:</span> <span x-text="path.chapter?.name"></span>
+                        <div class="mb-4 space-y-2 text-sm">
+                            <div x-show="path.chapter" class="flex items-center gap-2">
+                                <span class="inline-block rounded-md bg-yellow-100 dark:bg-yellow-900/30 px-2 py-0.5 text-xs font-medium text-yellow-800 dark:text-yellow-300">Chapitre:</span>
+                                <span class="text-gray-600 dark:text-gray-400" x-text="path.chapter?.name"></span>
                             </div>
-                            <div x-show="path.subChapter">
-                                <span class="font-medium">Sous-chapitre:</span> <span x-text="path.subChapter?.name"></span>
+                            <div x-show="path.subChapter" class="flex items-center gap-2">
+                                <span class="inline-block rounded-md bg-orange-100 dark:bg-orange-900/30 px-2 py-0.5 text-xs font-medium text-orange-800 dark:text-orange-300">Sous-chapitre:</span>
+                                <span class="text-gray-600 dark:text-gray-400" x-text="path.subChapter?.name"></span>
                             </div>
-                            <div>
-                                <span class="font-medium">Modules:</span> <span x-text="path.modulesCount"></span>
+                            <div class="flex items-center gap-2">
+                                <span class="inline-block rounded-md bg-red-100 dark:bg-red-900/30 px-2 py-0.5 text-xs font-medium text-red-800 dark:text-red-300">Modules:</span>
+                                <span class="text-gray-600 dark:text-gray-400" x-text="path.modulesCount"></span>
                             </div>
                         </div>
 
@@ -105,7 +117,7 @@
                             <a
                                 :href="'/admin/paths/' + path.id"
                                 @click.stop
-                                class="text-sm font-medium text-brand-600 hover:text-brand-700 dark:text-brand-400"
+                                class="inline-block rounded-md bg-indigo-100 dark:bg-indigo-900/30 px-3 py-1.5 text-sm font-medium text-indigo-700 hover:bg-indigo-200 dark:text-indigo-400 dark:hover:bg-indigo-900/50"
                             >
                                 Voir détails →
                             </a>
