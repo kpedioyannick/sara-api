@@ -167,7 +167,7 @@ class PathController extends AbstractController
         $classrooms = array_map(fn($c) => $c->toArray(), $this->classroomRepository->findAll());
         $moduleTypes = array_map(fn($type) => [
             'value' => $type->value,
-            'label' => $type->value,
+            'label' => $type->getLabel(),
         ], ModuleType::cases());
 
         return $this->render('tailadmin/pages/paths/create.html.twig', [
@@ -201,7 +201,7 @@ class PathController extends AbstractController
         $subChapterId = $data['subChapterId'] ?? null;
         $type = $data['type'] ?? null;
         $link = $data['link'] ?? null;
-        $modules = $data['modules'] ?? [];
+        $prompts = $data['prompts'] ?? []; // Prompts personnalisés
 
         if (!$type) {
             return new JsonResponse(['error' => 'Le type est requis'], 400);
@@ -250,16 +250,24 @@ class PathController extends AbstractController
             ]);
         }
 
-        // Si type = h5p, génération asynchrone
-        if (empty($modules)) {
-            return new JsonResponse(['error' => 'Au moins un module est requis pour les parcours H5P'], 400);
+        // Si type = h5p, génération asynchrone avec prompts personnalisés
+        if (empty($prompts)) {
+            return new JsonResponse(['error' => 'Au moins un prompt personnalisé est requis pour les parcours H5P'], 400);
         }
+
+        // Convertir les prompts personnalisés en modules pour la génération
+        $modules = array_map(function($prompt) {
+            return [
+                'type' => $prompt['type'] ?? '',
+                'description' => $prompt['prompt_generation'] ?? $prompt['content'] ?? '',
+            ];
+        }, $prompts);
 
         // Sauvegarder le path d'abord
         $this->em->persist($path);
         $this->em->flush();
 
-        // Récupérer les prompts
+        // Récupérer les prompts prédéfinis du chapitre/sous-chapitre (pour contexte)
         $chapterPrompts = $chapter?->getPrompts();
         $subChapterPrompts = $subChapter?->getPrompts();
 

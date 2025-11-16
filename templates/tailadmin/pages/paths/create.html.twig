@@ -85,85 +85,175 @@
                     placeholder="https://...">
             </div>
 
-            <!-- Prompts prédéfinis (si type = h5p) -->
+            <!-- Gestion des prompts personnalisés (si type = h5p) -->
             <div x-show="selectedType === 'h5p'">
-                <h4 class="text-lg font-semibold text-gray-800 dark:text-white/90 mb-4">Prompts prédéfinis</h4>
-                
-                <!-- Prompts du chapitre -->
-                <div x-show="chapterPrompts.length > 0" class="mb-4">
-                    <h5 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Prompts du chapitre</h5>
-                    <div class="space-y-2 max-h-48 overflow-y-auto border border-gray-200 rounded-lg p-4 dark:border-gray-800">
-                        <template x-for="(prompt, index) in chapterPrompts" :key="index">
-                            <div class="rounded-lg border border-gray-200 bg-gray-50 p-3 dark:border-gray-800 dark:bg-gray-800/50">
-                                <div class="flex items-start justify-between mb-2">
-                                    <span class="text-sm font-medium text-gray-800 dark:text-white/90" x-text="prompt.title"></span>
-                                    <span class="text-xs text-gray-500 dark:text-gray-400" x-text="prompt.niveau"></span>
-                                </div>
-                                <p class="text-xs text-gray-600 dark:text-gray-400" x-text="prompt.prompt_generation"></p>
-                            </div>
-                        </template>
-                    </div>
+                <div class="mb-4 rounded-lg border border-blue-200 bg-blue-50 p-4 dark:border-blue-800 dark:bg-blue-900/20">
+                    <p class="text-sm text-blue-800 dark:text-blue-200">
+                        <strong>💡 Comment ça marche :</strong> Sélectionnez ou créez des prompts personnalisés (max 5). Chaque prompt personnalisé sera utilisé pour générer un module H5P du type spécifié.
+                    </p>
                 </div>
 
-                <!-- Prompts du sous-chapitre -->
-                <div x-show="subChapterPrompts.length > 0" class="mb-4">
-                    <h5 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Prompts du sous-chapitre</h5>
-                    <div class="space-y-2 max-h-48 overflow-y-auto border border-gray-200 rounded-lg p-4 dark:border-gray-800">
-                        <template x-for="(prompt, index) in subChapterPrompts" :key="index">
-                            <div class="rounded-lg border border-gray-200 bg-gray-50 p-3 dark:border-gray-800 dark:bg-gray-800/50">
-                                <div class="flex items-start justify-between mb-2">
-                                    <span class="text-sm font-medium text-gray-800 dark:text-white/90" x-text="prompt.title"></span>
-                                    <span class="text-xs text-gray-500 dark:text-gray-400" x-text="prompt.niveau"></span>
-                                </div>
-                                <p class="text-xs text-gray-600 dark:text-gray-400" x-text="prompt.prompt_generation"></p>
-                            </div>
-                        </template>
-                    </div>
-                </div>
-
-                <!-- Modules à générer -->
-                <div>
-                    <div class="flex items-center justify-between mb-4">
-                        <h5 class="text-sm font-medium text-gray-700 dark:text-gray-300">Modules à générer</h5>
-                        <button type="button" @click="addModule()" 
-                            class="inline-flex items-center gap-2 rounded-lg bg-brand-500 px-3 py-1.5 text-sm font-medium text-white hover:bg-brand-600">
-                            + Ajouter un module
-                        </button>
-                    </div>
-                    <div class="space-y-4">
-                        <template x-for="(module, index) in modules" :key="index">
-                            <div class="rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-800 dark:bg-gray-800/50">
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                                    <div>
-                                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Type de module</label>
-                                        <select x-model="module.type" @change="loadModulePrompt(index)" required
-                                            class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90">
-                                            <option value="">Sélectionner un type</option>
-                                            <template x-for="moduleType in moduleTypes" :key="moduleType.value">
-                                                <option :value="moduleType.value" x-text="moduleType.label"></option>
-                                            </template>
-                                        </select>
+                <!-- Layout en deux colonnes -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                    <!-- Colonne gauche : Prompts sélectionnés -->
+                    <div>
+                        <div class="flex items-center justify-between mb-3">
+                            <h5 class="text-sm font-semibold text-gray-800 dark:text-white/90">
+                                📝 Mes prompts (<span x-text="selectedPrompts.length"></span>/5)
+                            </h5>
+                            <button 
+                                type="button" 
+                                @click="addCustomPrompt()" 
+                                :disabled="selectedPrompts.length >= 5"
+                                class="inline-flex items-center gap-1 rounded-lg bg-brand-500 px-2.5 py-1.5 text-xs font-medium text-white hover:bg-brand-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                                </svg>
+                                Nouveau
+                            </button>
+                        </div>
+                        
+                        <div class="space-y-3 max-h-[600px] overflow-y-auto">
+                            <template x-for="(prompt, index) in selectedPrompts" :key="index">
+                                <div class="relative rounded-lg border-2 border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800/50 hover:border-brand-300 dark:hover:border-brand-700 transition-colors">
+                                    <!-- Bouton supprimer (croix en haut à droite) -->
+                                    <button 
+                                        type="button"
+                                        @click="removePrompt(index)"
+                                        class="absolute top-3 right-3 rounded-lg p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 dark:hover:text-red-300 transition-colors"
+                                        title="Supprimer ce prompt"
+                                    >
+                                        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                        </svg>
+                                    </button>
+                                    
+                                    <!-- Champs toujours éditables -->
+                                    <div class="space-y-3 pr-8">
+                                        <div>
+                                            <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                                Type de module <span class="text-red-500">*</span>
+                                            </label>
+                                            <select 
+                                                x-model="prompt.type"
+                                                required
+                                                class="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+                                            >
+                                                <option value="">Sélectionner un type</option>
+                                                <template x-for="moduleType in moduleTypes" :key="moduleType.value">
+                                                    <option 
+                                                        :value="moduleType.value" 
+                                                        :selected="prompt.type === moduleType.value"
+                                                        x-text="moduleType.label"
+                                                    ></option>
+                                                </template>
+                                            </select>
+                                            <!-- Debug: afficher le type actuel -->
+                                            <div x-show="prompt.type" class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                                                Type sélectionné: <span x-text="prompt.type"></span>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                                Description <span class="text-red-500">*</span>
+                                            </label>
+                                            <textarea 
+                                                x-model="prompt.prompt_generation"
+                                                rows="5"
+                                                required
+                                                class="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+                                                placeholder="Description du prompt personnalisé..."
+                                            ></textarea>
+                                        </div>
+                                        <div x-show="prompt.niveau" class="text-xs text-gray-500 dark:text-gray-400">
+                                            Niveau: <span x-text="prompt.niveau"></span>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <button type="button" @click="removeModule(index)" 
-                                            class="mt-6 inline-flex items-center gap-2 rounded-lg border border-red-200 bg-white px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-red-50 dark:border-red-800 dark:bg-gray-800 dark:text-red-400">
-                                            Supprimer
+                                </div>
+                            </template>
+                            
+                            <div x-show="selectedPrompts.length === 0" class="rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 p-6 text-center dark:border-gray-700 dark:bg-gray-800/30">
+                                <svg class="mx-auto h-12 w-12 text-gray-400 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                </svg>
+                                <p class="text-sm text-gray-500 dark:text-gray-400 mb-2">Aucun prompt sélectionné</p>
+                                <p class="text-xs text-gray-400 dark:text-gray-500">Ajoutez des prompts prédéfinis à droite ou créez-en un personnalisé</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Colonne droite : Prompts prédéfinis disponibles -->
+                    <div>
+                        <h5 class="text-sm font-semibold text-gray-800 dark:text-white/90 mb-3">
+                            📚 Prompts prédéfinis disponibles
+                        </h5>
+                        
+                        <!-- Prompts du sous-chapitre (priorité) -->
+                        <div x-show="subChapterPrompts.length > 0">
+                            <h6 class="text-xs font-medium text-gray-600 dark:text-gray-400 mb-2 uppercase tracking-wide">Du sous-chapitre</h6>
+                            <div class="space-y-2 max-h-[400px] overflow-y-auto border border-gray-200 rounded-lg p-3 dark:border-gray-800">
+                                <template x-for="(prompt, index) in subChapterPrompts" :key="index">
+                                    <div class="flex items-start gap-2 rounded-lg border border-gray-200 bg-gray-50 p-3 dark:border-gray-800 dark:bg-gray-800/50 hover:border-brand-300 dark:hover:border-brand-700 transition-colors">
+                                        <div class="flex-1 text-left">
+                                            <div class="flex items-center gap-2 mb-1">
+                                                <span x-show="prompt.type" class="inline-flex items-center rounded-md bg-blue-100 dark:bg-blue-900/30 px-2 py-0.5 text-xs font-medium text-blue-700 dark:text-blue-300" x-text="getPromptTypeLabel(prompt.type)"></span>
+                                                <span x-show="prompt.niveau" class="text-xs text-gray-500 dark:text-gray-400" x-text="'Niveau: ' + prompt.niveau"></span>
+                                            </div>
+                                            <p class="text-sm text-gray-700 dark:text-gray-300 line-clamp-3" x-text="prompt.prompt_generation"></p>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            @click="addPredefinedPrompt(prompt, 'subchapter')"
+                                            :disabled="selectedPrompts.length >= 5 || isPromptAlreadyAdded(prompt)"
+                                            class="flex-shrink-0 inline-flex items-center justify-center rounded-lg bg-brand-500 px-2.5 py-2 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                            title="Ajouter ce prompt"
+                                        >
+                                            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                                            </svg>
                                         </button>
                                     </div>
-                                </div>
-                                <div x-show="module.prompt" class="mb-4 rounded-lg border border-blue-200 bg-blue-50 p-3 dark:border-blue-800 dark:bg-blue-900/20">
-                                    <p class="text-xs text-blue-800 dark:text-blue-200" x-text="module.prompt"></p>
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Description (optionnel)</label>
-                                    <textarea x-model="module.description" rows="2"
-                                        class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
-                                        placeholder="Description personnalisée pour ce module..."></textarea>
-                                </div>
+                                </template>
                             </div>
-                        </template>
+                        </div>
+
+                        <!-- Prompts du chapitre (fallback si pas de prompts dans sous-chapitre) -->
+                        <div x-show="subChapterPrompts.length === 0 && chapterPrompts.length > 0">
+                            <h6 class="text-xs font-medium text-gray-600 dark:text-gray-400 mb-2 uppercase tracking-wide">Du chapitre</h6>
+                            <div class="space-y-2 max-h-[400px] overflow-y-auto border border-gray-200 rounded-lg p-3 dark:border-gray-800">
+                                <template x-for="(prompt, index) in chapterPrompts" :key="index">
+                                    <div class="flex items-start gap-2 rounded-lg border border-gray-200 bg-gray-50 p-3 dark:border-gray-800 dark:bg-gray-800/50 hover:border-brand-300 dark:hover:border-brand-700 transition-colors">
+                                        <div class="flex-1 text-left">
+                                            <div class="flex items-center gap-2 mb-1">
+                                                <span x-show="prompt.type" class="inline-flex items-center rounded-md bg-blue-100 dark:bg-blue-900/30 px-2 py-0.5 text-xs font-medium text-blue-700 dark:text-blue-300" x-text="getPromptTypeLabel(prompt.type)"></span>
+                                                <span x-show="prompt.niveau" class="text-xs text-gray-500 dark:text-gray-400" x-text="'Niveau: ' + prompt.niveau"></span>
+                                            </div>
+                                            <p class="text-sm text-gray-700 dark:text-gray-300 line-clamp-3" x-text="prompt.prompt_generation"></p>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            @click="addPredefinedPrompt(prompt, 'chapter')"
+                                            :disabled="selectedPrompts.length >= 5 || isPromptAlreadyAdded(prompt)"
+                                            class="flex-shrink-0 inline-flex items-center justify-center rounded-lg bg-brand-500 px-2.5 py-2 text-sm font-medium text-white hover:bg-brand-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                            title="Ajouter ce prompt"
+                                        >
+                                            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                                            </svg>
+                                        </button>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+
+                        <div x-show="chapterPrompts.length === 0 && subChapterPrompts.length === 0" class="rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 p-6 text-center dark:border-gray-700 dark:bg-gray-800/30">
+                            <p class="text-xs text-gray-500 dark:text-gray-400">Aucun prompt prédéfini disponible</p>
+                            <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">Sélectionnez un chapitre pour voir les prompts</p>
+                        </div>
                     </div>
                 </div>
+
             </div>
 
             <!-- Boutons -->
@@ -191,6 +281,7 @@ function pathCreateManager() {
         subChapters: [],
         chapterPrompts: [],
         subChapterPrompts: [],
+        selectedPrompts: [], // Prompts sélectionnés (max 5)
         moduleTypes: [],
         selectedClassroomId: '',
         selectedSubjectId: '',
@@ -198,7 +289,6 @@ function pathCreateManager() {
         selectedSubChapterId: '',
         selectedType: '',
         link: '',
-        modules: [],
         isGenerating: false,
 
         init() {
@@ -313,47 +403,212 @@ function pathCreateManager() {
             }
         },
 
+        // Gestion des prompts sélectionnés
+        addPredefinedPrompt(prompt, source) {
+            if (this.selectedPrompts.length >= 5) {
+                alert('Vous ne pouvez sélectionner que 5 prompts maximum');
+                return;
+            }
+            
+            // Vérifier si le prompt n'est pas déjà ajouté
+            if (this.isPromptAlreadyAdded(prompt)) {
+                alert('Ce prompt est déjà ajouté');
+                return;
+            }
+
+            // IMPORTANT: Le type peut être dans prompt.type, prompt.module_type, ou prompt.moduleType
+            // Essayer toutes les variantes possibles
+            const rawType = prompt.type || prompt.module_type || prompt.moduleType || '';
+            
+            // Normaliser le type (convertir "fill_in_the_blank" en "Blanks" par exemple)
+            const normalizedType = this.normalizePromptType(rawType);
+            
+            // Vérifier que le type normalisé existe dans moduleTypes
+            const typeExists = this.moduleTypes.some(mt => mt.value === normalizedType);
+            if (!typeExists && normalizedType) {
+                console.warn('Type normalisé non trouvé dans moduleTypes:', normalizedType, 'rawType:', rawType);
+                console.warn('Valeurs disponibles dans moduleTypes:', this.moduleTypes.map(mt => mt.value));
+            }
+            
+            // Ajouter le prompt directement (toujours éditable)
+            // IMPORTANT: Conserver le type du prompt prédéfini s'il existe
+            // Utiliser une assignation directe pour que Alpine.js détecte le changement
+            const newPrompt = {
+                type: normalizedType || '', // Type normalisé (valeur d'enum exacte) - toujours une string
+                prompt_generation: prompt.prompt_generation || prompt.content || '',
+                niveau: prompt.niveau || null,
+                source: source, // 'chapter' ou 'subchapter'
+            };
+            
+            console.log('Ajout prompt prédéfini:', { 
+                original: prompt, 
+                rawType: rawType,
+                normalizedType: normalizedType,
+                typeExists: typeExists,
+                moduleTypesValues: this.moduleTypes.map(mt => mt.value),
+                newPromptType: newPrompt.type,
+                new: newPrompt 
+            });
+            
+            // Ajouter le prompt
+            this.selectedPrompts.push(newPrompt);
+            
+            // Forcer la réactivité d'Alpine.js en accédant à la propriété
+            const addedIndex = this.selectedPrompts.length - 1;
+            const addedPrompt = this.selectedPrompts[addedIndex];
+            
+            // Double vérification : s'assurer que le type est bien assigné
+            if (addedPrompt && normalizedType && addedPrompt.type !== normalizedType) {
+                console.log('Correction du type:', addedPrompt.type, '->', normalizedType);
+                addedPrompt.type = normalizedType;
+            }
+            
+            // Log final pour vérification
+            console.log('Prompt ajouté, type final:', this.selectedPrompts[addedIndex].type);
+        },
+
+        addCustomPrompt() {
+            if (this.selectedPrompts.length >= 5) {
+                alert('Vous ne pouvez sélectionner que 5 prompts maximum');
+                return;
+            }
+
+            const newPrompt = {
+                type: '',
+                prompt_generation: '',
+                niveau: null,
+                source: 'custom',
+            };
+            
+            this.selectedPrompts.push(newPrompt);
+        },
+
+        removePrompt(index) {
+            this.selectedPrompts.splice(index, 1);
+        },
+
+        isPromptAlreadyAdded(prompt) {
+            // Vérifier si un prompt avec le même contenu est déjà ajouté
+            return this.selectedPrompts.some(sp => 
+                sp.prompt_generation === prompt.prompt_generation &&
+                sp.type === prompt.type
+            );
+        },
+
+        getPromptTypeLabel(type) {
+            if (!type) return 'Non défini';
+            
+            // Mapper les types bruts (snake_case) vers les valeurs de l'enum (PascalCase ou UPPER_CASE)
+            const typeMapping = {
+                'fill_in_the_blank': 'Blanks',
+                'multiple_choice': 'MultiChoice',
+                'true_false': 'TrueFalse',
+                'short_answer': 'SHORT_ANSWER',
+                'open_question': 'OPEN_QUESTION',
+                'flashcards': 'Flashcards',
+                // Ajouter d'autres mappings si nécessaire
+            };
+            
+            // Convertir le type brut en valeur d'enum si nécessaire
+            const enumValue = typeMapping[type] || type;
+            
+            // Chercher dans moduleTypes (comparaison exacte et insensible à la casse)
+            const moduleType = this.moduleTypes.find(mt => 
+                mt.value === enumValue || 
+                mt.value === type ||
+                mt.value.toLowerCase() === enumValue.toLowerCase() ||
+                mt.value.toLowerCase() === type.toLowerCase()
+            );
+            
+            if (moduleType) {
+                return moduleType.label;
+            }
+            
+            // Si pas trouvé, retourner le type original (pour débogage)
+            console.warn('Type de module non trouvé:', type, 'enumValue:', enumValue, 'moduleTypes:', this.moduleTypes);
+            return type;
+        },
+        
+        // Convertir un type brut (ex: "fill_in_the_blank") en valeur d'enum (ex: "Blanks")
+        normalizePromptType(type) {
+            if (!type || typeof type !== 'string') {
+                console.warn('normalizePromptType: type invalide', type);
+                return '';
+            }
+            
+            const typeStr = String(type).trim();
+            if (!typeStr) return '';
+            
+            // D'abord, vérifier si c'est déjà une valeur d'enum valide (comparaison exacte)
+            const exactMatch = this.moduleTypes.find(mt => mt.value === typeStr);
+            if (exactMatch) {
+                console.log('Type exact trouvé:', typeStr, '->', exactMatch.value);
+                return exactMatch.value;
+            }
+            
+            // Mapping des types bruts (snake_case) vers les valeurs de l'enum (PascalCase ou UPPER_CASE)
+            const typeMapping = {
+                'fill_in_the_blank': 'Blanks',
+                'multiple_choice': 'MultiChoice',
+                'true_false': 'TrueFalse',
+                'short_answer': 'SHORT_ANSWER',
+                'open_question': 'OPEN_QUESTION',
+                'flashcards': 'Flashcards',
+                // Ajouter d'autres mappings si nécessaire
+            };
+            
+            // Convertir via le mapping
+            const mappedValue = typeMapping[typeStr];
+            if (mappedValue) {
+                // Vérifier que la valeur mappée existe dans moduleTypes
+                const mappedMatch = this.moduleTypes.find(mt => mt.value === mappedValue);
+                if (mappedMatch) {
+                    console.log('Type mappé trouvé:', typeStr, '->', mappedMatch.value);
+                    return mappedMatch.value;
+                } else {
+                    console.warn('Type mappé non trouvé dans moduleTypes:', mappedValue);
+                }
+            }
+            
+            // Si rien ne correspond, essayer une recherche insensible à la casse
+            const caseInsensitiveMatch = this.moduleTypes.find(mt => 
+                String(mt.value).toLowerCase() === typeStr.toLowerCase()
+            );
+            if (caseInsensitiveMatch) {
+                console.log('Type trouvé (insensible à la casse):', typeStr, '->', caseInsensitiveMatch.value);
+                return caseInsensitiveMatch.value;
+            }
+            
+            // En dernier recours, retourner le type original
+            console.warn('Type non normalisé trouvé:', typeStr, 'moduleTypes disponibles:', this.moduleTypes.map(mt => mt.value));
+            return typeStr;
+        },
+
+
         onTypeChange() {
             if (this.selectedType !== 'h5p') {
-                this.modules = [];
-            } else if (this.modules.length === 0) {
-                this.addModule();
-            }
-        },
-
-        addModule() {
-            this.modules.push({
-                type: '',
-                description: '',
-                prompt: ''
-            });
-        },
-
-        removeModule(index) {
-            this.modules.splice(index, 1);
-        },
-
-        async loadModulePrompt(index) {
-            const module = this.modules[index];
-            if (!module.type) return;
-            try {
-                const response = await fetch(`/api/module-types/${module.type}/prompt`, {
-                    method: 'GET',
-                    credentials: 'same-origin',
-                    headers: {
-                        'Accept': 'application/json',
-                        'Content-Type': 'application/json',
-                    },
-                });
-                const data = await response.json();
-                module.prompt = data.systemMessage || data.goal || '';
-            } catch (error) {
-                console.error('Erreur lors du chargement du prompt:', error);
+                this.selectedPrompts = []; // Réinitialiser les prompts si on change de type
             }
         },
 
         async submitForm() {
             if (this.isGenerating) return;
+
+            // Nettoyer les prompts (enlever les propriétés internes)
+            const cleanedPrompts = this.selectedPrompts
+                .filter(p => p.type && p.prompt_generation && p.prompt_generation.trim() !== '') // Filtrer les prompts incomplets
+                .map(p => ({
+                    type: p.type,
+                    prompt_generation: p.prompt_generation || '',
+                    niveau: p.niveau || null,
+                    source: p.source || 'custom'
+                }));
+
+            // Validation : au moins un prompt personnalisé est requis pour H5P
+            if (this.selectedType === 'h5p' && cleanedPrompts.length === 0) {
+                alert('Veuillez sélectionner ou créer au moins un prompt personnalisé pour générer le parcours H5P');
+                return;
+            }
 
             const formData = {
                 classroomId: parseInt(this.selectedClassroomId),
@@ -362,10 +617,7 @@ function pathCreateManager() {
                 subChapterId: this.selectedSubChapterId ? parseInt(this.selectedSubChapterId) : null,
                 type: this.selectedType,
                 link: this.link,
-                modules: this.modules.filter(m => m.type).map(m => ({
-                    type: m.type,
-                    description: m.description || ''
-                }))
+                prompts: cleanedPrompts // Les prompts personnalisés remplacent les modules
             };
 
             this.isGenerating = true;

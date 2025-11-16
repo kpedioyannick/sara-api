@@ -1031,6 +1031,55 @@ enum ModuleType: string
         ]);
     }
 
-    
+    public function getLabel(): string
+    {
+        return match($this) {
+            self::SPEAK_THE_WORDS_SET => 'Parler les mots',
+            self::ACCORDION => 'Accordéon',
+            self::DIALOG_CARDS => 'Cartes de dialogue',
+            self::DRAG_WORDS => 'Glisser-déposer les mots',
+            self::ESSAY => 'Dissertation',
+            self::ADVANCED_TEXT => 'Texte avancé',
+            self::INTERACTIVE_VIDEO => 'Vidéo interactive',
+            self::MULTI_CHOICE => 'Choix multiples',
+            self::QUESTION_SET => 'Ensemble de questions',
+            self::TRUE_FALSE => 'Vrai/Faux',
+            self::CHOOSE_CORRECT_SENTENCE => 'Choisir la bonne phrase',
+            self::FLASHCARDS => 'Cartes mémoire',
+            self::SINGLE_CHOICE_SET => 'Choix unique',
+            self::BLANKS => 'Remplir les blancs',
+            self::MARK_THE_WORDS => 'Marquer les mots',
+            self::TIMELINE => 'Chronologie',
+            self::SORT_PARAGRAPHS => 'Trier les paragraphes',
+            self::MEMORY_GAME => 'Jeu de mémoire',
+            self::DICTATION => 'Dictée',
+            self::IMAGE_SEQUENCING => 'Séquencement d\'images',
+            self::COLUMN => 'Colonne',
+            self::INTERACTIVE_VIDEO_COURSE => 'Cours vidéo interactif',
+            self::TEXT => 'Texte',
+            self::COURSE_PRESENTATION => 'Présentation de cours',
+            self::INTERACTIVE_BOOK => 'Livre interactif',
+            self::MATCHING_PAIRS => 'Associer les paires',
+            self::CATEGORIZATION => 'Catégorisation',
+            self::CORRESPONDENCE_GRID => 'Grille de correspondance',
+            self::READING => 'Lecture',
+            self::REORDERING => 'Réordonner',
+            self::SCALE_SORTING => 'Tri par échelle',
+            self::TABLE_COMPLETION => 'Complétion de tableau',
+            self::TRANSLATION => 'Traduction',
+            self::SENTENCE_CORRECTION => 'Correction de phrase',
+            self::ORAL_QUESTION => 'Question orale',
+            self::CREATIVE_WRITING => 'Écriture créative',
+            self::TEXT_ANALYSIS => 'Analyse de texte',
+            self::VOCABULARY_DEFINITION => 'Définition de vocabulaire',
+            self::SPEED_READING => 'Lecture rapide',
+            self::SENTENCE_SELECTION => 'Sélection de phrase',
+            self::SHORT_ANSWER => 'Réponse courte',
+            self::OPEN_QUESTION => 'Question ouverte',
+            self::ORDERING => 'Classement',
+            self::COURSE => 'Cours',
+            self::HOMEWORK => 'Aide aux devoirs',
+        };
+    }
 
 }
