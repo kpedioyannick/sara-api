@@ -266,7 +266,7 @@ window.taskManager = function() {
               {% endif %}
             </div>
             <div class="flex flex-wrap items-center gap-3 mb-4">
-              <span class="inline-flex rounded-full bg-brand-50 px-3 py-1 text-sm font-medium text-brand-500 dark:bg-brand-500/15 dark:text-brand-400">
+              <span class="inline-flex rounded-full bg-blue-50 px-3 py-1 text-sm font-medium text-blue-500 dark:bg-blue-500/15 dark:text-blue-400">
                 {{ objective.category }}
               </span>
               <div class="inline-flex items-center gap-2" x-data="{ 
@@ -328,7 +328,7 @@ window.taskManager = function() {
                 <template x-if="!statusEditMode">
                   <span class="inline-flex items-center gap-2 rounded-full px-3 py-1 text-sm font-medium
                     {% if objective.status == 'completed' %}bg-success-50 text-success-500 dark:bg-success-500/15 dark:text-success-400
-                    {% elseif objective.status == 'in_action' %}bg-brand-50 text-brand-500 dark:bg-brand-500/15 dark:text-brand-400
+                    {% elseif objective.status == 'in_action' %}bg-blue-50 text-blue-500 dark:bg-blue-500/15 dark:text-blue-400
                     {% elseif objective.status == 'validated' %}bg-blue-50 text-blue-500 dark:bg-blue-500/15 dark:text-blue-400
                     {% elseif objective.status == 'pending_validation' %}bg-warning-50 text-warning-500 dark:bg-warning-500/15 dark:text-warning-400
                     {% elseif objective.status == 'modification' %}bg-gray-100 text-gray-700 dark:bg-white/[0.03] dark:text-white/80
@@ -353,7 +353,7 @@ window.taskManager = function() {
                     <select
                       x-model="currentStatus"
                       :disabled="isUpdating"
-                      class="rounded-lg border border-gray-200 bg-white px-3 py-1 text-sm font-medium text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90 disabled:opacity-50"
+                      class="rounded-lg border border-gray-200 bg-white px-3 py-1 text-sm font-medium text-gray-800 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90 disabled:opacity-50"
                     >
                       <option value="modification">En cours de Modification</option>
                       <option value="pending_validation">Attente de Validation par Coach</option>
@@ -404,8 +404,8 @@ window.taskManager = function() {
 
         <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
           <div class="flex items-center gap-3">
-            <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-brand-50 dark:bg-brand-500/15">
-              <svg class="fill-current text-brand-500 dark:text-brand-400" width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-50 dark:bg-blue-500/15">
+              <svg class="fill-current text-blue-500 dark:text-blue-400" width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M10 2C5.58172 2 2 5.58172 2 10C2 14.4183 5.58172 18 10 18C14.4183 18 18 14.4183 18 10C18 5.58172 14.4183 2 10 2ZM10 16C6.68629 16 4 13.3137 4 10C4 6.68629 6.68629 4 10 4C13.3137 4 16 6.68629 16 10C16 13.3137 13.3137 16 10 16ZM9 11V9H11V11H9ZM9 13V11H11V13H9Z" fill=""/>
               </svg>
             </div>
@@ -467,7 +467,7 @@ window.taskManager = function() {
             <span class="inline-block rounded-md bg-green-100 dark:bg-green-900/30 px-2.5 py-0.5 text-sm font-medium text-green-700 dark:text-green-300">{{ objective.progress }}%</span>
           </div>
           <div class="h-2 bg-gray-200 rounded-full overflow-hidden dark:bg-gray-700">
-            <div class="h-full bg-brand-500 transition-all duration-300" style="width: {{ objective.progress }}%"></div>
+            <div class="h-full bg-blue-500 transition-all duration-300" style="width: {{ objective.progress }}%"></div>
           </div>
         </div>
 
@@ -500,7 +500,7 @@ window.taskManager = function() {
             <button
               @click="openTaskCreate()"
               {% if not objective.canModifyTasks %}disabled{% endif %}
-              class="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-white shadow-theme-xs transition-colors {% if objective.canModifyTasks %}bg-brand-500 hover:bg-brand-600{% else %}bg-gray-300 cursor-not-allowed dark:bg-gray-700{% endif %}"
+              class="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-white shadow-theme-xs transition-colors {% if objective.canModifyTasks %}bg-blue-500 hover:bg-blue-600{% else %}bg-gray-300 cursor-not-allowed dark:bg-gray-700{% endif %}"
               {% if not objective.canModifyTasks %}title="Impossible de créer une tâche. {{ objective.statusMessage }}"{% endif %}
             >
               <svg class="fill-current" width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -600,7 +600,7 @@ window.taskManager = function() {
           <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">Commentaires ({{ comments|length }})</h3>
           <button
             @click="openCommentCreate()"
-            class="inline-flex items-center gap-2 rounded-lg bg-brand-500 px-3 py-1.5 text-xs font-medium text-white shadow-theme-xs hover:bg-brand-600"
+            class="inline-flex items-center gap-2 rounded-lg bg-blue-500 px-3 py-1.5 text-xs font-medium text-white shadow-theme-xs hover:bg-blue-600 transition-colors duration-200"
           >
             <svg class="fill-current" width="14" height="14" viewBox="0 0 16 16" fill="none">
               <path d="M8 1a7 7 0 100 14A7 7 0 008 1zM7.5 4v4l3.5 2 .5-.866L8.5 7.5V4h-1z" fill=""/>

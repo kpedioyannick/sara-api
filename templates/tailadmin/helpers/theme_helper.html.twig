@@ -1,0 +1,56 @@
+{#
+  Helper Twig pour gérer les thèmes de couleurs par page
+  
+  Usage:
+    {{ theme_button_primary(pageName, useBrand) }}
+    {{ theme_button_secondary(pageName) }}
+    {{ theme_badge(pageName) }}
+    {{ theme_border(pageName) }}
+    {{ theme_background(pageName) }}
+#}
+
+{% set pageThemes = {
+    'dashboard': { primary: 'indigo', secondary: 'indigo-600', light: 'indigo-50', dark: 'indigo-900/20' },
+    'families': { primary: 'purple', secondary: 'purple-600', light: 'purple-50', dark: 'purple-900/20' },
+    'objectives': { primary: 'blue', secondary: 'blue-600', light: 'blue-50', dark: 'blue-900/20' },
+    'objectives-detail': { primary: 'blue', secondary: 'blue-600', light: 'blue-50', dark: 'blue-900/20' },
+    'tasks': { primary: 'cyan', secondary: 'cyan-600', light: 'cyan-50', dark: 'cyan-900/20' },
+    'planning': { primary: 'emerald', secondary: 'emerald-600', light: 'emerald-50', dark: 'emerald-900/20' },
+    'proofs': { primary: 'amber', secondary: 'amber-600', light: 'amber-50', dark: 'amber-900/20' },
+    'requests': { primary: 'rose', secondary: 'rose-600', light: 'rose-50', dark: 'rose-900/20' },
+    'requests-detail': { primary: 'rose', secondary: 'rose-600', light: 'rose-50', dark: 'rose-900/20' },
+    'messages': { primary: 'pink', secondary: 'pink-600', light: 'pink-50', dark: 'pink-900/20' },
+    'activities': { primary: 'teal', secondary: 'teal-600', light: 'teal-50', dark: 'teal-900/20' },
+    'paths': { primary: 'violet', secondary: 'violet-600', light: 'violet-50', dark: 'violet-900/20' },
+    'specialists': { primary: 'sky', secondary: 'sky-600', light: 'sky-50', dark: 'sky-900/20' },
+    'notifications': { primary: 'yellow', secondary: 'yellow-600', light: 'yellow-50', dark: 'yellow-900/20' },
+    'integrations': { primary: 'slate', secondary: 'slate-600', light: 'slate-50', dark: 'slate-900/20' },
+    'profile': { primary: 'gray', secondary: 'gray-600', light: 'gray-50', dark: 'gray-900/20' },
+    'availabilities': { primary: 'lime', secondary: 'lime-600', light: 'lime-50', dark: 'lime-900/20' },
+    'users': { primary: 'gray', secondary: 'gray-600', light: 'gray-50', dark: 'gray-900/20' }
+} %}
+
+{% macro getTheme(pageName) %}
+    {% set themes = {
+        'dashboard': { primary: 'indigo', secondary: 'indigo-600', light: 'indigo-50', dark: 'indigo-900/20' },
+        'families': { primary: 'purple', secondary: 'purple-600', light: 'purple-50', dark: 'purple-900/20' },
+        'objectives': { primary: 'blue', secondary: 'blue-600', light: 'blue-50', dark: 'blue-900/20' },
+        'objectives-detail': { primary: 'blue', secondary: 'blue-600', light: 'blue-50', dark: 'blue-900/20' },
+        'tasks': { primary: 'cyan', secondary: 'cyan-600', light: 'cyan-50', dark: 'cyan-900/20' },
+        'planning': { primary: 'emerald', secondary: 'emerald-600', light: 'emerald-50', dark: 'emerald-900/20' },
+        'proofs': { primary: 'amber', secondary: 'amber-600', light: 'amber-50', dark: 'amber-900/20' },
+        'requests': { primary: 'rose', secondary: 'rose-600', light: 'rose-50', dark: 'rose-900/20' },
+        'requests-detail': { primary: 'rose', secondary: 'rose-600', light: 'rose-50', dark: 'rose-900/20' },
+        'messages': { primary: 'pink', secondary: 'pink-600', light: 'pink-50', dark: 'pink-900/20' },
+        'activities': { primary: 'teal', secondary: 'teal-600', light: 'teal-50', dark: 'teal-900/20' },
+        'paths': { primary: 'violet', secondary: 'violet-600', light: 'violet-50', dark: 'violet-900/20' },
+        'specialists': { primary: 'sky', secondary: 'sky-600', light: 'sky-50', dark: 'sky-900/20' },
+        'notifications': { primary: 'yellow', secondary: 'yellow-600', light: 'yellow-50', dark: 'yellow-900/20' },
+        'integrations': { primary: 'slate', secondary: 'slate-600', light: 'slate-50', dark: 'slate-900/20' },
+        'profile': { primary: 'gray', secondary: 'gray-600', light: 'gray-50', dark: 'gray-900/20' },
+        'availabilities': { primary: 'lime', secondary: 'lime-600', light: 'lime-50', dark: 'lime-900/20' },
+        'users': { primary: 'gray', secondary: 'gray-600', light: 'gray-50', dark: 'gray-900/20' }
+    } %}
+    {{ themes[pageName]|default({ primary: 'brand', secondary: 'brand-600', light: 'brand-50', dark: 'brand-900/20' }) }}
+{% endmacro %}
+

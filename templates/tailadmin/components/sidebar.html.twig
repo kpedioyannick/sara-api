@@ -63,11 +63,15 @@
             <a
               href="{{ path(app.user and app.user.isCoach() ? 'admin_dashboard' : 'app_dashboard') }}"
               @click="selected = (selected === 'Dashboard' ? '':'Dashboard')"
-              class="menu-item group"
-              :class="page === 'blank' || page === 'dashboard' ? 'menu-item-active' : 'menu-item-inactive'"
+              class="menu-item group transition-colors duration-200"
+              :class="(page === 'blank' || page === 'dashboard') 
+                ? 'bg-indigo-50 text-indigo-500 dark:bg-indigo-500/12 dark:text-indigo-400' 
+                : 'text-gray-700 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-300 dark:hover:bg-white/5 dark:hover:text-gray-300'"
             >
               <svg
-                :class="page === 'blank' || page === 'dashboard' ? 'menu-item-icon-active'  :'menu-item-icon-inactive'"
+                :class="(page === 'blank' || page === 'dashboard') 
+                  ? 'text-indigo-500 dark:text-indigo-400' 
+                  : 'text-gray-500 group-hover:text-gray-700 dark:text-gray-400 dark:group-hover:text-gray-300'"
                 width="24"
                 height="24"
                 viewBox="0 0 24 24"
@@ -98,11 +102,15 @@
             <a
               href="{{ path("admin_families_list") }}"
               @click="selected = (selected === 'Familles' ? '':'Familles')"
-              class="menu-item group"
-              :class="page === 'families' ? 'menu-item-active' : 'menu-item-inactive'"
+              class="menu-item group transition-colors duration-200"
+              :class="page === 'families' 
+                ? 'bg-purple-50 text-purple-500 dark:bg-purple-500/12 dark:text-purple-400' 
+                : 'text-gray-700 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-300 dark:hover:bg-white/5 dark:hover:text-gray-300'"
             >
               <svg
-                :class="page === 'families' ? 'menu-item-icon-active'  :'menu-item-icon-inactive'"
+                :class="page === 'families' 
+                  ? 'text-purple-500 dark:text-purple-400' 
+                  : 'text-gray-500 group-hover:text-gray-700 dark:text-gray-400 dark:group-hover:text-gray-300'"
                 width="24"
                 height="24"
                 viewBox="0 0 24 24"
@@ -135,11 +143,15 @@
             <a
               href="{{ path("admin_requests_list") }}?specialist={{ app.user.id }}"
               @click="selected = (selected === 'Mes demandes' ? '':'Mes demandes')"
-              class="menu-item group"
-              :class="page === 'requests' ? 'menu-item-active' : 'menu-item-inactive'"
+              class="menu-item group transition-colors duration-200"
+              :class="page === 'requests' || page === 'requests-detail' 
+                ? 'bg-rose-50 text-rose-500 dark:bg-rose-500/12 dark:text-rose-400' 
+                : 'text-gray-700 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-300 dark:hover:bg-white/5 dark:hover:text-gray-300'"
             >
               <svg
-                :class="page === 'requests' ? 'menu-item-icon-active'  :'menu-item-icon-inactive'"
+                :class="page === 'requests' || page === 'requests-detail' 
+                  ? 'text-rose-500 dark:text-rose-400' 
+                  : 'text-gray-500 group-hover:text-gray-700 dark:text-gray-400 dark:group-hover:text-gray-300'"
                 width="24"
                 height="24"
                 viewBox="0 0 24 24"
@@ -172,11 +184,15 @@
             <a
               href="{{ path("admin_objectives_list") }}"
               @click="selected = (selected === 'Objectifs' ? '':'Objectifs')"
-              class="menu-item group"
-              :class="page === 'objectives' ? 'menu-item-active' : 'menu-item-inactive'"
+              class="menu-item group transition-colors duration-200"
+              :class="page === 'objectives' || page === 'objectives-detail' 
+                ? 'bg-blue-50 text-blue-500 dark:bg-blue-500/12 dark:text-blue-400' 
+                : 'text-gray-700 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-300 dark:hover:bg-white/5 dark:hover:text-gray-300'"
             >
               <svg
-                :class="page === 'objectives' ? 'menu-item-icon-active'  :'menu-item-icon-inactive'"
+                :class="page === 'objectives' || page === 'objectives-detail' 
+                  ? 'text-blue-500 dark:text-blue-400' 
+                  : 'text-gray-500 group-hover:text-gray-700 dark:text-gray-400 dark:group-hover:text-gray-300'"
                 width="24"
                 height="24"
                 viewBox="0 0 24 24"
@@ -209,11 +225,15 @@
             <a
               href="{{ path("admin_activities_list") }}"
               @click="selected = (selected === 'Activités' ? '':'Activités')"
-              class="menu-item group"
-              :class="page === 'activities' ? 'menu-item-active' : 'menu-item-inactive'"
+              class="menu-item group transition-colors duration-200"
+              :class="page === 'activities' 
+                ? 'bg-teal-50 text-teal-500 dark:bg-teal-500/12 dark:text-teal-400' 
+                : 'text-gray-700 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-300 dark:hover:bg-white/5 dark:hover:text-gray-300'"
             >
               <svg
-                :class="page === 'activities' ? 'menu-item-icon-active'  :'menu-item-icon-inactive'"
+                :class="page === 'activities' 
+                  ? 'text-teal-500 dark:text-teal-400' 
+                  : 'text-gray-500 group-hover:text-gray-700 dark:text-gray-400 dark:group-hover:text-gray-300'"
                 width="24"
                 height="24"
                 viewBox="0 0 24 24"
@@ -260,11 +280,15 @@
             <a
               href="{{ path("admin_paths_list") }}"
               @click="selected = (selected === 'Activités scolaires' ? '':'Activités scolaires')"
-              class="menu-item group"
-              :class="page === 'paths' ? 'menu-item-active' : 'menu-item-inactive'"
+              class="menu-item group transition-colors duration-200"
+              :class="page === 'paths' 
+                ? 'bg-violet-50 text-violet-500 dark:bg-violet-500/12 dark:text-violet-400' 
+                : 'text-gray-700 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-300 dark:hover:bg-white/5 dark:hover:text-gray-300'"
             >
               <svg
-                :class="page === 'paths' ? 'menu-item-icon-active'  :'menu-item-icon-inactive'"
+                :class="page === 'paths' 
+                  ? 'text-violet-500 dark:text-violet-400' 
+                  : 'text-gray-500 group-hover:text-gray-700 dark:text-gray-400 dark:group-hover:text-gray-300'"
                 width="24"
                 height="24"
                 viewBox="0 0 24 24"
@@ -296,11 +320,15 @@
             <a
               href="{{ path("admin_requests_list") }}"
               @click="selected = (selected === 'Demandes' ? '':'Demandes')"
-              class="menu-item group"
-              :class="page === 'requests' ? 'menu-item-active' : 'menu-item-inactive'"
+              class="menu-item group transition-colors duration-200"
+              :class="page === 'requests' || page === 'requests-detail' 
+                ? 'bg-rose-50 text-rose-500 dark:bg-rose-500/12 dark:text-rose-400' 
+                : 'text-gray-700 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-300 dark:hover:bg-white/5 dark:hover:text-gray-300'"
             >
               <svg
-                :class="page === 'requests' ? 'menu-item-icon-active'  :'menu-item-icon-inactive'"
+                :class="page === 'requests' || page === 'requests-detail' 
+                  ? 'text-rose-500 dark:text-rose-400' 
+                  : 'text-gray-500 group-hover:text-gray-700 dark:text-gray-400 dark:group-hover:text-gray-300'"
                 width="24"
                 height="24"
                 viewBox="0 0 24 24"
@@ -332,11 +360,15 @@
             <a
               href="{{ path("admin_specialists_list") }}"
               @click="selected = (selected === 'Spécialistes' ? '':'Spécialistes')"
-              class="menu-item group"
-              :class="page === 'specialists' ? 'menu-item-active' : 'menu-item-inactive'"
+              class="menu-item group transition-colors duration-200"
+              :class="page === 'specialists' 
+                ? 'bg-sky-50 text-sky-500 dark:bg-sky-500/12 dark:text-sky-400' 
+                : 'text-gray-700 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-300 dark:hover:bg-white/5 dark:hover:text-gray-300'"
             >
               <svg
-                :class="page === 'specialists' ? 'menu-item-icon-active'  :'menu-item-icon-inactive'"
+                :class="page === 'specialists' 
+                  ? 'text-sky-500 dark:text-sky-400' 
+                  : 'text-gray-500 group-hover:text-gray-700 dark:text-gray-400 dark:group-hover:text-gray-300'"
                 width="24"
                 height="24"
                 viewBox="0 0 24 24"
@@ -369,11 +401,15 @@
                   <a
               href="{{ path("admin_planning_list") }}"
               @click="selected = (selected === 'Planning' ? '':'Planning')"
-              class="menu-item group"
-              :class="page === 'planning' ? 'menu-item-active' : 'menu-item-inactive'"
+              class="menu-item group transition-colors duration-200"
+              :class="page === 'planning' 
+                ? 'bg-emerald-50 text-emerald-500 dark:bg-emerald-500/12 dark:text-emerald-400' 
+                : 'text-gray-700 hover:bg-gray-100 hover:text-gray-700 dark:text-gray-300 dark:hover:bg-white/5 dark:hover:text-gray-300'"
             >
               <svg
-                :class="page === 'planning' ? 'menu-item-icon-active'  :'menu-item-icon-inactive'"
+                :class="page === 'planning' 
+                  ? 'text-emerald-500 dark:text-emerald-400' 
+                  : 'text-gray-500 group-hover:text-gray-700 dark:text-gray-400 dark:group-hover:text-gray-300'"
                 width="24"
                 height="24"
                 viewBox="0 0 24 24"
