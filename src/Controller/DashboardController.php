@@ -29,15 +29,18 @@ class DashboardController extends AbstractController
     {
         $user = $this->getUser();
 
+        // Si pas d'utilisateur, le #[IsGranted] redirigera automatiquement
+        // Ne pas faire de redirection manuelle pour éviter les boucles
         if (!$user) {
-            return $this->redirectToRoute('app_login');
+            // Cette ligne ne devrait jamais être atteinte grâce à #[IsGranted]
+            throw new \RuntimeException('Utilisateur non authentifié');
         }
 
-        // Rediriger selon le rôle
+        // Rediriger selon le rôle seulement si c'est un Coach
+        // Ne pas rediriger les autres rôles pour éviter les boucles
         if ($user instanceof Coach) {
             return $this->redirectToRoute('admin_dashboard');
         }
-        // Pour les autres rôles, afficher le dashboard générique (pas de redirection pour éviter les boucles)
 
         // Par défaut, afficher le dashboard générique
         return $this->render('tailadmin/pages/dashboard.html.twig', [
@@ -55,8 +58,11 @@ class DashboardController extends AbstractController
     {
         $user = $this->getUser();
 
-        if (!$user instanceof Coach) {
-            return $this->redirectToRoute('app_login');
+        // Si pas d'utilisateur ou pas un Coach, le #[IsGranted] redirigera automatiquement
+        // Ne pas faire de redirection manuelle pour éviter les boucles
+        if (!$user || !$user instanceof Coach) {
+            // Cette ligne ne devrait jamais être atteinte grâce à #[IsGranted]
+            throw new \RuntimeException('Accès non autorisé');
         }
 
         // Statistiques pour le coach
