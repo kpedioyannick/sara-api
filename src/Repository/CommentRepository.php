@@ -35,14 +35,14 @@ class CommentRepository extends ServiceEntityRepository
     }
 
     /**
-     * Retourne tous les commentaires d'une activité, triés par date de création
+     * Retourne tous les commentaires d'une activité, triés par date de création (plus récent en premier)
      */
     public function findByActivity(int $activityId): array
     {
         return $this->createQueryBuilder('c')
             ->where('c.activity = :activityId')
             ->setParameter('activityId', $activityId)
-            ->orderBy('c.createdAt', 'ASC')
+            ->orderBy('c.createdAt', 'DESC')
             ->getQuery()
             ->getResult();
     }

@@ -3,6 +3,8 @@
 namespace App\Entity;
 
 use App\Repository\CommentRepository;
+use Doctrine\Common\Collections\ArrayCollection;
+use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: CommentRepository::class)]
@@ -34,10 +36,14 @@ class Comment
     #[ORM\JoinColumn(nullable: false)]
     private ?User $author = null;
 
+    #[ORM\OneToMany(mappedBy: 'comment', targetEntity: CommentImage::class, cascade: ['persist', 'remove'], fetch: 'EXTRA_LAZY')]
+    private Collection $images;
+
     public function __construct()
     {
         $this->createdAt = new \DateTimeImmutable();
         $this->updatedAt = new \DateTimeImmutable();
+        $this->images = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -111,8 +117,41 @@ class Comment
         return $this;
     }
 
+    /**
+     * @return Collection<int, CommentImage>
+     */
+    public function getImages(): Collection
+    {
+        return $this->images;
+    }
+
+    public function addImage(CommentImage $image): static
+    {
+        if (!$this->images->contains($image)) {
+            $this->images->add($image);
+            $image->setComment($this);
+        }
+
+        return $this;
+    }
+
+    public function removeImage(CommentImage $image): static
+    {
+        if ($this->images->removeElement($image)) {
+            // set the owning side to null (unless already changed)
+            if ($image->getComment() === $this) {
+                $image->setComment(null);
+            }
+        }
+
+        return $this;
+    }
+
     public function toArray(): array
     {
+        $images = $this->getImages()->toArray();
+        $imagesData = array_map(fn($img) => $img->toArray(), $images);
+        
         return [
             'id' => $this->getId(),
             'content' => $this->getContent(),
@@ -120,7 +159,8 @@ class Comment
             'objectiveId' => $this->getObjective()?->getId(),
             'activityId' => $this->getActivity()?->getId(),
             'createdAt' => $this->getCreatedAt()?->format('Y-m-d H:i:s'),
-            'updatedAt' => $this->getUpdatedAt()?->format('Y-m-d H:i:s')
+            'updatedAt' => $this->getUpdatedAt()?->format('Y-m-d H:i:s'),
+            'images' => $imagesData
         ];
     }
 

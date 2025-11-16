@@ -6,6 +6,7 @@ use App\Controller\Trait\CoachTrait;
 use App\Entity\Activity;
 use App\Entity\ActivityCategory;
 use App\Entity\Comment;
+use App\Entity\CommentImage;
 use App\Entity\ActivityImage;
 use App\Entity\Coach;
 use App\Entity\ParentUser;
@@ -526,15 +527,50 @@ class ActivityController extends AbstractController
                 $commentUser = $user;
             }
 
-            $data = json_decode($request->getContent(), true);
+            // Gérer les données JSON ou FormData
+            $content = null;
+            $images = [];
+            
+            if ($request->headers->get('Content-Type') && str_contains($request->headers->get('Content-Type'), 'application/json')) {
+                $data = json_decode($request->getContent(), true);
+                $content = $data['content'] ?? null;
+            } else {
+                // FormData
+                $content = $request->request->get('content');
+                $imageFiles = $request->files->get('images', []);
+                if (!is_array($imageFiles)) {
+                    $imageFiles = $imageFiles ? [$imageFiles] : [];
+                }
+                $images = $imageFiles;
+            }
 
-            if (empty($data['content'])) {
+            if (empty($content)) {
                 return new JsonResponse(['success' => false, 'message' => 'Le contenu du commentaire est requis'], 400);
             }
 
             $comment = Comment::createForUser([
-                'content' => $data['content'],
+                'content' => $content,
             ], $commentUser, null, $activity);
+
+            // Gérer les images uploadées
+            if (!empty($images)) {
+                foreach ($images as $index => $imageFile) {
+                    if ($imageFile && $imageFile->isValid()) {
+                        try {
+                            $filePath = $this->fileStorageService->uploadFile($imageFile, 'comments');
+                            $commentImage = new CommentImage();
+                            $commentImage->setFilePath($filePath);
+                            $commentImage->setSortOrder($index);
+                            $commentImage->setComment($comment);
+                            $this->em->persist($commentImage);
+                        } catch (\Exception $e) {
+                            $this->logger->error('Erreur lors de l\'upload d\'image de commentaire', [
+                                'error' => $e->getMessage()
+                            ]);
+                        }
+                    }
+                }
+            }
 
             $this->em->persist($comment);
             $this->em->flush();

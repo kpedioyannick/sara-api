@@ -153,7 +153,7 @@
 
             <!-- Formulaire de commentaire -->
             <div x-show="showCommentForm" class="mb-6 p-4 border border-gray-200 rounded-lg dark:border-gray-700">
-                <form @submit.prevent="addComment()" class="space-y-4">
+                <form @submit.prevent="addComment()" enctype="multipart/form-data" class="space-y-4">
                     <textarea
                         x-model="commentForm.content"
                         required
@@ -161,10 +161,40 @@
                         class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
                         placeholder="Votre commentaire..."
                     ></textarea>
+                    
+                    <!-- Upload d'images -->
+                    <div class="space-y-2">
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                            Images (optionnel)
+                        </label>
+                        <input
+                            type="file"
+                            @change="handleImageUpload($event)"
+                            multiple
+                            accept="image/*"
+                            class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-brand-50 file:text-brand-700 hover:file:bg-brand-100 dark:file:bg-brand-500/15 dark:file:text-brand-400"
+                        />
+                        <!-- Aperçu des images sélectionnées -->
+                        <div x-show="commentForm.images.length > 0" class="flex flex-wrap gap-2 mt-2">
+                            <template x-for="(image, index) in commentForm.images" :key="index">
+                                <div class="relative">
+                                    <img :src="image.preview" class="w-20 h-20 object-cover rounded-lg border border-gray-200 dark:border-gray-700" />
+                                    <button
+                                        type="button"
+                                        @click="removeImage(index)"
+                                        class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs hover:bg-red-600"
+                                    >
+                                        ×
+                                    </button>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                    
                     <div class="flex gap-3 justify-end">
                         <button
                             type="button"
-                            @click="showCommentForm = false"
+                            @click="showCommentForm = false; commentForm = { content: '', images: [] }"
                             class="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"
                         >
                             Annuler
@@ -191,7 +221,22 @@
                                     <span class="text-sm font-medium text-gray-800 dark:text-white/90" x-text="comment.author?.firstName + ' ' + comment.author?.lastName"></span>
                                     <span class="text-xs text-gray-500 dark:text-gray-400" x-text="new Date(comment.createdAt).toLocaleDateString('fr-FR')"></span>
                                 </div>
-                                <p class="text-sm text-gray-600 dark:text-gray-400 whitespace-pre-wrap" x-text="comment.content"></p>
+                                <p class="text-sm text-gray-600 dark:text-gray-400 whitespace-pre-wrap mb-2" x-text="comment.content"></p>
+                                
+                                <!-- Images du commentaire -->
+                                <div x-show="comment.images && comment.images.length > 0" class="flex flex-wrap gap-2 mt-2">
+                                    <template x-for="image in comment.images" :key="image.id">
+                                        <div class="relative group">
+                                            <img 
+                                                :src="image.fileUrl" 
+                                                :alt="image.caption || 'Image'" 
+                                                class="w-32 h-32 object-cover rounded-lg border border-gray-200 dark:border-gray-700 cursor-pointer hover:opacity-90 transition-opacity"
+                                                @click="openImageModal(image.fileUrl)"
+                                            />
+                                            <p x-show="image.caption" class="mt-1 text-xs text-gray-500 dark:text-gray-400" x-text="image.caption"></p>
+                                        </div>
+                                    </template>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -201,6 +246,33 @@
             <div x-show="comments.length === 0" class="text-center py-8 text-gray-500 dark:text-gray-400">
                 Aucun commentaire pour le moment
             </div>
+        </div>
+    </div>
+
+    <!-- Modal pour afficher les images en grand -->
+    <div
+        x-show="imageModalOpen"
+        @click="imageModalOpen = false"
+        x-transition:enter="transition-opacity ease-out duration-300"
+        x-transition:enter-start="opacity-0"
+        x-transition:enter-end="opacity-100"
+        x-transition:leave="transition-opacity ease-in duration-200"
+        x-transition:leave-start="opacity-100"
+        x-transition:leave-end="opacity-0"
+        class="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4"
+        style="display: none;"
+        x-cloak
+    >
+        <div @click.stop class="relative max-w-4xl max-h-[90vh] w-full">
+            <button
+                @click="imageModalOpen = false"
+                class="absolute -top-10 right-0 text-white hover:text-gray-300 transition-colors"
+            >
+                <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+            <img :src="imageModalSrc" alt="Image" class="max-w-full max-h-[90vh] object-contain rounded-lg" />
         </div>
     </div>
 
@@ -215,9 +287,12 @@ function activityDetailManager() {
         
         showCommentForm: false,
         savingComment: false,
+        imageModalOpen: false,
+        imageModalSrc: '',
         
         commentForm: {
-            content: ''
+            content: '',
+            images: []
         },
         
         init() {
@@ -227,26 +302,52 @@ function activityDetailManager() {
             this.comments = JSON.parse(this.$el.dataset.comments || '[]');
         },
         
+        handleImageUpload(event) {
+            const files = Array.from(event.target.files || []);
+            files.forEach(file => {
+                if (file.type.startsWith('image/')) {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        this.commentForm.images.push({
+                            file: file,
+                            preview: e.target.result
+                        });
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+        },
+        
+        removeImage(index) {
+            this.commentForm.images.splice(index, 1);
+        },
+        
+        openImageModal(imageUrl) {
+            this.imageModalSrc = imageUrl;
+            this.imageModalOpen = true;
+        },
+        
         async addComment() {
             this.savingComment = true;
             try {
+                const formData = new FormData();
+                formData.append('content', this.commentForm.content);
+                
+                // Ajouter les images
+                this.commentForm.images.forEach((imageData, index) => {
+                    formData.append(`images[${index}]`, imageData.file);
+                });
+                
                 const response = await fetch(`/admin/activities/${this.activity.id}/comment`, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(this.commentForm),
+                    body: formData,
                 });
                 
                 const result = await response.json();
                 
                 if (result.success) {
-                    this.comments.push(result.comment);
-                    this.commentForm = { content: '' };
-                    this.showCommentForm = false;
-                    if (window.showToast) {
-                        window.showToast('Commentaire ajouté avec succès', 'success');
-                    }
+                    // Recharger la page après succès
+                    window.location.reload();
                 } else {
                     if (window.showToast) {
                         window.showToast(result.message, 'error');

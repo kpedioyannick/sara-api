@@ -75,7 +75,7 @@
     </div>
 
     <!-- Chat Container - Flex Grow -->
-    <div class="flex-1 flex flex-col min-h-0 bg-white dark:bg-gray-900 relative" id="chat-container">
+    <div class="flex-1 flex flex-col min-h-0 bg-white dark:bg-gray-900" id="chat-container">
         <!-- Chat Header -->
         <div class="border-b border-gray-200 dark:border-gray-800 px-4 py-3 bg-gray-50 dark:bg-gray-800/50 flex-shrink-0">
             <div class="flex items-center gap-3">
@@ -105,133 +105,8 @@
             x-data="requestChatManager({{ requestId }})"
             x-init="init()"
         >
-            <!-- Messages List - Scrollable -->
-            <div
-                id="messages-container"
-                class="flex-1 overflow-y-auto overscroll-contain p-4 md:p-6 space-y-4"
-                style="scroll-behavior: smooth;"
-            >
-                {% for message in messages %}
-                    <div class="flex {% if message.isFromMe %}justify-end{% else %}justify-start{% endif %} gap-2" data-message-id="{{ message.id }}" data-message-type="{{ message.type|default('text') }}">
-                        <!-- Checkbox pour sélection -->
-                        <div class="flex items-start pt-6" x-show="aiAssistMode">
-                            <input
-                                type="checkbox"
-                                value="{{ message.id }}"
-                                x-model="selectedMessageIds"
-                                class="h-4 w-4 rounded border-gray-300 text-brand-500 focus:ring-brand-500 dark:border-gray-700"
-                            />
-                        </div>
-                        <div class="flex max-w-[70%] flex-col {% if message.isFromMe %}items-end{% else %}items-start{% endif %}">
-                            <span class="mb-1 text-xs text-gray-500 dark:text-gray-400">
-                                {{ message.sender.firstName }} {{ message.sender.lastName }}
-                                {% if message.sender.userType %}
-                                    <span class="text-gray-400">({{ message.sender.userType|capitalize }})</span>
-                                {% endif %}
-                            </span>
-                            <div
-                                class="rounded-lg px-4 py-2 {% if message.isFromMe %}bg-brand-600{% else %}bg-gray-100 dark:bg-gray-700{% endif %}"
-                            >
-                                {% if message.type|default('') == 'image' and message.filePath %}
-                                    <img 
-                                        src="{{ message.filePath }}" 
-                                        alt="Image" 
-                                        class="max-w-full h-auto rounded cursor-pointer hover:opacity-90 transition-opacity"
-                                        @click="openImageModal('{{ message.filePath }}')"
-                                        style="max-height: 300px;"
-                                    />
-                                    {% if message.content %}
-                                        <p class="text-sm mt-2 {% if message.isFromMe %}text-black{% else %}!text-gray-950 dark:!text-gray-100{% endif %}">{{ message.content }}</p>
-                                    {% endif %}
-                                {% elseif message.type|default('') == 'audio' %}
-                                    {% if message.filePath %}
-                                        <div class="flex items-center gap-2">
-                                            <audio 
-                                                controls 
-                                                class="w-full max-w-xs" 
-                                                style="min-width: 250px; height: 40px;"
-                                                preload="metadata"
-                                                data-audio-id="{{ message.id }}"
-                                                onloadedmetadata="if (this.duration && !isNaN(this.duration) && this.duration > 0) { this.style.display = 'block'; }"
-                                                oncanplay="if (this.duration && !isNaN(this.duration) && this.duration > 0) { this.style.display = 'block'; }"
-                                            >
-                                                <source src="{{ message.filePath }}" type="audio/webm">
-                                                <source src="{{ message.filePath }}" type="audio/mpeg">
-                                                <source src="{{ message.filePath }}" type="audio/wav">
-                                                <source src="{{ message.filePath }}" type="audio/ogg">
-                                                <source src="{{ message.filePath }}" type="audio/mp3">
-                                                Votre navigateur ne supporte pas l'élément audio.
-                                            </audio>
-                                        </div>
-                                    {% else %}
-                                        <p class="text-sm text-red-500">⚠️ Fichier audio non disponible</p>
-                                    {% endif %}
-                                    {% if message.content %}
-                                        <p class="text-sm mt-2 {% if message.isFromMe %}text-black{% else %}!text-gray-950 dark:!text-gray-100{% endif %}">{{ message.content }}</p>
-                                    {% endif %}
-                                {% else %}
-                                    <p class="text-sm whitespace-pre-wrap {% if message.isFromMe %}text-black{% else %}!text-gray-950 dark:!text-gray-100{% endif %}">
-                                        {% if message.content is defined and message.content is not null and message.content is not empty %}
-                                            {{ message.content }}
-                                        {% else %}
-                                            <span class="italic opacity-75 {% if message.isFromMe %}text-black{% else %}text-gray-600 dark:text-gray-400{% endif %}">(Message vide)</span>
-                                        {% endif %}
-                                    </p>
-                                {% endif %}
-                            </div>
-                            <span class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                                {% if message.createdAt %}
-                                    {{ message.createdAt|date('d/m/Y H:i') }}
-                                {% endif %}
-                            </span>
-                        </div>
-                    </div>
-                {% else %}
-                    <div class="flex items-center justify-center h-full">
-                        <p class="text-gray-500 dark:text-gray-400">Aucun message pour le moment</p>
-                    </div>
-                {% endfor %}
-            </div>
-
-            <!-- Zone d'Assistance IA -->
-            <div 
-                x-show="aiAssistMode" 
-                class="flex-shrink-0 border-t border-blue-200 bg-blue-50 dark:bg-blue-900/20 p-3 dark:border-blue-800 shadow-lg z-10 relative"
-                x-transition
-                style="position: relative; z-index: 10;"
-            >
-                <div class="flex items-start gap-3">
-                    <svg class="h-5 w-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <div class="flex-1">
-                        <p class="text-sm font-medium text-blue-800 dark:text-blue-200 mb-1">
-                            Mode Assistance IA activé
-                        </p>
-                        <p class="text-xs text-blue-700 dark:text-blue-300 mb-2">
-                            Votre message sera envoyé à l'IA pour génération de réponse. Sélectionnez des messages ci-dessus pour donner le contexte.
-                        </p>
-                        <div class="flex items-center justify-between">
-                            <div class="text-xs text-blue-600 dark:text-blue-400">
-                                <span x-show="selectedMessageIds.length === 0" class="text-blue-500">Aucun message sélectionné</span>
-                                <span x-show="selectedMessageIds.length > 0" class="font-medium">
-                                    <span x-text="selectedMessageIds.length"></span> message(s) sélectionné(s) pour le contexte
-                                </span>
-                            </div>
-                            <button
-                                type="button"
-                                @click="toggleAIAssist()"
-                                class="text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-200 font-medium"
-                            >
-                                Désactiver
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Message Input - Fixed Bottom -->
-            <div class="flex-shrink-0 border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-lg z-30 relative" style="position: relative; z-index: 30;">
+            <!-- Message Input - Fixed Top -->
+            <div class="flex-shrink-0 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-lg">
                 <form @submit.prevent="sendMessage()" class="p-4 space-y-2">
                     <!-- Boutons d'upload - Ligne séparée sur mobile -->
                     <div class="flex flex-wrap gap-2 justify-center sm:justify-start">
@@ -330,6 +205,130 @@
                         </button>
                     </div>
                 </form>
+            </div>
+
+            <!-- Zone d'Assistance IA -->
+            <div 
+                x-show="aiAssistMode" 
+                class="flex-shrink-0 border-b border-blue-200 bg-blue-50 dark:bg-blue-900/20 p-3 dark:border-blue-800 shadow-lg"
+                x-transition
+            >
+                <div class="flex items-start gap-3">
+                    <svg class="h-5 w-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <div class="flex-1">
+                        <p class="text-sm font-medium text-blue-800 dark:text-blue-200 mb-1">
+                            Mode Assistance IA activé
+                        </p>
+                        <p class="text-xs text-blue-700 dark:text-blue-300 mb-2">
+                            Votre message sera envoyé à l'IA pour génération de réponse. Sélectionnez des messages ci-dessous pour donner le contexte.
+                        </p>
+                        <div class="flex items-center justify-between">
+                            <div class="text-xs text-blue-600 dark:text-blue-400">
+                                <span x-show="selectedMessageIds.length === 0" class="text-blue-500">Aucun message sélectionné</span>
+                                <span x-show="selectedMessageIds.length > 0" class="font-medium">
+                                    <span x-text="selectedMessageIds.length"></span> message(s) sélectionné(s) pour le contexte
+                                </span>
+                            </div>
+                            <button
+                                type="button"
+                                @click="toggleAIAssist()"
+                                class="text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-200 font-medium"
+                            >
+                                Désactiver
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Messages List - Scrollable -->
+            <div
+                id="messages-container"
+                class="flex-1 overflow-y-auto overscroll-contain p-4 md:p-6 space-y-4"
+                style="scroll-behavior: smooth; min-height: 0;"
+            >
+                {% for message in messages|reverse %}
+                    <div class="flex {% if message.isFromMe %}justify-end{% else %}justify-start{% endif %} gap-2" data-message-id="{{ message.id }}" data-message-type="{{ message.type|default('text') }}">
+                        <!-- Checkbox pour sélection -->
+                        <div class="flex items-start pt-6" x-show="aiAssistMode">
+                            <input
+                                type="checkbox"
+                                value="{{ message.id }}"
+                                x-model="selectedMessageIds"
+                                class="h-4 w-4 rounded border-gray-300 text-brand-500 focus:ring-brand-500 dark:border-gray-700"
+                            />
+                        </div>
+                        <div class="flex max-w-[70%] flex-col {% if message.isFromMe %}items-end{% else %}items-start{% endif %}">
+                            <span class="mb-1 text-xs text-gray-500 dark:text-gray-400">
+                                {{ message.sender.firstName }} {{ message.sender.lastName }}
+                                {% if message.sender.userType %}
+                                    <span class="text-gray-400">({{ message.sender.userType|capitalize }})</span>
+                                {% endif %}
+                            </span>
+                            <div
+                                class="rounded-lg px-4 py-2 {% if message.isFromMe %}bg-brand-600{% else %}bg-gray-100 dark:bg-gray-700{% endif %}"
+                            >
+                                {% if message.type|default('') == 'image' and message.filePath %}
+                                    <img 
+                                        src="{{ message.filePath }}" 
+                                        alt="Image" 
+                                        class="max-w-full h-auto rounded cursor-pointer hover:opacity-90 transition-opacity"
+                                        @click="openImageModal('{{ message.filePath }}')"
+                                        style="max-height: 300px;"
+                                    />
+                                    {% if message.content %}
+                                        <p class="text-sm mt-2 {% if message.isFromMe %}text-black{% else %}!text-gray-950 dark:!text-gray-100{% endif %}">{{ message.content }}</p>
+                                    {% endif %}
+                                {% elseif message.type|default('') == 'audio' %}
+                                    {% if message.filePath %}
+                                        <div class="flex items-center gap-2">
+                                            <audio 
+                                                controls 
+                                                class="w-full max-w-xs" 
+                                                style="min-width: 250px; height: 40px;"
+                                                preload="metadata"
+                                                data-audio-id="{{ message.id }}"
+                                                onloadedmetadata="if (this.duration && !isNaN(this.duration) && this.duration > 0) { this.style.display = 'block'; }"
+                                                oncanplay="if (this.duration && !isNaN(this.duration) && this.duration > 0) { this.style.display = 'block'; }"
+                                            >
+                                                <source src="{{ message.filePath }}" type="audio/webm">
+                                                <source src="{{ message.filePath }}" type="audio/mpeg">
+                                                <source src="{{ message.filePath }}" type="audio/wav">
+                                                <source src="{{ message.filePath }}" type="audio/ogg">
+                                                <source src="{{ message.filePath }}" type="audio/mp3">
+                                                Votre navigateur ne supporte pas l'élément audio.
+                                            </audio>
+                                        </div>
+                                    {% else %}
+                                        <p class="text-sm text-red-500">⚠️ Fichier audio non disponible</p>
+                                    {% endif %}
+                                    {% if message.content %}
+                                        <p class="text-sm mt-2 {% if message.isFromMe %}text-black{% else %}!text-gray-950 dark:!text-gray-100{% endif %}">{{ message.content }}</p>
+                                    {% endif %}
+                                {% else %}
+                                    <p class="text-sm whitespace-pre-wrap {% if message.isFromMe %}text-black{% else %}!text-gray-950 dark:!text-gray-100{% endif %}">
+                                        {% if message.content is defined and message.content is not null and message.content is not empty %}
+                                            {{ message.content }}
+                                        {% else %}
+                                            <span class="italic opacity-75 {% if message.isFromMe %}text-black{% else %}text-gray-600 dark:text-gray-400{% endif %}">(Message vide)</span>
+                                        {% endif %}
+                                    </p>
+                                {% endif %}
+                            </div>
+                            <span class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                                {% if message.createdAt %}
+                                    {{ message.createdAt|date('d/m/Y H:i') }}
+                                {% endif %}
+                            </span>
+                        </div>
+                    </div>
+                {% else %}
+                    <div class="flex items-center justify-center h-full">
+                        <p class="text-gray-500 dark:text-gray-400">Aucun message pour le moment</p>
+                    </div>
+                {% endfor %}
             </div>
             
             <!-- Modal pour agrandir les images -->
@@ -533,7 +532,7 @@ function requestChatManager(requestId) {
             }
             
             this.messagesContainer = document.getElementById('messages-container');
-            this.scrollToBottom();
+            this.scrollToTop();
             
             // Se connecter à Firebase pour les messages en temps réel
             this.subscribeToFirebase();
@@ -550,9 +549,9 @@ function requestChatManager(requestId) {
             });
         },
         
-        scrollToBottom() {
+        scrollToTop() {
             if (this.messagesContainer) {
-                this.messagesContainer.scrollTop = this.messagesContainer.scrollHeight;
+                this.messagesContainer.scrollTop = 0;
             }
         },
         
@@ -1306,7 +1305,20 @@ function requestChatManager(requestId) {
                 `;
             }
             
+            // Structure du message avec checkbox conditionnelle
+            const checkboxContainer = this.aiAssistMode ? `
+                <div class="flex items-start pt-6" x-show="aiAssistMode">
+                    <input
+                        type="checkbox"
+                        value="${data.id}"
+                        x-model="selectedMessageIds"
+                        class="h-4 w-4 rounded border-gray-300 text-brand-500 focus:ring-brand-500 dark:border-gray-700"
+                    />
+                </div>
+            ` : '';
+            
             messageDiv.innerHTML = `
+                ${checkboxContainer}
                 <div class="flex max-w-[70%] flex-col ${isFromMe ? 'items-end' : 'items-start'}">
                     <span class="mb-1 text-xs text-gray-500 dark:text-gray-400">
                         ${data.sender ? `${this.escapeHtml(data.sender.firstName)} ${this.escapeHtml(data.sender.lastName)}` : 'Utilisateur'}
@@ -1320,9 +1332,15 @@ function requestChatManager(requestId) {
                 </div>
             `;
             
-            // Ajouter le message au conteneur
+            // Ajouter le message au conteneur (en haut pour les nouveaux messages)
             if (this.messagesContainer) {
-                this.messagesContainer.appendChild(messageDiv);
+                // Insérer le nouveau message en haut du conteneur
+                const firstChild = this.messagesContainer.firstChild;
+                if (firstChild) {
+                    this.messagesContainer.insertBefore(messageDiv, firstChild);
+                } else {
+                    this.messagesContainer.appendChild(messageDiv);
+                }
                 
                 // Ajouter l'event listener pour les images
                 const imageElement = messageDiv.querySelector('.request-message-image');
@@ -1332,7 +1350,13 @@ function requestChatManager(requestId) {
                     });
                 }
                 
-                this.scrollToBottom();
+                // Réinitialiser Alpine.js pour que les directives x-show et x-model fonctionnent
+                if (window.Alpine) {
+                    window.Alpine.initTree(messageDiv);
+                }
+                
+                // Scroller vers le haut pour voir le nouveau message
+                this.scrollToTop();
             }
         },
         
