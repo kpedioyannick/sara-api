@@ -263,7 +263,7 @@ class LoadDemoDataCommand extends Command
         $group1->setFamilyIdentifier('GRP_1_DEMO');
         $group1->setCoach($this->coach);
         $group1->setIsActive(true);
-        $group1->setLocation('Paris 15ème');
+        $group1->setLocation('Nantes 1');
         $group1->setCreatedAt($now->modify('-3 months'));
         $group1->setUpdatedAt($now);
         $this->em->persist($group1);
@@ -326,7 +326,7 @@ class LoadDemoDataCommand extends Command
         $group2->setFamilyIdentifier('GRP_2_DEMO');
         $group2->setCoach($this->coach);
         $group2->setIsActive(true);
-        $group2->setLocation('Paris 12ème');
+        $group2->setLocation('Nantes 2');
         $group2->setCreatedAt($now->modify('-2 months'));
         $group2->setUpdatedAt($now);
         $this->em->persist($group2);
@@ -392,12 +392,12 @@ class LoadDemoDataCommand extends Command
 
         // Objectifs individuels
         $objectivesData = [
-            // Objectif 1 - Lucas (Mathématiques) - Nantes St Herblain
+            // Objectif 1 - Lucas (Mathématiques) - Nantes 1
             [
                 'title' => 'Améliorer les compétences en mathématiques',
-                'description' => 'Travailler sur les fractions, les décimaux et la résolution de problèmes. Lieu : Nantes St Herblain',
+                'description' => 'Travailler sur les fractions, les décimaux et la résolution de problèmes. Lieu ',
                 'category' => 'Scolaire',
-                'categoryTags' => ['mathématiques', 'fractions', 'décimaux', 'Nantes St Herblain'],
+                'categoryTags' => ['mathématiques', 'fractions', 'décimaux'],
                 'status' => Objective::STATUS_IN_ACTION,
                 'progress' => 40,
                 'deadline' => $now->modify('+3 months'),
@@ -408,9 +408,9 @@ class LoadDemoDataCommand extends Command
             // Objectif 2 - Emma (Confiance) - Nantes St Herblain
             [
                 'title' => 'Développer la confiance en soi',
-                'description' => 'Améliorer l\'expression orale et la prise de parole en public. Lieu : Nantes St Herblain',
+                'description' => 'Améliorer l\'expression orale et la prise de parole en public. Lieu ',
                 'category' => 'Social',
-                'categoryTags' => ['confiance', 'expression orale', 'prise de parole', 'Nantes St Herblain'],
+                'categoryTags' => ['confiance', 'expression orale', 'prise de parole'],
                 'status' => Objective::STATUS_VALIDATED,
                 'progress' => 60,
                 'deadline' => $now->modify('+2 months'),
@@ -421,9 +421,9 @@ class LoadDemoDataCommand extends Command
             // Objectif 3 - Thomas (Concentration) - Nantes Clos Toreau
             [
                 'title' => 'Améliorer la concentration en classe',
-                'description' => 'Travailler sur l\'attention et la concentration pendant les cours. Lieu : Nantes Clos Toreau',
+                'description' => 'Travailler sur l\'attention et la concentration pendant les cours. Lieu ',
                 'category' => 'Scolaire',
-                'categoryTags' => ['concentration', 'attention', 'classe', 'Nantes Clos Toreau'],
+                'categoryTags' => ['concentration', 'attention', 'classe'],
                 'status' => Objective::STATUS_IN_ACTION,
                 'progress' => 35,
                 'deadline' => $now->modify('+4 months'),
@@ -434,9 +434,9 @@ class LoadDemoDataCommand extends Command
             // Objectif 4 - Léa (Orientation) - Nantes Clos Toreau
             [
                 'title' => 'Préparer l\'orientation post-3ème',
-                'description' => 'Explorer les différentes filières et options d\'orientation. Lieu : Nantes Clos Toreau',
+                'description' => 'Explorer les différentes filières et options d\'orientation. Lieu ',
                 'category' => 'Orientation',
-                'categoryTags' => ['orientation', 'brevet', 'lycée', 'Nantes Clos Toreau'],
+                'categoryTags' => ['orientation', 'brevet', 'lycée'],
                 'status' => Objective::STATUS_IN_ACTION,
                 'progress' => 30,
                 'deadline' => $now->modify('+6 months'),
@@ -447,9 +447,9 @@ class LoadDemoDataCommand extends Command
             // Objectif 5 - Partagé Groupe 1 (Lucas et Emma) - Nantes St Herblain
             [
                 'title' => 'Améliorer la communication en groupe',
-                'description' => 'Apprendre à travailler en équipe et à communiquer efficacement. Lieu : Nantes St Herblain',
+                'description' => 'Apprendre à travailler en équipe et à communiquer efficacement. Lieu ',
                 'category' => 'Social',
-                'categoryTags' => ['communication', 'travail d\'équipe', 'coopération', 'Nantes St Herblain'],
+                'categoryTags' => ['communication', 'travail d\'équipe', 'coopération'],
                 'status' => Objective::STATUS_IN_ACTION,
                 'progress' => 50,
                 'deadline' => $now->modify('+2 months'),
@@ -460,9 +460,9 @@ class LoadDemoDataCommand extends Command
             // Objectif 6 - Partagé Groupe 2 (Thomas et Léa) - Nantes Clos Toreau
             [
                 'title' => 'Développer l\'autonomie dans les apprentissages',
-                'description' => 'Apprendre à organiser son travail et à être autonome. Lieu : Nantes Clos Toreau',
+                'description' => 'Apprendre à organiser son travail et à être autonome. Lieu ',
                 'category' => 'Méthodologie',
-                'categoryTags' => ['autonomie', 'organisation', 'méthodologie', 'Nantes Clos Toreau'],
+                'categoryTags' => ['autonomie', 'organisation', 'méthodologie'],
                 'status' => Objective::STATUS_VALIDATED,
                 'progress' => 70,
                 'deadline' => $now->modify('+1 month'),
@@ -473,9 +473,9 @@ class LoadDemoDataCommand extends Command
             // Objectif 7 - Partagé avec Spécialistes (Lucas) - Nantes St Herblain
             [
                 'title' => 'Suivi mathématiques et pédagogique',
-                'description' => 'Coordination entre le professeur de mathématiques et le coach pour le suivi des difficultés en mathématiques. Lieu : Nantes St Herblain',
+                'description' => 'Coordination entre le professeur de mathématiques et le coach pour le suivi des difficultés en mathématiques. Lieu ',
                 'category' => 'Scolaire',
-                'categoryTags' => ['mathématiques', 'coordination', 'soutien', 'Nantes St Herblain'],
+                'categoryTags' => ['mathématiques', 'coordination', 'soutien'],
                 'status' => Objective::STATUS_IN_ACTION,
                 'progress' => 45,
                 'deadline' => $now->modify('+3 months'),
@@ -486,9 +486,9 @@ class LoadDemoDataCommand extends Command
             // Objectif 8 - Partagé avec Spécialistes (Emma) - Nantes St Herblain
             [
                 'title' => 'Développement artistique et créatif',
-                'description' => 'Suivi conjoint pour développer les compétences artistiques et la créativité. Lieu : Nantes St Herblain',
+                'description' => 'Suivi conjoint pour développer les compétences artistiques et la créativité. Lieu ',
                 'category' => 'Scolaire',
-                'categoryTags' => ['arts', 'créativité', 'expression', 'Nantes St Herblain'],
+                'categoryTags' => ['arts', 'créativité', 'expression'],
                 'status' => Objective::STATUS_VALIDATED,
                 'progress' => 55,
                 'deadline' => $now->modify('+2 months'),
