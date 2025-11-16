@@ -14,8 +14,7 @@ class ModuleConversionService
         string $appUrl = 'http://localhost:8000'
     ) {
         $this->appUrl = $appUrl;
-        //$this->h5pDir = '/var/www/sara_h5p/';
-        $this->h5pDir = '/var/php/sara-api/sara_h5p';
+        $this->h5pDir = '/var/www/sara_h5p/';
     }
 
 

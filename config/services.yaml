@@ -35,34 +35,34 @@ services:
     # Smart Objective Service
     App\Service\SmartObjectiveService:
         arguments:
-            $openaiApiKey: '%env(default::OPENAI_API_KEY)%'
+            $openaiApiKey: '%env(OPENAI_API_KEY)%'
 
     # Request AI Service
     App\Service\RequestAIService:
         arguments:
-            $openaiApiKey: '%env(default::OPENAI_API_KEY)%'
+            $openaiApiKey: '%env(OPENAI_API_KEY)%'
 
     # Path Generation Service
     App\Service\Path\PathGenerationService:
         arguments:
-            $openaiApiKey: '%env(default:OPENAI_API_KEY)%'
+            $openaiApiKey: '%env(OPENAI_API_KEY)%'
 
     # Email Notification Service
     App\Service\EmailNotificationService:
         arguments:
             $appName: 'SARA'
-            $baseUrl: '%env(default::APP_URL)%'
+            $baseUrl: '%env(APP_URL)%'
 
     # Contact Email Service
     App\Service\ContactEmailService:
         arguments:
-            $contactEmail: '%env(default::CONTACT_EMAIL)%'
+            $contactEmail: '%env(CONTACT_EMAIL)%'
             $appName: 'SARA'
 
     # Firebase Service
     App\Service\FirebaseService:
         arguments:
-            $projectId: '%env(default::FIREBASE_PROJECT_ID)%'
-            $privateKey: '%env(default::FIREBASE_PRIVATE_KEY)%'
-            $clientEmail: '%env(default::FIREBASE_CLIENT_EMAIL)%'
-            $databaseUrl: '%env(default::FIREBASE_DATABASE_URL)%'
+            $projectId: '%env(FIREBASE_PROJECT_ID)%'
+            $privateKey: '%env(FIREBASE_PRIVATE_KEY)%'
+            $clientEmail: '%env(FIREBASE_CLIENT_EMAIL)%'
+            $databaseUrl: '%env(FIREBASE_DATABASE_URL)%'

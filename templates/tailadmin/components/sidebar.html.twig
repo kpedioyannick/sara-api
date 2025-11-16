@@ -435,8 +435,16 @@
           <!-- Menu Item Disponibilités -->
 
 
-          <!-- Menu Item ETN -->
-          {% if app.user and (app.user.isCoach() or app.user.isParent() or app.user.isStudent() or app.user.isSpecialist()) %}
+          {# 
+            Menu Item ETN (Espace Numérique de Travail) - DÉSACTIVÉ
+            - Visible pour : Coach, Parent, Élève, Spécialiste
+            - Redirige vers la page de gestion des intégrations (admin_integrations_list)
+            - L'icône représente des flèches de synchronisation/échange de données
+            - L'item est actif quand la page courante est 'integrations'
+            TODO: Réactiver quand la fonctionnalité ETN sera prête
+            Pour réactiver : changer "false" en "true" dans la condition ci-dessous
+          #}
+          {% if false and app.user and (app.user.isCoach() or app.user.isParent() or app.user.isStudent() or app.user.isSpecialist()) %}
           <li>
             <a
               href="{{ path("admin_integrations_list") }}"
@@ -460,17 +468,15 @@
                   stroke-linejoin="round"
                 />
               </svg>
-
               <span
                 class="menu-item-text"
                 :class="sidebarToggle ? 'xl:hidden' : ''"
               >
                 ETN
               </span>
-                  </a>
-                </li>
+            </a>
+          </li>
           {% endif %}
-          <!-- Menu Item ETN -->
 
           <!-- Menu Item Profil Utilisateur -->
                 <li>

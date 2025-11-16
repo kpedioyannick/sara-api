@@ -20,8 +20,8 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 
 #[AsCommand(
-    name: 'app:load-path-data',
-    description: 'Charge les classes, matières, chapitres et sous-chapitres depuis l\'API externe',
+    name: 'app:load-prompt-chapters',
+    description: 'Charge les prompts des chapitres et sous-chapitres depuis l\'API externe (DEPRECATED - utiliser app:load-path-data)',
 )]
 class LoadPromptChapterSubchapterCommand extends Command
 {

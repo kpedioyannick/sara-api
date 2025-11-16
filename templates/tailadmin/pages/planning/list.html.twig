@@ -73,22 +73,41 @@
                     <div class="min-h-[200px] p-3 space-y-2">
                         {% if day.events|length > 0 %}
                             {% for event in day.events %}
+                            {% set colorIndex = loop.index0 % 5 %}
+                            {% set titleBgColors = ['bg-blue-500', 'bg-purple-500', 'bg-pink-500', 'bg-amber-500', 'bg-red-500'] %}
+                            {% set userNameBgColors = ['bg-yellow-100', 'bg-orange-100', 'bg-red-100', 'bg-pink-100', 'bg-rose-100'] %}
+                            {% set userNameTextColors = ['text-yellow-800', 'text-orange-800', 'text-red-800', 'text-pink-800', 'text-rose-800'] %}
+                            {% set timeBgColors = ['bg-blue-100', 'bg-cyan-100', 'bg-teal-100', 'bg-sky-100', 'bg-indigo-100'] %}
+                            {% set timeTextColors = ['text-blue-700', 'text-cyan-700', 'text-teal-700', 'text-sky-700', 'text-indigo-700'] %}
+                            {% set typeBgColors = ['bg-indigo-100', 'bg-violet-100', 'bg-purple-100', 'bg-fuchsia-100', 'bg-pink-100'] %}
+                            {% set typeTextColors = ['text-indigo-700', 'text-violet-700', 'text-purple-700', 'text-fuchsia-700', 'text-pink-700'] %}
+                            {% set titleBgClass = event.backgroundColor ? '' : titleBgColors[colorIndex] %}
+                            {% set userNameBgClass = userNameBgColors[colorIndex] %}
+                            {% set userNameTextClass = userNameTextColors[colorIndex] %}
+                            {% set timeBgClass = timeBgColors[colorIndex] %}
+                            {% set timeTextClass = timeTextColors[colorIndex] %}
+                            {% set typeBgClass = typeBgColors[colorIndex] %}
+                            {% set typeTextClass = typeTextColors[colorIndex] %}
                             <div 
                                 {% if event.sourceType is defined and event.sourceType == 'task' and event.sourceId is defined %}
                                     @click="openTaskDetails({{ event.sourceId }}, '{{ event.startDate }}')"
                                 {% else %}
                                     @click="openView({{ event.id|default('null') }}, '{{ event.title|e('js') }}', '{{ event.description|e('js')|default('') }}', '{{ event.startDate }}', '{{ event.endDate }}', {{ event.userId }}, '{{ event.type }}', '{{ event.status }}')"
                                 {% endif %}
-                                class="group cursor-pointer rounded-lg border p-3 transition-all hover:shadow-theme-xs {% if event.backgroundColor %}border-opacity-30{% else %}border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/50{% endif %}"
-                                {% if event.backgroundColor %}style="background-color: {{ event.backgroundColor }}; border-color: {{ event.backgroundColor }};"{% endif %}
+                                class="group cursor-pointer rounded-lg border-2 p-3 transition-all hover:shadow-theme-xs bg-white dark:bg-gray-800/50"
+                                style="border-color: {% if event.backgroundColor %}{{ event.backgroundColor }}{% else %}#3b82f6{% endif %};"
                             >
                                 <div class="mb-2 flex items-start justify-between">
                                     <div class="flex-1">
-                                        <h4 class="text-sm font-semibold {% if event.backgroundColor %}text-white{% else %}text-gray-800 dark:text-white/90{% endif %} line-clamp-1">
-                                            {{ event.title }}
+                                        <h4 class="text-sm font-semibold text-gray-800 dark:text-white/90 line-clamp-1">
+                                            <span class="inline-block rounded-md px-2 py-0.5 text-white text-xs font-medium {{ titleBgClass }}" {% if event.backgroundColor %}style="background-color: {{ event.backgroundColor }};"{% endif %}>
+                                                {{ event.title }}
+                                            </span>
                                         </h4>
-                                        <p class="mt-1 text-xs {% if event.backgroundColor %}text-white/90{% else %}text-gray-500 dark:text-gray-400{% endif %}">
-                                            {{ event.userName }}
+                                        <p class="mt-1 text-xs">
+                                            <span class="inline-block rounded-md {{ userNameBgClass }} dark:bg-gray-700 px-2 py-0.5 {{ userNameTextClass }} dark:text-gray-300">
+                                                {{ event.userName }}
+                                            </span>
                                         </p>
                                     </div>
                                     {% if event.status == 'completed' %}
@@ -106,17 +125,19 @@
                                     {% endif %}
                                 </div>
                                 
-                                <div class="flex items-center gap-2 text-xs {% if event.backgroundColor %}text-white/90{% else %}text-gray-500 dark:text-gray-400{% endif %}">
-                                    <svg class="fill-current" width="14" height="14" viewBox="0 0 16 16" fill="none">
-                                        <path d="M8 1a7 7 0 100 14A7 7 0 008 1zM7.5 4v4l3.5 2 .5-.866L8.5 7.5V4h-1z" fill=""/>
-                                    </svg>
-                                    {% set startTime = event.startDate|split(' ')[1]|slice(0, 5) %}
-                                    {% set endTime = event.endDate|split(' ')[1]|slice(0, 5) %}
-                                    <span>{{ startTime }} - {{ endTime }}</span>
+                                <div class="flex items-center gap-2 text-xs">
+                                    <span class="inline-flex items-center gap-1 rounded-md {{ timeBgClass }} dark:bg-gray-700 px-2 py-0.5 {{ timeTextClass }} dark:text-gray-300">
+                                        <svg class="fill-current" width="14" height="14" viewBox="0 0 16 16" fill="none">
+                                            <path d="M8 1a7 7 0 100 14A7 7 0 008 1zM7.5 4v4l3.5 2 .5-.866L8.5 7.5V4h-1z" fill=""/>
+                                        </svg>
+                                        {% set startTime = event.startDate|split(' ')[1]|slice(0, 5) %}
+                                        {% set endTime = event.endDate|split(' ')[1]|slice(0, 5) %}
+                                        <span>{{ startTime }} - {{ endTime }}</span>
+                                    </span>
                                 </div>
                                 
                                 <div class="mt-2 flex items-center justify-between">
-                                    <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium {% if event.backgroundColor %}bg-white/20 text-white{% else %}bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400{% endif %}">
+                                    <span class="inline-flex items-center rounded-md {{ typeBgClass }} dark:bg-gray-700 px-2 py-0.5 text-xs font-medium {{ typeTextClass }} dark:text-gray-300">
                                         {% if event.sourceType is defined and event.sourceType == 'task' %}
                                             📋 Tâche
                                         {% else %}
