@@ -118,7 +118,7 @@ class Path
     public function getContent(): ?string
     {
         if ($this->type === Path::TYPE_H5P) {
-            return 'https://h5p.sara.education/view/h5p-course-presentation/'. $this->id;
+            return 'https://h5p.sara.education/view/h5p-interactive-book/'. $this->id;
         }
         return $this->content;
     }
