@@ -1,0 +1,130 @@
+{% extends 'tailadmin/layouts/base.html.twig' %}
+
+{% block content %}
+<div class="p-4 mx-auto max-w-(--breakpoint-2xl) md:p-6">
+    {% include 'tailadmin/components/breadcrumb.html.twig' %}
+
+    <div class="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
+        <div class="px-6 py-5 border-b border-gray-100 dark:border-gray-800">
+            <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                    <h3 class="text-base font-medium text-gray-800 dark:text-white/90">
+                        Gestion des Utilisateurs
+                    </h3>
+                </div>
+                <div>
+                    <a
+                        href="{{ path('admin_users_new') }}"
+                        class="inline-flex items-center gap-2 rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-semibold text-gray-900 shadow-sm hover:bg-brand-600 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2"
+                    >
+                        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                        </svg>
+                        Créer un utilisateur
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filtres -->
+        <div class="border-b border-gray-100 p-4 dark:border-gray-800">
+            <form method="GET" action="{{ path('admin_users_list') }}" class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                <input
+                    type="text"
+                    name="search"
+                    value="{{ search }}"
+                    placeholder="Rechercher par nom, email..."
+                    class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+                />
+                <select
+                    name="type"
+                    class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+                >
+                    <option value="all" {{ type == 'all' ? 'selected' : '' }}>Tous les types</option>
+                    <option value="admin" {{ type == 'admin' ? 'selected' : '' }}>Admin</option>
+                    <option value="coach" {{ type == 'coach' ? 'selected' : '' }}>Coach</option>
+                    <option value="parent" {{ type == 'parent' ? 'selected' : '' }}>Parent</option>
+                    <option value="student" {{ type == 'student' ? 'selected' : '' }}>Élève</option>
+                    <option value="specialist" {{ type == 'specialist' ? 'selected' : '' }}>Spécialiste</option>
+                </select>
+                <button
+                    type="submit"
+                    class="inline-flex items-center justify-center gap-2 rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600"
+                >
+                    Rechercher
+                </button>
+            </form>
+        </div>
+
+        <!-- Liste des utilisateurs -->
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead class="bg-gray-50 dark:bg-gray-900/50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-400">Nom</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-400">Email</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-400">Type</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-400">Statut</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider dark:text-gray-400">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200 dark:bg-gray-800 dark:divide-gray-700">
+                    {% for user in users %}
+                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm font-medium text-gray-900 dark:text-white/90">
+                                {{ user.firstName }} {{ user.lastName }}
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm text-gray-500 dark:text-gray-400">{{ user.email }}</div>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="inline-flex items-center rounded-md px-2.5 py-0.5 text-xs font-medium
+                                {% if user.userType == 'admin' %}bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400
+                                {% elseif user.userType == 'coach' %}bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400
+                                {% elseif user.userType == 'parent' %}bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400
+                                {% elseif user.userType == 'student' %}bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400
+                                {% elseif user.userType == 'specialist' %}bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400
+                                {% endif %}">
+                                {{ user.userType|upper }}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium
+                                {% if user.isActive %}bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400
+                                {% else %}bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400{% endif %}">
+                                {{ user.isActive ? 'Actif' : 'Inactif' }}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                            <div class="flex items-center gap-2">
+                                <a
+                                    href="{{ path('admin_users_view', {id: user.id}) }}"
+                                    class="text-brand-600 hover:text-brand-900 dark:text-brand-400"
+                                >
+                                    Voir
+                                </a>
+                                <a
+                                    href="{{ path('admin_users_edit', {id: user.id}) }}"
+                                    class="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400"
+                                >
+                                    Modifier
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="5" class="px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-400">
+                            Aucun utilisateur trouvé.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

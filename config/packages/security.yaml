@@ -62,6 +62,8 @@ security:
         - { path: ^/admin/activities, roles: IS_AUTHENTICATED_FULLY }
         - { path: ^/admin/paths, roles: IS_AUTHENTICATED_FULLY }
         - { path: ^/admin/integrations, roles: IS_AUTHENTICATED_FULLY }
+        # Routes admin réservées aux admins
+        - { path: ^/admin/users, roles: ROLE_ADMIN }
         # Autres routes admin réservées aux coaches
         - { path: ^/admin, roles: IS_AUTHENTICATED_FULLY }
         - { path: ^/coach, roles: ROLE_COACH }

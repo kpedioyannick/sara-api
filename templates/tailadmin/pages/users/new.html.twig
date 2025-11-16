@@ -1,0 +1,151 @@
+{% extends 'tailadmin/layouts/base.html.twig' %}
+
+{% block content %}
+<div class="p-4 mx-auto max-w-(--breakpoint-2xl) md:p-6">
+    {% include 'tailadmin/components/breadcrumb.html.twig' %}
+
+    <div class="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
+        <div class="px-6 py-5 border-b border-gray-100 dark:border-gray-800">
+            <h3 class="text-base font-medium text-gray-800 dark:text-white/90">
+                Créer un nouvel utilisateur
+            </h3>
+        </div>
+
+        <form method="POST" action="{{ path('admin_users_new') }}" class="p-6">
+            <div class="space-y-6">
+                <!-- Type d'utilisateur -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Type d'utilisateur <span class="text-red-500">*</span>
+                    </label>
+                    <select
+                        name="type"
+                        id="userType"
+                        required
+                        onchange="toggleStudentFields()"
+                        class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+                    >
+                        <option value="">Sélectionner un type</option>
+                        <option value="admin" {{ type == 'admin' ? 'selected' : '' }}>Admin</option>
+                        <option value="coach" {{ type == 'coach' ? 'selected' : '' }}>Coach</option>
+                        <option value="parent" {{ type == 'parent' ? 'selected' : '' }}>Parent</option>
+                        <option value="student" {{ type == 'student' ? 'selected' : '' }}>Élève</option>
+                        <option value="specialist" {{ type == 'specialist' ? 'selected' : '' }}>Spécialiste</option>
+                    </select>
+                </div>
+
+                <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            Prénom <span class="text-red-500">*</span>
+                        </label>
+                        <input
+                            type="text"
+                            name="firstName"
+                            value="{{ firstName|default('') }}"
+                            required
+                            class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+                        />
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            Nom <span class="text-red-500">*</span>
+                        </label>
+                        <input
+                            type="text"
+                            name="lastName"
+                            value="{{ lastName|default('') }}"
+                            required
+                            class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+                        />
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            Email <span class="text-red-500">*</span>
+                        </label>
+                        <input
+                            type="email"
+                            name="email"
+                            value="{{ email|default('') }}"
+                            required
+                            class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+                        />
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            Mot de passe <span class="text-red-500">*</span>
+                        </label>
+                        <input
+                            type="password"
+                            name="password"
+                            required
+                            minlength="6"
+                            class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+                        />
+                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Minimum 6 caractères</p>
+                    </div>
+                    <!-- Champ pseudo pour les élèves -->
+                    <div id="pseudoField" style="display: none;">
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            Pseudo (optionnel)
+                        </label>
+                        <input
+                            type="text"
+                            name="pseudo"
+                            class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+                        />
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            Statut
+                        </label>
+                        <select
+                            name="isActive"
+                            class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+                        >
+                            <option value="1" selected>Actif</option>
+                            <option value="0">Inactif</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
+                    <button
+                        type="submit"
+                        class="inline-flex items-center gap-2 rounded-lg bg-brand-500 px-4 py-2 text-sm font-semibold text-gray-900 shadow-sm hover:bg-brand-600 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2"
+                    >
+                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                        </svg>
+                        Créer l'utilisateur
+                    </button>
+                    <a
+                        href="{{ path('admin_users_list') }}"
+                        class="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+                    >
+                        Annuler
+                    </a>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function toggleStudentFields() {
+    const userType = document.getElementById('userType').value;
+    const pseudoField = document.getElementById('pseudoField');
+    if (userType === 'student') {
+        pseudoField.style.display = 'block';
+    } else {
+        pseudoField.style.display = 'none';
+    }
+}
+
+// Initialiser au chargement de la page
+document.addEventListener('DOMContentLoaded', function() {
+    toggleStudentFields();
+});
+</script>
+{% endblock %}
+

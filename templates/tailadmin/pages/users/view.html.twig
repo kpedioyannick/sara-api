@@ -1,0 +1,187 @@
+{% extends 'tailadmin/layouts/base.html.twig' %}
+
+{% block content %}
+<div class="p-4 mx-auto max-w-(--breakpoint-2xl) md:p-6">
+    {% include 'tailadmin/components/breadcrumb.html.twig' %}
+
+    <div class="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
+        <div class="px-6 py-5 border-b border-gray-100 dark:border-gray-800">
+            <div class="flex items-center justify-between">
+                <h3 class="text-base font-medium text-gray-800 dark:text-white/90">
+                    Détails de l'utilisateur
+                </h3>
+                <a
+                    href="{{ path('admin_users_edit', {id: user.id}) }}"
+                    class="inline-flex items-center gap-2 rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600"
+                >
+                    Modifier
+                </a>
+            </div>
+        </div>
+
+        <div class="p-6 space-y-6">
+            <!-- Informations de base -->
+            <div>
+                <h4 class="text-sm font-semibold text-gray-800 dark:text-white/90 mb-4">Informations personnelles</h4>
+                <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Prénom</label>
+                        <p class="text-sm text-gray-900 dark:text-white/90">{{ user.firstName }}</p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nom</label>
+                        <p class="text-sm text-gray-900 dark:text-white/90">{{ user.lastName }}</p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email</label>
+                        <p class="text-sm text-gray-900 dark:text-white/90">{{ user.email }}</p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Type</label>
+                        <span class="inline-flex items-center rounded-md px-2.5 py-0.5 text-xs font-medium
+                            {% if user.userType == 'admin' %}bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400
+                            {% elseif user.userType == 'coach' %}bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400
+                            {% elseif user.userType == 'parent' %}bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400
+                            {% elseif user.userType == 'student' %}bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400
+                            {% elseif user.userType == 'specialist' %}bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400
+                            {% endif %}">
+                            {{ user.userType|upper }}
+                        </span>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Statut</label>
+                        <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium
+                            {% if user.isActive %}bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400
+                            {% else %}bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400{% endif %}">
+                            {{ user.isActive ? 'Actif' : 'Inactif' }}
+                        </span>
+                    </div>
+                    {% if user.userType == 'student' and user.pseudo %}
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Pseudo</label>
+                        <p class="text-sm text-gray-900 dark:text-white/90">{{ user.pseudo }}</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="border-t border-gray-200 pt-6 dark:border-gray-700">
+                <h4 class="text-sm font-semibold text-gray-800 dark:text-white/90 mb-4">Actions</h4>
+                <div class="flex flex-col gap-3 sm:flex-row">
+                    <button
+                        onclick="changePassword({{ user.id }})"
+                        class="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-gray-900 shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:bg-blue-500 dark:hover:bg-blue-600"
+                    >
+                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                        </svg>
+                        Changer le mot de passe
+                    </button>
+                    <button
+                        onclick="generateToken({{ user.id }})"
+                        class="inline-flex items-center justify-center gap-2 rounded-lg bg-green-600 px-4 py-2.5 text-sm font-semibold text-gray-900 shadow-sm hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 dark:bg-green-500 dark:hover:bg-green-600"
+                    >
+                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                        </svg>
+                        Générer un lien de connexion
+                    </button>
+                </div>
+            </div>
+
+            <!-- Token actuel -->
+            {% if user.authToken %}
+            <div class="border-t border-gray-200 pt-6 dark:border-gray-700">
+                <h4 class="text-sm font-semibold text-gray-800 dark:text-white/90 mb-4">Lien de connexion actuel</h4>
+                <div class="rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-800">
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">Expire le: {{ user.authTokenExpiresAt ? user.authTokenExpiresAt|date('d/m/Y H:i') : 'Non défini' }}</p>
+                    <div class="flex items-center gap-2">
+                        <input
+                            type="text"
+                            id="currentTokenUrl"
+                            readonly
+                            value="{{ app.request.schemeAndHttpHost }}/login/token?username={{ (user.userType == 'student' and user.pseudo ? user.pseudo : user.email)|url_encode }}&token={{ user.authToken|url_encode }}"
+                            class="flex-1 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-800 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"
+                        />
+                        <button
+                            onclick="copyTokenUrl()"
+                            class="inline-flex items-center gap-2 rounded-lg bg-gray-700 px-3 py-2 text-sm font-semibold text-gray-100 shadow-sm hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 dark:bg-gray-600 dark:hover:bg-gray-700"
+                        >
+                            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                            </svg>
+                            Copier
+                        </button>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+function changePassword(userId) {
+    const newPassword = prompt('Entrez le nouveau mot de passe (minimum 6 caractères):');
+    if (!newPassword || newPassword.length < 6) {
+        alert('Le mot de passe doit contenir au moins 6 caractères.');
+        return;
+    }
+
+    fetch(`/admin/users/${userId}/change-password`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ password: newPassword })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Mot de passe modifié avec succès.');
+        } else {
+            alert('Erreur: ' + (data.error || 'Une erreur est survenue'));
+        }
+    })
+    .catch(error => {
+        console.error('Erreur:', error);
+        alert('Une erreur est survenue lors de la modification du mot de passe.');
+    });
+}
+
+function generateToken(userId) {
+    const validityDays = prompt('Nombre de jours de validité du token (défaut: 30):', '30');
+    const days = validityDays ? parseInt(validityDays) : 30;
+
+    fetch(`/admin/users/${userId}/generate-token`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ validityDays: days })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Token généré avec succès!\n\nLien de connexion:\n' + data.loginUrl + '\n\nExpire le: ' + data.expiresAt);
+            location.reload();
+        } else {
+            alert('Erreur: ' + (data.error || 'Une erreur est survenue'));
+        }
+    })
+    .catch(error => {
+        console.error('Erreur:', error);
+        alert('Une erreur est survenue lors de la génération du token.');
+    });
+}
+
+function copyTokenUrl() {
+    const input = document.getElementById('currentTokenUrl');
+    input.select();
+    document.execCommand('copy');
+    alert('Lien copié dans le presse-papiers!');
+}
+</script>
+{% endblock %}
+

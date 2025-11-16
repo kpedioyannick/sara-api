@@ -18,6 +18,7 @@ use Symfony\Component\Security\Core\User\UserInterface;
     'parent' => ParentUser::class,
     'student' => Student::class,
     'specialist' => Specialist::class,
+    'admin' => Admin::class,
 ])]
 class User implements UserInterface, PasswordAuthenticatedUserInterface
 {
@@ -49,6 +50,12 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 
     #[ORM\Column]
     private ?\DateTimeImmutable $updatedAt = null;
+
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $authToken = null;
+
+    #[ORM\Column(nullable: true)]
+    private ?\DateTimeImmutable $authTokenExpiresAt = null;
 
     #[ORM\OneToMany(mappedBy: 'author', targetEntity: Comment::class, fetch: 'EXTRA_LAZY')]
     private Collection $comments;
@@ -163,6 +170,63 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return $this;
     }
 
+    public function getAuthToken(): ?string
+    {
+        return $this->authToken;
+    }
+
+    public function setAuthToken(?string $authToken): static
+    {
+        $this->authToken = $authToken;
+        return $this;
+    }
+
+    public function getAuthTokenExpiresAt(): ?\DateTimeImmutable
+    {
+        return $this->authTokenExpiresAt;
+    }
+
+    public function setAuthTokenExpiresAt(?\DateTimeImmutable $authTokenExpiresAt): static
+    {
+        $this->authTokenExpiresAt = $authTokenExpiresAt;
+        return $this;
+    }
+
+    /**
+     * Générer un nouveau token d'authentification
+     */
+    public function generateAuthToken(int $validityDays = 30): string
+    {
+        $token = bin2hex(random_bytes(32));
+        $this->authToken = $token;
+        $this->authTokenExpiresAt = new \DateTimeImmutable('+' . $validityDays . ' days');
+        return $token;
+    }
+
+    /**
+     * Vérifier si le token est valide
+     */
+    public function isAuthTokenValid(?string $token): bool
+    {
+        if (!$token || !$this->authToken) {
+            return false;
+        }
+
+        if ($this->authToken !== $token) {
+            return false;
+        }
+
+        if (!$this->authTokenExpiresAt) {
+            return false;
+        }
+
+        if ($this->authTokenExpiresAt < new \DateTimeImmutable()) {
+            return false;
+        }
+
+        return true;
+    }
+
     /**
      * Convertir l'entité en tableau pour l'API
      */
@@ -198,7 +262,9 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function getUserType(): string
     {
         $class = get_class($this);
-        if (strpos($class, 'Coach') !== false) {
+        if (strpos($class, 'Admin') !== false) {
+            return 'admin';
+        } elseif (strpos($class, 'Coach') !== false) {
             return 'coach';
         } elseif (strpos($class, 'ParentUser') !== false) {
             return 'parent';
@@ -249,5 +315,13 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function isSpecialist(): bool
     {
         return $this instanceof \App\Entity\Specialist;
+    }
+
+    /**
+     * Vérifier si l'utilisateur est un admin
+     */
+    public function isAdmin(): bool
+    {
+        return $this instanceof \App\Entity\Admin;
     }
 }

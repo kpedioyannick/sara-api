@@ -19,6 +19,8 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
+use Symfony\Component\Security\Core\Authentication\Token\UsernamePasswordToken;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Component\Security\Http\Authentication\AuthenticationUtils;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
@@ -30,7 +32,8 @@ class SecurityController extends AbstractController
         private readonly EntityManagerInterface $em,
         private readonly UserRepository $userRepository,
         private readonly FamilyRepository $familyRepository,
-        private readonly ValidatorInterface $validator
+        private readonly ValidatorInterface $validator,
+        private readonly TokenStorageInterface $tokenStorage
     ) {
     }
 
@@ -58,6 +61,65 @@ class SecurityController extends AbstractController
     public function logout(): void
     {
         throw new \LogicException('This method can be blank - it will be intercepted by the logout key on your firewall.');
+    }
+
+    #[Route('/login/token', name: 'app_login_token', methods: ['GET'])]
+    public function loginWithToken(Request $request): Response
+    {
+        // Si déjà connecté, rediriger vers le dashboard
+        if ($user = $this->getUser()) {
+            if ($user instanceof Coach) {
+                return $this->redirectToRoute('admin_dashboard');
+            }
+            return $this->redirectToRoute('app_dashboard');
+        }
+
+        $username = $request->query->get('username');
+        $token = $request->query->get('token');
+
+        if (!$username || !$token) {
+            $this->addFlash('error', 'Username et token requis pour la connexion automatique.');
+            return $this->redirectToRoute('app_login');
+        }
+
+        // Trouver l'utilisateur par email ou pseudo
+        $user = $this->userRepository->findByIdentifier($username);
+
+        if (!$user) {
+            $this->addFlash('error', 'Utilisateur non trouvé.');
+            return $this->redirectToRoute('app_login');
+        }
+
+        // Vérifier le token
+        if (!$user->isAuthTokenValid($token)) {
+            $this->addFlash('error', 'Token invalide ou expiré.');
+            return $this->redirectToRoute('app_login');
+        }
+
+        // Vérifier que l'utilisateur est actif
+        if (!$user->isActive()) {
+            $this->addFlash('error', 'Votre compte est désactivé.');
+            return $this->redirectToRoute('app_login');
+        }
+
+        // Connecter l'utilisateur automatiquement
+        // Utiliser le TokenStorage pour authentifier l'utilisateur
+        $authToken = new UsernamePasswordToken(
+            $user,
+            'main',
+            $user->getRoles()
+        );
+
+        $this->tokenStorage->setToken($authToken);
+        
+        // Sauvegarder dans la session
+        $request->getSession()->set('_security_main', serialize($authToken));
+
+        // Rediriger vers le dashboard approprié
+        if ($user instanceof Coach) {
+            return $this->redirectToRoute('admin_dashboard');
+        }
+        return $this->redirectToRoute('app_dashboard');
     }
 
 
