@@ -75,7 +75,7 @@
     </div>
 
     <!-- Chat Container - Flex Grow -->
-    <div class="flex-1 flex flex-col min-h-0 bg-white dark:bg-gray-900 relative">
+    <div class="flex-1 flex flex-col min-h-0 bg-white dark:bg-gray-900 relative" id="chat-container">
         <!-- Chat Header -->
         <div class="border-b border-gray-200 dark:border-gray-800 px-4 py-3 bg-gray-50 dark:bg-gray-800/50 flex-shrink-0">
             <div class="flex items-center gap-3">
@@ -101,7 +101,7 @@
 
         <!-- Messages Area - Scrollable -->
         <div 
-            class="flex-1 flex flex-col min-h-0 overflow-hidden relative"
+            class="flex-1 flex flex-col min-h-0 overflow-hidden"
             x-data="requestChatManager({{ requestId }})"
             x-init="init()"
         >
@@ -109,7 +109,7 @@
             <div
                 id="messages-container"
                 class="flex-1 overflow-y-auto overscroll-contain p-4 md:p-6 space-y-4"
-                style="scroll-behavior: smooth; padding-bottom: 200px;"
+                style="scroll-behavior: smooth;"
             >
                 {% for message in messages %}
                     <div class="flex {% if message.isFromMe %}justify-end{% else %}justify-start{% endif %} gap-2" data-message-id="{{ message.id }}" data-message-type="{{ message.type|default('text') }}">
@@ -117,7 +117,7 @@
                         <div class="flex items-start pt-6" x-show="aiAssistMode">
                             <input
                                 type="checkbox"
-                                :value="{{ message.id }}"
+                                value="{{ message.id }}"
                                 x-model="selectedMessageIds"
                                 class="h-4 w-4 rounded border-gray-300 text-brand-500 focus:ring-brand-500 dark:border-gray-700"
                             />
@@ -196,75 +196,42 @@
             <!-- Zone d'Assistance IA -->
             <div 
                 x-show="aiAssistMode" 
-                class="border-t border-gray-200 bg-gray-50 dark:bg-gray-800/50 p-4 dark:border-gray-800"
+                class="flex-shrink-0 border-t border-blue-200 bg-blue-50 dark:bg-blue-900/20 p-3 dark:border-blue-800 shadow-lg z-10 relative"
                 x-transition
+                style="position: relative; z-index: 10;"
             >
-                <div class="space-y-3">
-                    <div class="flex items-center justify-between">
-                        <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-300">
-                            Assistance IA
-                        </h4>
-                        <button
-                            type="button"
-                            @click="toggleAIAssist()"
-                            class="text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-                        >
-                            Fermer
-                        </button>
-                    </div>
-                    
-                    <div class="text-xs text-gray-600 dark:text-gray-400">
-                        <span x-show="selectedMessageIds.length === 0">Sélectionnez des messages pour donner le contexte</span>
-                        <span x-show="selectedMessageIds.length > 0">
-                            <span x-text="selectedMessageIds.length"></span> message(s) sélectionné(s)
-                        </span>
-                    </div>
-                    
-                    <textarea
-                        x-model="aiUserQuestion"
-                        placeholder="Posez votre question ou décrivez ce que vous souhaitez que l'IA fasse..."
-                        rows="3"
-                        class="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-                    ></textarea>
-                    
-                    <div class="flex gap-2">
-                        <button
-                            type="button"
-                            @click="requestAIAssist()"
-                            :disabled="aiGenerating || selectedMessageIds.length === 0"
-                            class="flex-1 rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white hover:bg-brand-600 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                            <span x-show="!aiGenerating">Demander à l'IA</span>
-                            <span x-show="aiGenerating">Génération...</span>
-                        </button>
-                    </div>
-                    
-                    <!-- Réponse de l'IA -->
-                    <div 
-                        x-show="aiResponse"
-                        class="rounded-lg border border-brand-200 bg-brand-50 p-4 dark:border-brand-800 dark:bg-brand-900/20"
-                        x-transition
-                    >
-                        <div class="mb-2 flex items-center gap-2">
-                            <svg class="h-4 w-4 text-brand-600 dark:text-brand-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-                            </svg>
-                            <span class="text-xs font-medium text-brand-700 dark:text-brand-300">Réponse de l'IA</span>
+                <div class="flex items-start gap-3">
+                    <svg class="h-5 w-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <div class="flex-1">
+                        <p class="text-sm font-medium text-blue-800 dark:text-blue-200 mb-1">
+                            Mode Assistance IA activé
+                        </p>
+                        <p class="text-xs text-blue-700 dark:text-blue-300 mb-2">
+                            Votre message sera envoyé à l'IA pour génération de réponse. Sélectionnez des messages ci-dessus pour donner le contexte.
+                        </p>
+                        <div class="flex items-center justify-between">
+                            <div class="text-xs text-blue-600 dark:text-blue-400">
+                                <span x-show="selectedMessageIds.length === 0" class="text-blue-500">Aucun message sélectionné</span>
+                                <span x-show="selectedMessageIds.length > 0" class="font-medium">
+                                    <span x-text="selectedMessageIds.length"></span> message(s) sélectionné(s) pour le contexte
+                                </span>
+                            </div>
+                            <button
+                                type="button"
+                                @click="toggleAIAssist()"
+                                class="text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-200 font-medium"
+                            >
+                                Désactiver
+                            </button>
                         </div>
-                        <p class="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap" x-text="aiResponse"></p>
-                        <button
-                            type="button"
-                            @click="useAIResponse()"
-                            class="mt-3 w-full rounded-lg border border-brand-500 bg-white px-4 py-2 text-sm font-medium text-brand-600 hover:bg-brand-50 dark:border-brand-400 dark:bg-gray-800 dark:text-brand-400 dark:hover:bg-gray-700"
-                        >
-                            Utiliser cette réponse
-                        </button>
                     </div>
                 </div>
             </div>
 
             <!-- Message Input - Fixed Bottom -->
-            <div class="absolute bottom-0 left-0 right-0 border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-lg z-20">
+            <div class="flex-shrink-0 border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-lg z-30 relative" style="position: relative; z-index: 30;">
                 <form @submit.prevent="sendMessage()" class="p-4 space-y-2">
                     <!-- Boutons d'upload - Ligne séparée sur mobile -->
                     <div class="flex flex-wrap gap-2 justify-center sm:justify-start">
@@ -338,22 +305,23 @@
                     <div class="flex gap-2 items-end">
                         <textarea
                             x-model="messageContent"
-                            placeholder="Tapez votre message..."
+                            :placeholder="aiAssistMode ? 'Posez votre question à l\'IA... (Appuyez sur Entrée pour envoyer à l\'IA)' : 'Tapez votre message...'"
                             rows="1"
                             @input="$event.target.style.height = 'auto'; $event.target.style.height = $event.target.scrollHeight + 'px';"
-                            class="flex-1 min-w-0 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm resize-none focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-gray-700 dark:bg-gray-800 dark:text-white max-h-32 overflow-y-auto"
+                            class="flex-1 min-w-0 rounded-lg border px-4 py-2.5 text-sm resize-none focus:outline-none focus:ring-2 dark:bg-gray-800 dark:text-white max-h-32 overflow-y-auto"
+                            :class="aiAssistMode ? 'border-blue-300 bg-blue-50 focus:border-blue-500 focus:ring-blue-500 dark:border-blue-700 dark:bg-blue-900/20' : 'border-gray-300 bg-white focus:border-brand-500 focus:ring-brand-500 dark:border-gray-700'"
                             style="min-height: 42px;"
                         ></textarea>
                         <button
                             type="submit"
-                            :disabled="sending || uploading || !messageContent.trim()"
-                            class="rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white hover:bg-brand-600 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0 transition-all shadow-sm hover:shadow-md"
+                            :disabled="sending || uploading || !messageContent.trim() || (aiAssistMode && aiGenerating)"
+                            class="rounded-lg px-4 py-2.5 text-sm font-medium text-white bg-brand-500 hover:bg-brand-600 focus:ring-brand-500 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0 transition-all shadow-sm hover:shadow-md flex items-center justify-center"
                             style="min-height: 42px;"
                         >
-                            <svg x-show="!sending && !uploading" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <svg x-show="!sending && !uploading && !aiGenerating" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
                             </svg>
-                            <span x-show="sending || uploading" class="inline-flex items-center">
+                            <span x-show="sending || uploading || aiGenerating" class="inline-flex items-center">
                                 <svg class="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
@@ -426,6 +394,87 @@
                     </div>
                 </div>
             </div>
+            
+            <!-- RightSheet pour la réponse de l'IA -->
+            <div
+                x-show="aiResponseSheetOpen"
+                @click="aiResponseSheetOpen = false"
+                x-transition:enter="transition-opacity ease-out duration-300"
+                x-transition:enter-start="opacity-0"
+                x-transition:enter-end="opacity-100"
+                x-transition:leave="transition-opacity ease-in duration-200"
+                x-transition:leave-start="opacity-100"
+                x-transition:leave-end="opacity-0"
+                class="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm"
+                style="display: none;"
+                x-cloak
+            ></div>
+
+            <div
+                x-show="aiResponseSheetOpen"
+                @click.away="aiResponseSheetOpen = false"
+                x-transition:enter="transition-transform ease-out duration-300"
+                x-transition:enter-start="translate-x-full"
+                x-transition:enter-end="translate-x-0"
+                x-transition:leave="transition-transform ease-in duration-200"
+                x-transition:leave-start="translate-x-0"
+                x-transition:leave-end="translate-x-full"
+                class="fixed right-0 top-0 z-50 h-full w-full max-w-md bg-white shadow-2xl dark:bg-gray-900"
+                style="display: none;"
+                x-cloak
+            >
+                <div class="flex h-full flex-col">
+                    <!-- Header -->
+                    <div class="sticky top-0 z-10 border-b border-gray-200 bg-white px-6 py-4 dark:border-gray-800 dark:bg-gray-900">
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">
+                                Réponse de l'IA
+                            </h3>
+                            <button
+                                @click="aiResponseSheetOpen = false"
+                                class="rounded-lg p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-300"
+                            >
+                                <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Content -->
+                    <div class="flex-1 overflow-y-auto p-6">
+                        <div class="mb-4 flex items-center gap-2">
+                            <svg class="h-5 w-5 text-brand-600 dark:text-brand-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                            </svg>
+                            <span class="text-sm font-medium text-brand-700 dark:text-brand-300">Réponse générée</span>
+                        </div>
+                        <div class="rounded-lg border border-brand-200 bg-brand-50 p-4 dark:border-brand-800 dark:bg-brand-900/20">
+                            <p class="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap" x-text="aiResponse"></p>
+                        </div>
+                    </div>
+
+                    <!-- Footer -->
+                    <div class="sticky bottom-0 border-t border-gray-200 bg-white px-6 py-4 dark:border-gray-800 dark:bg-gray-900">
+                        <div class="flex gap-3">
+                            <button
+                                type="button"
+                                @click="aiResponseSheetOpen = false"
+                                class="flex-1 rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+                            >
+                                Fermer
+                            </button>
+                            <button
+                                type="button"
+                                @click="useAIResponse()"
+                                class="flex-1 rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white shadow-theme-xs hover:bg-brand-600"
+                            >
+                                Utiliser cette réponse
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
     <!-- ====== Chat Section End ====== -->
@@ -457,6 +506,7 @@ function requestChatManager(requestId) {
         aiUserQuestion: '',
         aiResponse: '',
         aiGenerating: false,
+        aiResponseSheetOpen: false,
         
         init() {
             // S'assurer que toutes les propriétés sont bien initialisées
@@ -508,6 +558,19 @@ function requestChatManager(requestId) {
         
         async sendMessage() {
             if ((!this.messageContent.trim() && !this.pendingFile) || this.sending || this.uploading) return;
+            
+            // Si le mode IA est activé, appeler l'IA au lieu d'envoyer un message
+            if (this.aiAssistMode) {
+                // Utiliser le contenu du textarea comme question pour l'IA
+                this.aiUserQuestion = this.messageContent.trim();
+                // Vider le champ de saisie
+                this.messageContent = '';
+                // Appeler l'IA
+                await this.requestAIAssist();
+                // Désactiver le mode IA après l'appel
+                this.aiAssistMode = false;
+                return;
+            }
             
             const content = this.messageContent.trim();
             const currentUser = {{ app.user ? app.user.id : 'null' }};
@@ -956,7 +1019,12 @@ function requestChatManager(requestId) {
         },
         
         async requestAIAssist() {
-            if (this.selectedMessageIds.length === 0 || this.aiGenerating) {
+            if (!this.aiUserQuestion.trim() || this.aiGenerating) {
+                if (!this.aiUserQuestion.trim()) {
+                    if (window.showToast) {
+                        window.showToast('Veuillez saisir une question', 'error');
+                    }
+                }
                 return;
             }
             
@@ -971,8 +1039,8 @@ function requestChatManager(requestId) {
                         'X-Requested-With': 'XMLHttpRequest',
                     },
                     body: JSON.stringify({
-                        selectedMessageIds: this.selectedMessageIds.map(id => parseInt(id)),
-                        userQuestion: this.aiUserQuestion || null,
+                        selectedMessageIds: this.selectedMessageIds.length > 0 ? this.selectedMessageIds.map(id => parseInt(id)) : [],
+                        userQuestion: this.aiUserQuestion.trim() || null,
                         additionalContext: null,
                     }),
                 });
@@ -981,6 +1049,7 @@ function requestChatManager(requestId) {
                 
                 if (response.ok && result.success) {
                     this.aiResponse = result.content || '';
+                    this.aiResponseSheetOpen = true; // Ouvrir le rightsheet avec la réponse
                     if (window.showToast) {
                         window.showToast('Réponse générée avec succès', 'success');
                     }

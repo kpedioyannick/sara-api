@@ -193,7 +193,7 @@
                         <div x-show="subChapterPrompts.length > 0">
                             <h6 class="text-xs font-medium text-gray-600 dark:text-gray-400 mb-2 uppercase tracking-wide">Du sous-chapitre</h6>
                             <div class="space-y-2 max-h-[400px] overflow-y-auto border border-gray-200 rounded-lg p-3 dark:border-gray-800">
-                                <template x-for="(prompt, index) in subChapterPrompts" :key="index">
+                        <template x-for="(prompt, index) in subChapterPrompts" :key="index">
                                     <div class="flex items-start gap-2 rounded-lg border border-gray-200 bg-gray-50 p-3 dark:border-gray-800 dark:bg-gray-800/50 hover:border-brand-300 dark:hover:border-brand-700 transition-colors">
                                         <div class="flex-1 text-left">
                                             <div class="flex items-center gap-2 mb-1">
@@ -201,7 +201,7 @@
                                                 <span x-show="prompt.niveau" class="text-xs text-gray-500 dark:text-gray-400" x-text="'Niveau: ' + prompt.niveau"></span>
                                             </div>
                                             <p class="text-sm text-gray-700 dark:text-gray-300 line-clamp-3" x-text="prompt.prompt_generation"></p>
-                                        </div>
+                                </div>
                                         <button
                                             type="button"
                                             @click="addPredefinedPrompt(prompt, 'subchapter')"
@@ -213,10 +213,10 @@
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
                                             </svg>
                                         </button>
-                                    </div>
-                                </template>
                             </div>
-                        </div>
+                        </template>
+                    </div>
+                </div>
 
                         <!-- Prompts du chapitre (fallback si pas de prompts dans sous-chapitre) -->
                         <div x-show="subChapterPrompts.length === 0 && chapterPrompts.length > 0">
@@ -228,9 +228,9 @@
                                             <div class="flex items-center gap-2 mb-1">
                                                 <span x-show="prompt.type" class="inline-flex items-center rounded-md bg-blue-100 dark:bg-blue-900/30 px-2 py-0.5 text-xs font-medium text-blue-700 dark:text-blue-300" x-text="getPromptTypeLabel(prompt.type)"></span>
                                                 <span x-show="prompt.niveau" class="text-xs text-gray-500 dark:text-gray-400" x-text="'Niveau: ' + prompt.niveau"></span>
-                                            </div>
+                    </div>
                                             <p class="text-sm text-gray-700 dark:text-gray-300 line-clamp-3" x-text="prompt.prompt_generation"></p>
-                                        </div>
+                                    </div>
                                         <button
                                             type="button"
                                             @click="addPredefinedPrompt(prompt, 'chapter')"
