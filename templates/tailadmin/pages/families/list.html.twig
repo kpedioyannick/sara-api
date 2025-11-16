@@ -31,29 +31,29 @@
             <div class="flex gap-2">
                 <button
                     @click="setProfileType('')"
-                    :class="profileType === '' ? 'bg-brand-500 text-white' : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'"
-                    class="rounded-lg px-4 py-2 text-sm font-medium transition-colors hover:bg-brand-600 hover:text-white dark:hover:bg-gray-700"
+                    :class="profileType === '' ? 'border-brand-500 bg-white text-brand-500 dark:bg-gray-800 dark:border-brand-400 dark:text-brand-400' : 'border-gray-200 bg-white text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-300'"
+                    class="rounded-lg border px-4 py-2 text-sm font-medium transition-colors hover:bg-brand-50 hover:border-brand-500 hover:text-brand-500 dark:hover:bg-gray-700"
                 >
                     Tous
                 </button>
                 <button
                     @click="setProfileType('parent')"
-                    :class="profileType === 'parent' ? 'bg-brand-500 text-white' : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'"
-                    class="rounded-lg px-4 py-2 text-sm font-medium transition-colors hover:bg-brand-600 hover:text-white dark:hover:bg-gray-700"
+                    :class="profileType === 'parent' ? 'border-brand-500 bg-white text-brand-500 dark:bg-gray-800 dark:border-brand-400 dark:text-brand-400' : 'border-gray-200 bg-white text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-300'"
+                    class="rounded-lg border px-4 py-2 text-sm font-medium transition-colors hover:bg-brand-50 hover:border-brand-500 hover:text-brand-500 dark:hover:bg-gray-700"
                 >
                     Parent
                 </button>
                 <button
                     @click="setProfileType('specialist')"
-                    :class="profileType === 'specialist' ? 'bg-brand-500 text-white' : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'"
-                    class="rounded-lg px-4 py-2 text-sm font-medium transition-colors hover:bg-brand-600 hover:text-white dark:hover:bg-gray-700"
+                    :class="profileType === 'specialist' ? 'border-brand-500 bg-white text-brand-500 dark:bg-gray-800 dark:border-brand-400 dark:text-brand-400' : 'border-gray-200 bg-white text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-300'"
+                    class="rounded-lg border px-4 py-2 text-sm font-medium transition-colors hover:bg-brand-50 hover:border-brand-500 hover:text-brand-500 dark:hover:bg-gray-700"
                 >
                     Spécialiste
                 </button>
                 <button
                     @click="setProfileType('student')"
-                    :class="profileType === 'student' ? 'bg-brand-500 text-white' : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'"
-                    class="rounded-lg px-4 py-2 text-sm font-medium transition-colors hover:bg-brand-600 hover:text-white dark:hover:bg-gray-700"
+                    :class="profileType === 'student' ? 'border-brand-500 bg-white text-brand-500 dark:bg-gray-800 dark:border-brand-400 dark:text-brand-400' : 'border-gray-200 bg-white text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-300'"
+                    class="rounded-lg border px-4 py-2 text-sm font-medium transition-colors hover:bg-brand-50 hover:border-brand-500 hover:text-brand-500 dark:hover:bg-gray-700"
                 >
                     Élève
                 </button>
@@ -76,9 +76,9 @@
         <div class="mt-4 flex items-center gap-2" x-show="profileType !== '' || selectedIds.length > 0">
             <button
                 @click="applyFilters()"
-                class="rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white shadow-theme-xs hover:bg-brand-600"
+                class="rounded-lg border border-brand-500 bg-white px-4 py-2 text-sm font-medium text-brand-500 shadow-theme-xs hover:bg-brand-50 dark:bg-gray-800 dark:border-brand-400 dark:text-brand-400 dark:hover:bg-brand-900/20"
             >
-                Appliquer les filtres
+                Appliquer
             </button>
             <button
                 @click="resetFilters()"
@@ -98,12 +98,12 @@
             {% if app.user.isCoach() %}
             <button
                 @click="openCreate()"
-                class="inline-flex items-center gap-2 rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white shadow-theme-xs hover:bg-brand-600"
+                class="inline-flex items-center gap-2 rounded-lg border border-brand-500 bg-white px-4 py-2.5 text-sm font-medium text-brand-500 shadow-theme-xs hover:bg-brand-50 dark:bg-gray-800 dark:border-brand-400 dark:text-brand-400 dark:hover:bg-brand-900/20"
             >
                 <svg class="fill-current" width="16" height="16" viewBox="0 0 16 16" fill="none">
                     <path d="M8 1a7 7 0 100 14A7 7 0 008 1zM7.5 4v4l3.5 2 .5-.866L8.5 7.5V4h-1z" fill="currentColor"/>
                 </svg>
-                Nouvelle Famille/Groupe
+                Nouveau
             </button>
             {% endif %}
         </div>
@@ -112,8 +112,8 @@
                 <label class="text-sm font-medium text-gray-700 dark:text-gray-300">Filtrer par type :</label>
                 <button
                     @click="familyTypeFilter = 'all'"
-                    :class="familyTypeFilter === 'all' ? 'bg-brand-500 text-white' : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'"
-                    class="rounded-lg px-4 py-2 text-sm font-medium transition-colors hover:bg-brand-600 hover:text-white dark:hover:bg-gray-700"
+                    :class="familyTypeFilter === 'all' ? 'border-brand-500 bg-white text-brand-500 dark:bg-gray-800 dark:border-brand-400 dark:text-brand-400' : 'border-gray-200 bg-white text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-300'"
+                    class="rounded-lg border px-4 py-2 text-sm font-medium transition-colors hover:bg-brand-50 hover:border-brand-500 hover:text-brand-500 dark:hover:bg-gray-700"
                 >
                     Tous
                 </button>
@@ -185,7 +185,7 @@
                                     👨‍👩‍👧‍👦 {% if family.parent %}{{ family.parent.firstName }} {{ family.parent.lastName }}{% else %}Non renseigné{% endif %}
                                 </span>
                                 {% if family.type == 'GROUP' and family.location %}
-                                <span class="inline-block rounded-md bg-green-500 dark:bg-green-600 px-3 py-1 text-sm font-medium text-white">
+                                <span class="inline-block rounded-md border border-green-500 bg-white dark:bg-gray-800 dark:border-green-400 px-3 py-1 text-sm font-medium text-green-700 dark:text-green-400">
                                     📍 {{ family.location }}
                                 </span>
                                 {% endif %}
@@ -206,7 +206,7 @@
                                 <h5 class="text-sm font-medium text-gray-700 dark:text-gray-300">Élèves ({{ family.students|length }})</h5>
                                 <button
                                     @click="openStudentCreate({{ family.id }})"
-                                    class="inline-flex items-center gap-1 rounded-lg bg-brand-500 px-3 py-1.5 text-xs font-medium text-white shadow-theme-xs hover:bg-brand-600"
+                                    class="inline-flex items-center gap-1 rounded-lg border border-brand-500 bg-white px-3 py-1.5 text-xs font-medium text-brand-500 shadow-theme-xs hover:bg-brand-50 dark:bg-gray-800 dark:border-brand-400 dark:text-brand-400 dark:hover:bg-brand-900/20"
                                 >
                                     <svg class="fill-current" width="14" height="14" viewBox="0 0 14 14" fill="none">
                                         <path d="M7 1a6 6 0 100 12A6 6 0 007 1zM6.5 4v2.5H4v1h2.5V10h1V7.5H10v-1H7.5V4h-1z" fill="currentColor"/>
@@ -288,12 +288,12 @@
                         <div class="flex justify-end gap-2">
                             <button
                                 @click="openParentEdit({{ family.id }})"
-                                class="inline-flex items-center gap-1 rounded border border-gray-200 bg-white px-2 py-0.5 text-sm font-normal text-gray-600 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700"
+                                class="inline-flex items-center gap-1 rounded border border-brand-500 bg-white px-2 py-0.5 text-sm font-normal text-brand-500 transition-colors hover:bg-brand-50 dark:bg-gray-800 dark:border-brand-400 dark:text-brand-400 dark:hover:bg-brand-900/20"
                             >
                                 <svg class="fill-current" width="12" height="12" viewBox="0 0 16 16" fill="none">
                                     <path d="M11.333 2.667a2.667 2.667 0 0 1 3.774 3.774l-8 8a2.667 2.667 0 0 1-1.886.78H2.667v-2.554a2.667 2.667 0 0 1 .78-1.886l8-8zm2.554 1.22L12.113 2.113a1.333 1.333 0 0 0-1.886 0L9.333 3.007l2.667 2.667 1.554-1.554a1.333 1.333 0 0 0 0-1.886z" fill=""/>
                                 </svg>
-                                Éditer Responsable
+                                Modifier
                             </button>
                         </div>
                     </div>
@@ -427,7 +427,7 @@
                         <button
                             x-show="!editMode"
                             @click="toggleEdit()"
-                            class="flex-1 rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white shadow-theme-xs hover:bg-brand-600"
+                            class="flex-1 rounded-lg border border-brand-500 bg-white px-4 py-2.5 text-sm font-medium text-brand-500 shadow-theme-xs hover:bg-brand-50 dark:bg-gray-800 dark:border-brand-400 dark:text-brand-400 dark:hover:bg-brand-900/20"
                         >
                             Modifier
                         </button>
@@ -441,7 +441,7 @@
                                 </button>
                                 <button
                                     @click="saveParent()"
-                                    class="flex-1 rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white shadow-theme-xs hover:bg-brand-600"
+                                    class="flex-1 rounded-lg border border-brand-500 bg-white px-4 py-2.5 text-sm font-medium text-brand-500 shadow-theme-xs hover:bg-brand-50 dark:bg-gray-800 dark:border-brand-400 dark:text-brand-400 dark:hover:bg-brand-900/20"
                                 >
                                     Enregistrer
                                 </button>
@@ -585,9 +585,9 @@
                         <button
                             @click="saveFamily()"
                             :disabled="isSaving"
-                            class="flex-1 rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white shadow-theme-xs hover:bg-brand-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                            class="flex-1 rounded-lg border border-brand-500 bg-white px-4 py-2.5 text-sm font-medium text-brand-500 shadow-theme-xs hover:bg-brand-50 disabled:opacity-50 disabled:cursor-not-allowed dark:bg-gray-800 dark:border-brand-400 dark:text-brand-400 dark:hover:bg-brand-900/20"
                         >
-                            <span x-show="!isSaving">Créer la famille</span>
+                            <span x-show="!isSaving">Créer</span>
                             <span x-show="isSaving">Création...</span>
                         </button>
                     </div>
@@ -729,9 +729,9 @@
                                 </button>
                                 <button
                                     @click="saveStudent()"
-                                    class="flex-1 rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white shadow-theme-xs hover:bg-brand-600"
+                                    class="flex-1 rounded-lg border border-brand-500 bg-white px-4 py-2.5 text-sm font-medium text-brand-500 shadow-theme-xs hover:bg-brand-50 dark:bg-gray-800 dark:border-brand-400 dark:text-brand-400 dark:hover:bg-brand-900/20"
                                 >
-                            Créer l'élève
+                            Créer
                                 </button>
                     </div>
                 </div>
