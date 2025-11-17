@@ -1109,22 +1109,26 @@ class ModuleConversionService
                 $content = [];
                 foreach ($chapter['params']['content'] as $contentItem) {
                     $type = ModuleType::ModuleType($contentItem['type']);
-                    $convertedContent = $this->convertIAOutputToModuleFormat($type, $contentItem['params']);
-                    $content[] = [
-                        'content' => [
-                            'library' => $contentItem['library'],
-                            'params' => $convertedContent,
-                            'subContentId' => uniqid('', true),
-                            'metadata' => [
-                                'contentType' => 'Text',
-                                'license' => 'U',
-                                'title' => 'Untitled Text',
-                                'authors' => [],
-                                'changes' => []
-                            ]
-                        ],
-                        'useSeparator' => 'auto'
-                    ];
+                    foreach ($contentItem['params'] as $param) {
+                        $convertedContent = $this->convertIAOutputToModuleFormat($type, $param);
+                    
+                        $content[] = [
+                            'content' => [
+                                'library' => $contentItem['library'],
+                                'params' => $convertedContent,
+                                'subContentId' => uniqid('', true),
+                                'metadata' => [
+                                    'contentType' => 'Text',
+                                    'license' => 'U',
+                                    'title' => 'Untitled Text',
+                                    'authors' => [],
+                                    'changes' => []
+                                ]
+                            ],
+                            'useSeparator' => 'auto'
+                        ];
+                    }
+                    
                 
                 
                     $chapters[] = [
