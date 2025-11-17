@@ -147,11 +147,15 @@ class PathController extends AbstractController
             'order' => $m->getOrder(),
         ], $path->getModules()->toArray());
 
+        $user = $this->getUser();
+        $canDelete = $user && $user->isCoach() && $path->getCreatedBy() === $user;
+
         return $this->render('tailadmin/pages/paths/detail.html.twig', [
             'pageTitle' => $path->getTitle() . ' ',
             'pageName' => 'paths',
             'path' => $pathData,
             'modules' => $modulesData,
+            'canDelete' => $canDelete,
             'breadcrumbs' => [
                 ['label' => 'Dashboard', 'url' => $this->generateUrl('app_dashboard')],
                 ['label' => 'Activités scolaires', 'url' => $this->generateUrl('admin_paths_list')],
@@ -334,6 +338,46 @@ class PathController extends AbstractController
             'type' => $path->getType(),
             'content' => $path->getContent(),
         ]);
+    }
+
+    #[Route('/admin/paths/{id}/delete', name: 'admin_paths_delete', methods: ['DELETE', 'POST'])]
+    #[IsGranted('ROLE_COACH')]
+    public function delete(int $id, Request $request): Response
+    {
+        try {
+            $user = $this->getUser();
+            if (!$user || !$user->isCoach()) {
+                $this->addFlash('error', 'Seuls les coaches peuvent supprimer des parcours');
+                return $this->redirectToRoute('admin_paths_list');
+            }
+
+            $path = $this->pathRepository->find($id);
+            if (!$path) {
+                $this->addFlash('error', 'Parcours non trouvé');
+                return $this->redirectToRoute('admin_paths_list');
+            }
+
+            // Vérifier que le coach est bien le créateur du parcours
+            if ($path->getCreatedBy() !== $user) {
+                $this->addFlash('error', 'Vous n\'avez pas le droit de supprimer ce parcours');
+                return $this->redirectToRoute('admin_paths_detail', ['id' => $id]);
+            }
+
+            // Supprimer les modules associés
+            foreach ($path->getModules() as $module) {
+                $this->em->remove($module);
+            }
+
+            // Supprimer le parcours
+            $this->em->remove($path);
+            $this->em->flush();
+
+            $this->addFlash('success', 'Parcours supprimé avec succès');
+            return $this->redirectToRoute('admin_paths_list');
+        } catch (\Exception $e) {
+            $this->addFlash('error', 'Erreur lors de la suppression: ' . $e->getMessage());
+            return $this->redirectToRoute('admin_paths_detail', ['id' => $id]);
+        }
     }
 
     // ========== ROUTES API POUR LES DÉPENDANCES ==========

@@ -272,10 +272,14 @@ class ActivityController extends AbstractController
         $categories = $this->categoryRepository->findActiveOrdered();
         $categoriesData = array_map(fn($cat) => $cat->toArray(), $categories);
 
+        $activityData = $activity->toArray();
+        $activityData['canModify'] = $this->permissionService->canModifyActivity($user, $activity);
+        $activityData['canDelete'] = $user->isCoach() && $activityData['canModify'];
+
         return $this->render('tailadmin/pages/activities/detail.html.twig', [
             'pageTitle' => 'Détail de l\'Activité ',
             'pageName' => 'activities',
-            'activity' => $activity->toArray(),
+            'activity' => $activityData,
             'images' => $imagesData,
             'comments' => $commentsData,
             'categories' => $categoriesData,
@@ -449,22 +453,25 @@ class ActivityController extends AbstractController
 
     #[Route('/admin/activities/{id}/delete', name: 'admin_activities_delete', methods: ['POST'])]
     #[IsGranted('ROLE_USER')]
-    public function delete(int $id): JsonResponse
+    public function delete(int $id): Response
     {
         try {
             $user = $this->getUser();
             if (!$user) {
-                return new JsonResponse(['success' => false, 'message' => 'Vous devez être connecté'], 403);
+                $this->addFlash('error', 'Vous devez être connecté');
+                return $this->redirectToRoute('admin_activities_list');
             }
 
             $activity = $this->activityRepository->find($id);
             if (!$activity) {
-                return new JsonResponse(['success' => false, 'message' => 'Activité non trouvée'], 404);
+                $this->addFlash('error', 'Activité non trouvée');
+                return $this->redirectToRoute('admin_activities_list');
             }
 
             // Vérifier les permissions de modification
             if (!$this->permissionService->canModifyActivity($user, $activity)) {
-                return new JsonResponse(['success' => false, 'message' => 'Vous n\'avez pas le droit de supprimer cette activité'], 403);
+                $this->addFlash('error', 'Vous n\'avez pas le droit de supprimer cette activité');
+                return $this->redirectToRoute('admin_activities_detail', ['id' => $id]);
             }
 
             // Supprimer les images associées
@@ -475,19 +482,15 @@ class ActivityController extends AbstractController
             $this->em->remove($activity);
             $this->em->flush();
 
-            return new JsonResponse([
-                'success' => true,
-                'message' => 'Activité supprimée avec succès'
-            ]);
+            $this->addFlash('success', 'Activité supprimée avec succès');
+            return $this->redirectToRoute('admin_activities_list');
         } catch (\Exception $e) {
             $this->logger->error('Erreur lors de la suppression d\'activité', [
                 'activity_id' => $id,
                 'error' => $e->getMessage()
             ]);
-            return new JsonResponse([
-                'success' => false,
-                'message' => 'Erreur serveur: ' . $e->getMessage()
-            ], 500);
+            $this->addFlash('error', 'Erreur lors de la suppression: ' . $e->getMessage());
+            return $this->redirectToRoute('admin_activities_detail', ['id' => $id]);
         }
     }
 
