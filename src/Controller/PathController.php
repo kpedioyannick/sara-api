@@ -108,7 +108,7 @@ class PathController extends AbstractController
         $chapters = array_map(fn($c) => $c->toArray(), $this->chapterRepository->findAll());
 
         return $this->render('tailadmin/pages/paths/list.html.twig', [
-            'pageTitle' => 'Activités scolaires | TailAdmin',
+            'pageTitle' => 'Activités scolaires ',
             'pageName' => 'paths',
             'paths' => $pathsData,
             'classrooms' => $classrooms,
@@ -148,7 +148,7 @@ class PathController extends AbstractController
         ], $path->getModules()->toArray());
 
         return $this->render('tailadmin/pages/paths/detail.html.twig', [
-            'pageTitle' => $path->getTitle() . ' | TailAdmin',
+            'pageTitle' => $path->getTitle() . ' ',
             'pageName' => 'paths',
             'path' => $pathData,
             'modules' => $modulesData,
@@ -171,7 +171,7 @@ class PathController extends AbstractController
         ], ModuleType::cases());
 
         return $this->render('tailadmin/pages/paths/create.html.twig', [
-            'pageTitle' => 'Nouveau parcours scolaire | TailAdmin',
+            'pageTitle' => 'Nouveau parcours scolaire ',
             'pageName' => 'paths',
             'classrooms' => $classrooms,
             'moduleTypes' => $moduleTypes,
@@ -262,6 +262,38 @@ class PathController extends AbstractController
                 'description' => $prompt['prompt_generation'] ?? $prompt['content'] ?? '',
             ];
         }, $prompts);
+        
+        // Log pour debug
+        error_log('Modules avant filtrage: ' . json_encode($modules, JSON_PRETTY_PRINT));
+        
+        // Filtrer les modules avec type ou description vide
+        $modules = array_filter($modules, function($module) {
+            $isValid = !empty($module['type']) && !empty($module['description']);
+            if (!$isValid) {
+                error_log('Module invalide filtré: ' . json_encode($module));
+            }
+            return $isValid;
+        });
+        
+        // Réindexer le tableau après le filtrage
+        $modules = array_values($modules);
+        
+        error_log('Modules après filtrage: ' . json_encode($modules, JSON_PRETTY_PRINT));
+        
+        if (empty($modules)) {
+            return new JsonResponse([
+                'error' => 'Aucun module valide après conversion. Vérifiez que les prompts ont un type et une description.',
+                'debug' => [
+                    'prompts_received' => $prompts,
+                    'modules_before_filter' => array_map(function($prompt) {
+                        return [
+                            'type' => $prompt['type'] ?? '',
+                            'description' => $prompt['prompt_generation'] ?? $prompt['content'] ?? '',
+                        ];
+                    }, $prompts)
+                ]
+            ], 400);
+        }
 
         // Sauvegarder le path d'abord
         $this->em->persist($path);

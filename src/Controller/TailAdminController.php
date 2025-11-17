@@ -12,7 +12,7 @@ class TailAdminController extends AbstractController
     public function blank(): Response
     {
         return $this->render('tailadmin/pages/blank.html.twig', [
-            'pageTitle' => 'Page Vide | TailAdmin',
+            'pageTitle' => 'Page Vide ',
             'pageName' => 'Blank Page',
             'cardTitle' => 'Titre de la Carte',
             'cardDescription' => 'Commencez à mettre du contenu dans des grilles ou des panneaux, vous pouvez également utiliser différentes combinaisons de grilles. Veuillez consulter le tableau de bord et les autres pages.',

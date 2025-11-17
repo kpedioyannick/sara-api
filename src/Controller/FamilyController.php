@@ -200,7 +200,7 @@ class FamilyController extends AbstractController
         }
 
         return $this->render('tailadmin/pages/families/list.html.twig', [
-            'pageTitle' => 'Liste des Familles | TailAdmin',
+            'pageTitle' => 'Groupe',
             'pageName' => 'families',
             'families' => $familiesData,
             'specialists' => $specialistsData,

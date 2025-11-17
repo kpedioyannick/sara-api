@@ -58,10 +58,13 @@ class NotificationService
         if ($this->emailNotificationService) {
             try {
                 $this->emailNotificationService->sendNotificationEmail($notification);
+                error_log('Email de notification envoyé pour: ' . $notification->getTitle() . ' à ' . $recipient->getEmail());
             } catch (\Exception $e) {
                 // Log l'erreur mais ne bloque pas la création de la notification
-                error_log('Erreur envoi email notification: ' . $e->getMessage());
+                error_log('Erreur envoi email notification: ' . $e->getMessage() . ' - Trace: ' . $e->getTraceAsString());
             }
+        } else {
+            error_log('EmailNotificationService non disponible - aucun email ne sera envoyé pour la notification: ' . $notification->getTitle());
         }
 
         return $notification;
@@ -369,12 +372,10 @@ class NotificationService
 
         // Créer le titre et le message
         $senderName = "{$sender->getFirstName()} {$sender->getLastName()}";
-        $title = 'Nouveau message';
+        $title = 'Nouveau message de ' . $senderName;
         $messageText = $message->getContent();
-        if ($messageText && strlen($messageText) > 100) {
-            $messageText = substr($messageText, 0, 100) . '...';
-        }
-        $notificationMessage = $messageText ? "{$senderName}: {$messageText}" : "Nouveau message de {$senderName}";
+        // Ne pas tronquer le message pour l'email - afficher le message complet
+        $notificationMessage = $messageText ? $messageText : "Nouveau message de {$senderName}";
 
         $this->createNotification(
             recipient: $recipient,

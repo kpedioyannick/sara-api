@@ -41,9 +41,26 @@ class PathGenerationService
             // Créer les modules dans le parcours
             $order = 0;
             foreach ($modules as $moduleData) {
-                $moduleType = ModuleType::tryFrom($moduleData['type'] ?? '');
+                $typeValue = trim($moduleData['type'] ?? '');
+                if (empty($typeValue)) {
+                    $this->logger->warning('Type de module vide ignoré', ['module_data' => $moduleData]);
+                    continue;
+                }
+                
+                // Essayer d'abord avec tryFrom (correspondance exacte)
+                $moduleType = ModuleType::tryFrom($typeValue);
+                
+                // Si pas trouvé, essayer avec la méthode de mapping
+                if (!$moduleType && method_exists(ModuleType::class, 'ModuleType')) {
+                    $moduleType = ModuleType::ModuleType($typeValue);
+                }
+                
                 if (!$moduleType) {
-                    $this->logger->warning('Type de module invalide ignoré', ['type' => $moduleData['type'] ?? '']);
+                    $this->logger->warning('Type de module invalide ignoré', [
+                        'type' => $typeValue,
+                        'module_data' => $moduleData,
+                        'available_types' => array_map(fn($case) => $case->value, ModuleType::cases())
+                    ]);
                     continue;
                 }
 

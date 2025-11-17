@@ -52,12 +52,18 @@ services:
         arguments:
             $appName: 'SARA'
             $baseUrl: '%env(APP_URL)%'
+            $ccEmail: '%env(CONTACT_EMAIL)%'
 
     # Contact Email Service
     App\Service\ContactEmailService:
         arguments:
             $contactEmail: '%env(CONTACT_EMAIL)%'
             $appName: 'SARA'
+
+    # Notification Service - Forcer l'injection de EmailNotificationService
+    App\Service\NotificationService:
+        arguments:
+            $emailNotificationService: '@App\Service\EmailNotificationService'
 
     # Firebase Service
     App\Service\FirebaseService:

@@ -139,7 +139,7 @@ class MessageController extends AbstractController
         }
 
         return $this->render('tailadmin/pages/messages/list.html.twig', [
-            'pageTitle' => 'Messages | TailAdmin',
+            'pageTitle' => 'Messages ',
             'pageName' => 'Messages',
             'conversations' => $conversationsData,
             'unreadCount' => $this->messageRepository->countUnreadMessages($user),
@@ -374,7 +374,7 @@ class MessageController extends AbstractController
         }, $messages);
 
         return $this->render('tailadmin/pages/messages/chat.html.twig', [
-            'pageTitle' => 'Conversation | TailAdmin',
+            'pageTitle' => 'Conversation ',
             'pageName' => 'Conversation',
             'conversationId' => $conversationId,
             'messages' => $messagesData,

@@ -158,7 +158,7 @@ class PlanningController extends AbstractController
         $weekRange = $weekStart->format('d/m/Y') . ' - ' . $weekEnd->format('d/m/Y');
 
         return $this->render('tailadmin/pages/planning/list.html.twig', [
-            'pageTitle' => 'Planning | TailAdmin',
+            'pageTitle' => 'Planning ',
             'pageName' => 'Planning',
             'weekDays' => $weekDays,
             'weekOffset' => $weekOffset,

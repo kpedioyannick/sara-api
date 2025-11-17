@@ -291,7 +291,7 @@ class RequestController extends AbstractController
         }
 
         return $this->render('tailadmin/pages/requests/list.html.twig', [
-            'pageTitle' => 'Liste des Demandes | TailAdmin',
+            'pageTitle' => 'Liste des Demandes ',
             'pageName' => 'Demandes',
             'requests' => $requestsData,
             'families' => $familiesData,
@@ -563,7 +563,7 @@ class RequestController extends AbstractController
         }
 
         return $this->render('tailadmin/pages/requests/detail.html.twig', [
-            'pageTitle' => 'Détail de la Demande | TailAdmin',
+            'pageTitle' => 'Détail de la Demande ',
             'pageName' => 'requests-detail',
             'request' => $requestData,
             'messages' => $messagesData,

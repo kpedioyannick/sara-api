@@ -26,8 +26,16 @@ class FileStorageService
         $safeFilename = $this->slugger->slug($originalFilename);
         $fileName = $safeFilename . '-' . uniqid() . '.' . $file->guessExtension();
 
+        // Créer le dossier s'il n'existe pas
+        $targetDirectory = $this->uploadsDirectory . '/' . $subDirectory;
+        if (!is_dir($targetDirectory)) {
+            if (!mkdir($targetDirectory, 0755, true)) {
+                throw new \Exception('Impossible de créer le répertoire "' . $targetDirectory . '". Vérifiez les permissions.');
+            }
+        }
+
         try {
-            $file->move($this->uploadsDirectory . '/' . $subDirectory, $fileName);
+            $file->move($targetDirectory, $fileName);
         } catch (FileException $e) {
             throw new \Exception('Erreur lors de l\'upload du fichier: ' . $e->getMessage());
         }
@@ -53,7 +61,9 @@ class FileStorageService
         // Créer le dossier s'il n'existe pas
         $directory = dirname($filePath);
         if (!is_dir($directory)) {
-            mkdir($directory, 0755, true);
+            if (!mkdir($directory, 0755, true)) {
+                throw new \Exception('Impossible de créer le répertoire "' . $directory . '". Vérifiez les permissions.');
+            }
         }
 
         // Sauvegarder le fichier

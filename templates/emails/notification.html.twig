@@ -100,7 +100,14 @@
             
             {% if notification.message %}
             <div class="notification-message">
-                {{ notification.message|nl2br }}
+                {% if notification.type == 'new_message' %}
+                    <p><strong>Message de {{ notification.data.senderName|default('un utilisateur') }}:</strong></p>
+                    <div style="background-color: #f9fafb; padding: 15px; border-left: 4px solid #20814a; margin: 15px 0; border-radius: 4px;">
+                        {{ notification.message|nl2br }}
+                    </div>
+                {% else %}
+                    {{ notification.message|nl2br }}
+                {% endif %}
             </div>
             {% endif %}
 

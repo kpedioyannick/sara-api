@@ -870,8 +870,22 @@ function requestChatManager(requestId) {
                 }
             } catch (error) {
                 console.error('Erreur lors du démarrage de l\'enregistrement:', error);
+                let errorMessage = 'Impossible d\'accéder au microphone. ';
+                
+                if (error.name === 'NotFoundError' || error.name === 'DevicesNotFoundError') {
+                    errorMessage += 'Aucun microphone n\'a été trouvé. Vérifiez que votre appareil dispose d\'un microphone et qu\'il est connecté.';
+                } else if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
+                    errorMessage += 'Les permissions d\'accès au microphone ont été refusées. Veuillez autoriser l\'accès au microphone dans les paramètres de votre navigateur.';
+                } else if (error.name === 'NotReadableError' || error.name === 'TrackStartError') {
+                    errorMessage += 'Le microphone est peut-être utilisé par une autre application. Fermez les autres applications et réessayez.';
+                } else {
+                    errorMessage += 'Erreur: ' + (error.message || error.name || 'Erreur inconnue');
+                }
+                
                 if (window.showToast) {
-                    window.showToast('Impossible d\'accéder au microphone. Vérifiez les permissions.', 'error');
+                    window.showToast(errorMessage, 'error');
+                } else {
+                    alert(errorMessage);
                 }
                 this.isRecording = false;
             }

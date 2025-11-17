@@ -289,7 +289,7 @@ class AvailabilityController extends AbstractController
         ]];
 
         return $this->render('tailadmin/pages/availabilities/list.html.twig', [
-            'pageTitle' => 'Gestion des Disponibilités | TailAdmin',
+            'pageTitle' => 'Gestion des Disponibilités ',
             'pageName' => 'Disponibilités',
             'weekDays' => $weekDaysArray,
             'availabilities' => $availabilitiesData,

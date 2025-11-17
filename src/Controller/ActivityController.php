@@ -80,7 +80,7 @@ class ActivityController extends AbstractController
         $categoriesData = array_map(fn($cat) => $cat->toArray(), $categories);
 
         return $this->render('tailadmin/pages/activities/list.html.twig', [
-            'pageTitle' => 'Liste des Activités | TailAdmin',
+            'pageTitle' => 'Liste des Activités ',
             'pageName' => 'activities',
             'activities' => $activitiesData,
             'categories' => $categoriesData,
@@ -105,7 +105,7 @@ class ActivityController extends AbstractController
         }
 
         return $this->render('tailadmin/pages/activities/create.html.twig', [
-            'pageTitle' => 'Nouvelle Activité | TailAdmin',
+            'pageTitle' => 'Nouvelle Activité ',
             'pageName' => 'activities',
             'breadcrumbs' => [
                 ['label' => 'Dashboard', 'url' => $this->generateUrl('admin_dashboard')],
@@ -273,7 +273,7 @@ class ActivityController extends AbstractController
         $categoriesData = array_map(fn($cat) => $cat->toArray(), $categories);
 
         return $this->render('tailadmin/pages/activities/detail.html.twig', [
-            'pageTitle' => 'Détail de l\'Activité | TailAdmin',
+            'pageTitle' => 'Détail de l\'Activité ',
             'pageName' => 'activities',
             'activity' => $activity->toArray(),
             'images' => $imagesData,
@@ -317,7 +317,7 @@ class ActivityController extends AbstractController
         $categoriesData = array_map(fn($cat) => $cat->toArray(), $categories);
 
         return $this->render('tailadmin/pages/activities/edit.html.twig', [
-            'pageTitle' => 'Modifier l\'Activité | TailAdmin',
+            'pageTitle' => 'Modifier l\'Activité ',
             'pageName' => 'activities',
             'activity' => $activity->toArray(),
             'categories' => $categoriesData,

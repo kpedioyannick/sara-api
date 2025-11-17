@@ -61,7 +61,7 @@ class SpecialistController extends AbstractController
         }
 
         return $this->render('tailadmin/pages/specialists/list.html.twig', [
-            'pageTitle' => 'Liste des Spécialistes | TailAdmin',
+            'pageTitle' => 'Liste des Spécialistes ',
             'pageName' => 'Spécialistes',
             'specialists' => $specialistsData,
             'studentsData' => $studentsData,

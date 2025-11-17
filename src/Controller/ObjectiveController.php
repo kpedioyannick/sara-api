@@ -232,7 +232,7 @@ class ObjectiveController extends AbstractController
         $canUseAI = $this->permissionService->canUseAI($user);
 
         return $this->render('tailadmin/pages/objectives/list.html.twig', [
-            'pageTitle' => 'Liste des Objectifs | TailAdmin',
+            'pageTitle' => 'Objectifs',
             'pageName' => 'objectives',
             'objectives' => $objectivesData,
             'students' => $studentsData,
@@ -583,7 +583,7 @@ class ObjectiveController extends AbstractController
         }
 
         return $this->render('tailadmin/pages/objectives/detail.html.twig', [
-            'pageTitle' => 'Détail de l\'Objectif | TailAdmin',
+            'pageTitle' => 'Détail de l\'Objectif ',
             'pageName' => 'objectives-detail',
             'objective' => $objectiveData,
             'tasks' => $tasksData,
