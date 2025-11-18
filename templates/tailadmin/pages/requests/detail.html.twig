@@ -18,6 +18,9 @@
                     </h3>
                     <p class="text-xs text-gray-500 dark:text-gray-400 truncate">
                         {% if otherUser.userType %}{{ otherUser.userType|capitalize }} • {% endif %}{{ otherUser.email }}
+                        {% if request.recipientName and request.recipientName != 'N/A' %}
+                            <br>Pour: <b>{{ request.recipientName }}</b>
+                        {% endif %}
                     </p>
                 </div>
                 {% else %}

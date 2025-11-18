@@ -37,7 +37,6 @@ class ProfileController extends AbstractController
 
         // Préparer les données selon le type d'utilisateur
         $userData = [];
-        $stats = [];
         $userType = $user->getUserType();
 
         if ($user instanceof Coach) {
@@ -51,7 +50,6 @@ class ProfileController extends AbstractController
                 'createdAt' => $user->getCreatedAt(),
                 'updatedAt' => $user->getUpdatedAt(),
             ];
-            $stats = $user->getStats();
         } elseif ($user instanceof ParentUser) {
             $userData = [
                 'id' => $user->getId(),
@@ -67,7 +65,6 @@ class ProfileController extends AbstractController
                     'isActive' => $user->getFamily()->isActive(),
                 ] : null,
             ];
-            $stats = $user->getStats();
         } elseif ($user instanceof Student) {
             $userData = [
                 'id' => $user->getId(),
@@ -86,7 +83,6 @@ class ProfileController extends AbstractController
                     'isActive' => $user->getFamily()->isActive(),
                 ] : null,
             ];
-            $stats = $user->getStats();
         } elseif ($user instanceof Specialist) {
             $userData = [
                 'id' => $user->getId(),
@@ -98,7 +94,6 @@ class ProfileController extends AbstractController
                 'createdAt' => $user->getCreatedAt(),
                 'updatedAt' => $user->getUpdatedAt(),
             ];
-            $stats = $user->getStats();
         }
 
         return $this->render('tailadmin/pages/profile/profile.html.twig', [
@@ -110,7 +105,6 @@ class ProfileController extends AbstractController
             'user' => $user,
             'userData' => $userData,
             'userType' => $userType,
-            'stats' => $stats,
         ]);
     }
 
