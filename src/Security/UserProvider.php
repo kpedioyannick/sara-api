@@ -26,6 +26,11 @@ class UserProvider implements UserProviderInterface, PasswordUpgraderInterface
         if (!$user) {
             throw new UserNotFoundException(sprintf('Utilisateur "%s" introuvable.', $identifier));
         }
+        
+        // Vérifier que l'utilisateur est actif
+        if (!$user->isActive()) {
+            throw new UserNotFoundException('Utilisateur désactivé.');
+        }
 
         return $user;
     }
@@ -36,7 +41,18 @@ class UserProvider implements UserProviderInterface, PasswordUpgraderInterface
             throw new UnsupportedUserException(sprintf('Invalid user class "%s".', get_class($user)));
         }
 
-        return $this->userRepository->find($user->getId()) ?? throw new UserNotFoundException('Utilisateur introuvable.');
+        $refreshedUser = $this->userRepository->find($user->getId());
+        
+        if (!$refreshedUser) {
+            throw new UserNotFoundException('Utilisateur introuvable.');
+        }
+        
+        // Vérifier que l'utilisateur est actif
+        if (!$refreshedUser->isActive()) {
+            throw new UserNotFoundException('Utilisateur désactivé.');
+        }
+        
+        return $refreshedUser;
     }
 
     public function supportsClass(string $class): bool

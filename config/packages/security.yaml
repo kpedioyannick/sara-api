@@ -14,7 +14,7 @@ security:
             security: false
         
         main:
-            lazy: true
+            lazy: false
             provider: app_user_provider
             form_login:
                 login_path: app_login
@@ -25,7 +25,13 @@ security:
                 secret: '%kernel.secret%'
                 lifetime: 2147483647  # Valeur maximale (environ 68 ans) - connexion à vie
                 path: /
+                domain: null
                 always_remember_me: true  # Toujours se souvenir de l'utilisateur
+                remember_me_parameter: '_remember_me'
+                name: REMEMBERME
+                secure: false  # Mettre à true en production avec HTTPS
+                httponly: true
+                samesite: 'lax'
             logout:
                 path: app_logout
                 target: app_login
