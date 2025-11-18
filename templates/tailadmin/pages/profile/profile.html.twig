@@ -70,7 +70,7 @@
                                 {% elseif userType == 'student' %}
                                     Élève
                                 {% elseif userType == 'specialist' %}
-                                    Spécialiste
+                                    Intervenant
                                 {% endif %}
                             </p>
                             {% if userData.specialization is defined and userData.specialization %}
@@ -588,13 +588,21 @@
                 confirmPassword: ''
             },
             availableSpecializations: [
-                'Orthophonie',
-                'Psychologie',
-                'Ergothérapie',
-                'Psychomotricité',
-                'Orthoptie',
-                'Kinésithérapie',
-                'Médecine',
+                'Théâtre',
+                'Soutien scolaire',
+                'Dessin / Arts plastiques',
+                'Peinture',
+                'Musique',
+                'Chant',
+                'Danse',
+                'Écriture créative',
+                'Lecture expressive',
+                'Jeux de rôle',
+                'Jeux ludiques',
+                'Arts du cirque',
+                'Marionnettes',
+                'Improvisation',
+                'Artisanat / DIY',
                 'Autre'
             ],
             async updateProfile() {

@@ -16,13 +16,22 @@ use Symfony\Component\Validator\Constraints\NotBlank;
 
 class RegisterSpecialistType extends AbstractType
 {
+
     private const SPECIALIZATIONS = [
-        'orthophonie' => 'Orthophonie',
-        'psychologie' => 'Psychologie',
-        'ergothérapie' => 'Ergothérapie',
-        'psychomotricité' => 'Psychomotricité',
-        'orthoptie' => 'Orthoptie',
-        'neuropsychologie' => 'Neuropsychologie',
+        'theatre' => 'Théâtre',
+        'dessin' => 'Dessin / Arts plastiques',
+        'peinture' => 'Peinture',
+        'musique' => 'Musique',
+        'chant' => 'Chant',
+        'danse' => 'Danse',
+        'ecriture_creative' => 'Écriture créative',
+        'lecture_expressive' => 'Lecture expressive',
+        'jeux_role' => 'Jeux de rôle',
+        'jeu' => 'Jeux ludiques',
+        'cirque' => 'Arts du cirque',
+        'marionnettes' => 'Marionnettes',
+        'improvisation' => 'Improvisation',
+        'artisanat' => 'Artisanat / DIY',
         'soutien_scolaire' => 'Soutien scolaire',
         'autre' => 'Autre',
     ];

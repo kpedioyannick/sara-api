@@ -137,7 +137,7 @@
           {% endif %}
           <!-- Menu Item Familles -->
 
-          <!-- Menu Item Mes demandes (Spécialiste) -->
+          <!-- Menu Item Mes demandes (Intervenant) -->
           {% if app.user and app.user.isSpecialist() %}
           <li>
             <a
@@ -176,7 +176,7 @@
                   </a>
                 </li>
           {% endif %}
-          <!-- Menu Item Mes demandes (Spécialiste) -->
+          <!-- Menu Item Mes demandes (Intervenant) -->
 
           <!-- Menu Item Objectifs -->
           {% if app.user and (app.user.isCoach() or app.user.isParent() or app.user.isStudent() or app.user.isSpecialist()) %}
@@ -354,12 +354,12 @@
                 </li>
           <!-- Menu Item Demandes -->
 
-          <!-- Menu Item Spécialistes -->
+          <!-- Menu Item Intervenants -->
           {% if app.user and app.user.isCoach() %}
           <li>
             <a
               href="{{ path("admin_specialists_list") }}"
-              @click="selected = (selected === 'Spécialistes' ? '':'Spécialistes')"
+              @click="selected = (selected === 'Intervenants' ? '':'Intervenants')"
               class="menu-item group transition-colors duration-200"
               :class="page === 'specialists' 
                 ? 'bg-sky-50 text-sky-500 dark:bg-sky-500/12 dark:text-sky-400' 
@@ -388,12 +388,12 @@
                 class="menu-item-text"
                 :class="sidebarToggle ? 'xl:hidden' : ''"
               >
-                Spécialistes
+                Intervenants
               </span>
                   </a>
                 </li>
           {% endif %}
-          <!-- Menu Item Spécialistes -->
+          <!-- Menu Item Intervenants -->
 
           <!-- Menu Item Planning -->
           {% if app.user and (app.user.isCoach() or app.user.isParent() or app.user.isStudent() or app.user.isSpecialist()) %}
@@ -473,7 +473,7 @@
 
           {# 
             Menu Item ETN (Espace Numérique de Travail) - DÉSACTIVÉ
-            - Visible pour : Coach, Parent, Élève, Spécialiste
+            - Visible pour : Coach, Parent, Élève, Intervenant
             - Redirige vers la page de gestion des intégrations (admin_integrations_list)
             - L'icône représente des flèches de synchronisation/échange de données
             - L'item est actif quand la page courante est 'integrations'

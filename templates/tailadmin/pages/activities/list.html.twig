@@ -131,7 +131,7 @@
                                     <span class="text-gray-600 dark:text-gray-400" x-text="activity.createdBy ? (activity.createdBy.firstName + ' ' + activity.createdBy.lastName) : 'Inconnu'"></span>
                                     <span class="inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium"
                                           :class="['bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400', 'bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400', 'bg-fuchsia-100 text-fuchsia-700 dark:bg-fuchsia-900/30 dark:text-fuchsia-400', 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400', 'bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-400'][index % 5]"
-                                          x-text="activity.createdBy ? (activity.createdBy.userType === 'coach' ? 'Coach' : activity.createdBy.userType === 'specialist' ? 'Spécialiste' : activity.createdBy.userType === 'parent' ? 'Parent' : activity.createdBy.userType === 'student' ? 'Élève' : activity.createdBy.userType) : ''"></span>
+                                          x-text="activity.createdBy ? (activity.createdBy.userType === 'coach' ? 'Coach' : activity.createdBy.userType === 'specialist' ? 'Intervenant' : activity.createdBy.userType === 'parent' ? 'Parent' : activity.createdBy.userType === 'student' ? 'Élève' : activity.createdBy.userType) : ''"></span>
                                 </div>
                                 <div class="flex items-center gap-2" x-show="activity.createdAt">
                                     <span class="inline-block rounded-md bg-pink-100 dark:bg-pink-900/30 px-2 py-0.5 text-xs font-medium text-pink-800 dark:text-pink-300">Date:</span>

@@ -15,7 +15,7 @@
         <form method="GET" action="{{ path('admin_specialists_list') }}" class="flex flex-col gap-4 sm:flex-row sm:items-end">
             <div class="flex-1">
                 <label for="search" class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Rechercher un spécialiste
+                    Rechercher un intervenant
                 </label>
                 <input
                     type="text"
@@ -51,7 +51,7 @@
     <div class="rounded-2xl border border-gray-200 bg-white dark:border-gray-800 dark:bg-white/[0.03]">
         <div class="px-6 py-5 flex items-center justify-between">
             <h3 class="text-base font-medium text-gray-800 dark:text-white/90">
-                Liste des Spécialistes
+                Liste des Intervenants
                 {% if app.request.query.get('search') %}
                     <span class="ml-2 text-sm font-normal text-gray-500 dark:text-gray-400">
                         ({{ specialists|length }} résultat{{ specialists|length > 1 ? 's' : '' }})
@@ -65,7 +65,7 @@
                 <svg class="fill-current" width="16" height="16" viewBox="0 0 16 16" fill="none">
                     <path d="M8 1a7 7 0 100 14A7 7 0 008 1zM7.5 4v4l3.5 2 .5-.866L8.5 7.5V4h-1z" fill=""/>
                 </svg>
-                Nouveau Spécialiste
+                Nouvel Intervenant
             </button>
         </div>
         <div class="border-t border-gray-100 p-4 dark:border-gray-800 sm:p-6">
@@ -175,8 +175,8 @@
             <div class="sticky top-0 z-10 border-b border-gray-200 bg-white px-6 py-4 dark:border-gray-800 dark:bg-gray-900">
                 <div class="flex items-center justify-between">
                     <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">
-                        <span x-show="!isEdit">Nouveau Spécialiste</span>
-                        <span x-show="isEdit">Modifier Spécialiste</span>
+                        <span x-show="!isEdit">Nouvel Intervenant</span>
+                        <span x-show="isEdit">Modifier Intervenant</span>
                     </h3>
                     <button
                         @click="closeSheet()"
@@ -224,56 +224,47 @@
                             <label class="flex items-center gap-2 cursor-pointer">
                                 <input
                                     type="checkbox"
-                                    value="orthophonie"
+                                    value="dessin"
                                     x-model="formData.specializations"
                                     class="rounded border-gray-300 text-brand-600 focus:ring-brand-500"
                                 />
-                                <span class="text-sm text-gray-700 dark:text-gray-300">Orthophonie</span>
+                                <span class="text-sm text-gray-700 dark:text-gray-300">Dessin / Arts plastiques</span>
                             </label>
                             <label class="flex items-center gap-2 cursor-pointer">
                                 <input
                                     type="checkbox"
-                                    value="psychologie"
+                                    value="theatre"
                                     x-model="formData.specializations"
                                     class="rounded border-gray-300 text-brand-600 focus:ring-brand-500"
                                 />
-                                <span class="text-sm text-gray-700 dark:text-gray-300">Psychologie</span>
+                                <span class="text-sm text-gray-700 dark:text-gray-300">Théâtre</span>
                             </label>
                             <label class="flex items-center gap-2 cursor-pointer">
                                 <input
                                     type="checkbox"
-                                    value="ergothérapie"
+                                    value="peinture"
                                     x-model="formData.specializations"
                                     class="rounded border-gray-300 text-brand-600 focus:ring-brand-500"
                                 />
-                                <span class="text-sm text-gray-700 dark:text-gray-300">Ergothérapie</span>
+                                <span class="text-sm text-gray-700 dark:text-gray-300">Peinture</span>
                             </label>
                             <label class="flex items-center gap-2 cursor-pointer">
                                 <input
                                     type="checkbox"
-                                    value="psychomotricité"
+                                    value="philosophie"
                                     x-model="formData.specializations"
                                     class="rounded border-gray-300 text-brand-600 focus:ring-brand-500"
                                 />
-                                <span class="text-sm text-gray-700 dark:text-gray-300">Psychomotricité</span>
+                                <span class="text-sm text-gray-700 dark:text-gray-300">Philosophie</span>
                             </label>
                             <label class="flex items-center gap-2 cursor-pointer">
                                 <input
                                     type="checkbox"
-                                    value="orthoptie"
+                                    value="musique"
                                     x-model="formData.specializations"
                                     class="rounded border-gray-300 text-brand-600 focus:ring-brand-500"
                                 />
-                                <span class="text-sm text-gray-700 dark:text-gray-300">Orthoptie</span>
-                            </label>
-                            <label class="flex items-center gap-2 cursor-pointer">
-                                <input
-                                    type="checkbox"
-                                    value="neuropsychologie"
-                                    x-model="formData.specializations"
-                                    class="rounded border-gray-300 text-brand-600 focus:ring-brand-500"
-                                />
-                                <span class="text-sm text-gray-700 dark:text-gray-300">Neuropsychologie</span>
+                                <span class="text-sm text-gray-700 dark:text-gray-300">Musique</span>
                             </label>
                             <label class="flex items-center gap-2 cursor-pointer">
                                 <input
@@ -613,7 +604,7 @@ function specialistManager() {
             });
         },
         openDelete(id) {
-            if (confirm('Êtes-vous sûr de vouloir supprimer ce spécialiste ?')) {
+            if (confirm('Êtes-vous sûr de vouloir supprimer cet intervenant ?')) {
                 fetch(`/admin/specialists/${id}/delete`, {
                     method: 'DELETE',
                     headers: { 'X-Requested-With': 'XMLHttpRequest' },
@@ -621,7 +612,7 @@ function specialistManager() {
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
-                        this.showMessage(data.message || 'Spécialiste supprimé avec succès', 'success');
+                        this.showMessage(data.message || 'Intervenant supprimé avec succès', 'success');
                         setTimeout(() => location.reload(), 1000);
                     } else {
                         this.showMessage(data.message || 'Erreur lors de la suppression', 'error');
@@ -691,7 +682,7 @@ function specialistManager() {
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    this.showMessage(data.message || 'Spécialiste enregistré avec succès', 'success');
+                    this.showMessage(data.message || 'Intervenant enregistré avec succès', 'success');
                     setTimeout(() => location.reload(), 1000);
                 } else {
                     this.showMessage(data.message || 'Erreur lors de l\'enregistrement', 'error');
