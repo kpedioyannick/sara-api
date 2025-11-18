@@ -54,6 +54,17 @@
                                 </div>
                             {% endif %}
                             
+                            {% for flashError in app.flashes('error') %}
+                                <div class="mb-4 rounded-lg bg-error-50 border border-error-200 p-3 text-sm text-error-600 dark:bg-error-900/30 dark:border-error-800 dark:text-error-400">
+                                    {{ flashError }}
+                                </div>
+                            {% endfor %}
+                            {% for flashSuccess in app.flashes('success') %}
+                                <div class="mb-4 rounded-lg bg-success-50 border border-success-200 p-3 text-sm text-success-600 dark:bg-success-900/30 dark:border-success-800 dark:text-success-400">
+                                    {{ flashSuccess }}
+                                </div>
+                            {% endfor %}
+                            
                             <form method="post" action="{{ path('app_login') }}">
                                 <input type="hidden" name="_csrf_token" value="{{ csrf_token('authenticate') }}">
                                 

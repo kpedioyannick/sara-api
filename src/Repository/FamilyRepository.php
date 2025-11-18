@@ -75,4 +75,19 @@ class FamilyRepository extends ServiceEntityRepository
 
         return $qb->getQuery()->getResult();
     }
+
+    /**
+     * Compter les familles actives d'un coach
+     */
+    public function countActiveByCoach($coach): int
+    {
+        return $this->createQueryBuilder('f')
+            ->select('COUNT(f.id)')
+            ->where('f.coach = :coach')
+            ->andWhere('f.isActive = :isActive')
+            ->setParameter('coach', $coach)
+            ->setParameter('isActive', true)
+            ->getQuery()
+            ->getSingleScalarResult();
+    }
 }

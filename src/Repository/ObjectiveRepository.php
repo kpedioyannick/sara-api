@@ -59,4 +59,17 @@ class ObjectiveRepository extends ServiceEntityRepository
                   ->getQuery()
                   ->getResult();
     }
+
+    /**
+     * Compter les objectifs d'un coach
+     */
+    public function countByCoach($coach): int
+    {
+        return $this->createQueryBuilder('o')
+            ->select('COUNT(o.id)')
+            ->where('o.coach = :coach')
+            ->setParameter('coach', $coach)
+            ->getQuery()
+            ->getSingleScalarResult();
+    }
 }

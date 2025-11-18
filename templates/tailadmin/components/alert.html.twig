@@ -59,6 +59,32 @@
     </template>
 </div>
 
+{# Injecter les messages flash dans le DOM pour JavaScript #}
+<script id="flash-messages" type="application/json">
+{
+    "success": [
+        {%- for message in app.flashes('success') -%}
+        "{{ message|e('js') }}"{% if not loop.last %},{% endif %}
+        {%- endfor -%}
+    ],
+    "error": [
+        {%- for message in app.flashes('error') -%}
+        "{{ message|e('js') }}"{% if not loop.last %},{% endif %}
+        {%- endfor -%}
+    ],
+    "warning": [
+        {%- for message in app.flashes('warning') -%}
+        "{{ message|e('js') }}"{% if not loop.last %},{% endif %}
+        {%- endfor -%}
+    ],
+    "info": [
+        {%- for message in app.flashes('info') -%}
+        "{{ message|e('js') }}"{% if not loop.last %},{% endif %}
+        {%- endfor -%}
+    ]
+}
+</script>
+
 <script>
 function alertManager() {
     return {
@@ -68,6 +94,42 @@ function alertManager() {
             window.addEventListener('show-alert', (event) => {
                 this.show(event.detail.message, event.detail.type || 'info');
             });
+            
+            // Lire les messages flash de Symfony au chargement
+            this.loadFlashMessages();
+        },
+        loadFlashMessages() {
+            // Lire les messages flash depuis le script JSON
+            const flashScript = document.getElementById('flash-messages');
+            if (flashScript) {
+                try {
+                    const flashData = JSON.parse(flashScript.textContent);
+                    
+                    // Afficher tous les messages flash
+                    if (flashData.success && flashData.success.length > 0) {
+                        flashData.success.forEach(message => {
+                            this.show(message, 'success');
+                        });
+                    }
+                    if (flashData.error && flashData.error.length > 0) {
+                        flashData.error.forEach(message => {
+                            this.show(message, 'error');
+                        });
+                    }
+                    if (flashData.warning && flashData.warning.length > 0) {
+                        flashData.warning.forEach(message => {
+                            this.show(message, 'warning');
+                        });
+                    }
+                    if (flashData.info && flashData.info.length > 0) {
+                        flashData.info.forEach(message => {
+                            this.show(message, 'info');
+                        });
+                    }
+                } catch (e) {
+                    console.error('Erreur lors de la lecture des messages flash:', e);
+                }
+            }
         },
         show(message, type = 'info') {
             const alert = {

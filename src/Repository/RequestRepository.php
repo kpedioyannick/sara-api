@@ -99,4 +99,19 @@ class RequestRepository extends ServiceEntityRepository
                   ->getQuery()
                   ->getResult();
     }
+
+    /**
+     * Compter les demandes d'un coach par statut
+     */
+    public function countByCoachAndStatus($coach, string $status): int
+    {
+        return $this->createQueryBuilder('r')
+            ->select('COUNT(r.id)')
+            ->where('r.coach = :coach')
+            ->andWhere('r.status = :status')
+            ->setParameter('coach', $coach)
+            ->setParameter('status', $status)
+            ->getQuery()
+            ->getSingleScalarResult();
+    }
 }

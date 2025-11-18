@@ -65,12 +65,12 @@ class DashboardController extends AbstractController
             throw new \RuntimeException('Accès non autorisé');
         }
 
-        // Statistiques pour le coach
+        // Statistiques pour le coach connecté
         $stats = [
-            'totalFamilies' => $this->familyRepository->count(['isActive' => true]),
-            'totalObjectives' => $this->objectiveRepository->count([]),
-            'pendingRequests' => $this->requestRepository->count(['status' => 'pending']),
-            'activeRequests' => $this->requestRepository->count(['status' => 'in_progress']),
+            'totalFamilies' => $this->familyRepository->countActiveByCoach($user),
+            'totalObjectives' => $this->objectiveRepository->countByCoach($user),
+            'pendingRequests' => $this->requestRepository->countByCoachAndStatus($user, 'pending'),
+            'activeRequests' => $this->requestRepository->countByCoachAndStatus($user, 'in_progress'),
         ];
 
         return $this->render('tailadmin/pages/dashboard.html.twig', [
