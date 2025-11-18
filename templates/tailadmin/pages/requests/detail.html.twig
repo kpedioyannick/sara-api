@@ -2,77 +2,6 @@
 
 {% block content %}
 <div class="flex flex-col h-[calc(100vh-80px)] max-h-screen overflow-hidden">
-    <!-- Compact Header - Sticky -->
-    <div class="sticky top-0 z-10 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 shadow-sm">
-        <div class="px-4 py-3 md:px-6">
-            <div class="flex items-center justify-between gap-3 flex-wrap">
-                <!-- Left: Title & Badges -->
-                <div class="flex-1 min-w-0">
-                    <div class="flex items-center gap-2 flex-wrap mb-2">
-                        <a href="{{ path('admin_requests_list') }}" class="inline-flex items-center text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors" title="Retour">
-                            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-                            </svg>
-                        </a>
-                        <h1 class="text-lg md:text-xl font-semibold text-gray-900 dark:text-white truncate">
-                            {{ request.title }}
-                        </h1>
-                    </div>
-                    <div class="flex items-center gap-2 flex-wrap">
-                        <span class="inline-flex items-center rounded-full bg-brand-50 dark:bg-brand-500/15 px-2 py-0.5 text-xs font-medium text-brand-600 dark:text-brand-400">
-                            {{ request.type|upper }}
-                        </span>
-                        {% if request.priority == 'high' %}
-                        <span class="inline-flex items-center rounded-full bg-error-100 dark:bg-error-900/30 px-2 py-0.5 text-xs font-medium text-error-600 dark:text-error-400">
-                            Haute
-                        </span>
-                        {% elseif request.priority == 'medium' %}
-                        <span class="inline-flex items-center rounded-full bg-warning-100 dark:bg-warning-900/30 px-2 py-0.5 text-xs font-medium text-warning-600 dark:text-warning-400">
-                            Moyenne
-                        </span>
-                        {% else %}
-                        <span class="inline-flex items-center rounded-full bg-gray-100 dark:bg-gray-800 px-2 py-0.5 text-xs font-medium text-gray-600 dark:text-gray-400">
-                            Basse
-                        </span>
-                        {% endif %}
-                        {% if request.status == 'resolved' %}
-                        <span class="inline-flex items-center rounded-full bg-success-100 dark:bg-success-900/30 px-2 py-0.5 text-xs font-medium text-success-600 dark:text-success-400">
-                            Résolue
-                        </span>
-                        {% elseif request.status == 'in_progress' %}
-                        <span class="inline-flex items-center rounded-full bg-brand-100 dark:bg-brand-900/30 px-2 py-0.5 text-xs font-medium text-brand-600 dark:text-brand-400">
-                            En cours
-                        </span>
-                        {% else %}
-                        <span class="inline-flex items-center rounded-full bg-gray-100 dark:bg-gray-800 px-2 py-0.5 text-xs font-medium text-gray-600 dark:text-gray-400">
-                            En attente
-                        </span>
-                        {% endif %}
-                        <span class="text-xs text-gray-500 dark:text-gray-400 hidden sm:inline">
-                            {{ request.creatorName }} → {{ request.recipientName }}
-                        </span>
-                    </div>
-                </div>
-                
-                <!-- Right: Quick Info (Desktop) -->
-                <div class="hidden lg:flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400">
-                    <div class="flex items-center gap-1">
-                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                        </svg>
-                        <span>{{ request.creatorName }}</span>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Description (Always visible) -->
-            {% if request.description %}
-            <div class="mt-2 px-2 py-1.5 bg-gray-50 dark:bg-gray-800 rounded text-xs text-gray-600 dark:text-gray-400 line-clamp-2">
-                {{ request.description }}
-            </div>
-            {% endif %}
-        </div>
-    </div>
 
     <!-- Chat Container - Flex Grow -->
     <div class="flex-1 flex flex-col min-h-0 bg-white dark:bg-gray-900" id="chat-container">
@@ -105,151 +34,13 @@
             x-data="requestChatManager({{ requestId }})"
             x-init="init()"
         >
-            <!-- Message Input - Fixed Top -->
-            <div class="flex-shrink-0 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-lg">
-                <form @submit.prevent="sendMessage()" class="p-4 space-y-2">
-                    <!-- Boutons d'upload - Ligne séparée sur mobile -->
-                    <div class="flex flex-wrap gap-2 justify-center sm:justify-start">
-                        <!-- Bouton Assistance IA -->
-                        <button
-                            type="button"
-                            @click="toggleAIAssist()"
-                            :class="aiAssistMode ? 'bg-brand-500 text-white' : 'border border-gray-300 bg-white text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700'"
-                            class="rounded-lg p-2 transition-colors flex-shrink-0 hover:scale-105 active:scale-95"
-                            title="Assistance IA"
-                        >
-                            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-                            </svg>
-                        </button>
-                        <!-- Upload Image -->
-                        <label class="cursor-pointer rounded-lg border border-gray-300 bg-white p-2 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:hover:bg-gray-700 flex-shrink-0 transition-colors" title="Envoyer une image">
-                            <input
-                                type="file"
-                                accept="image/*"
-                                @change="handleImageUpload($event)"
-                                class="hidden"
-                            />
-                            <svg class="h-5 w-5 text-gray-600 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                            </svg>
-                        </label>
-                        <!-- Prendre une photo -->
-                        <label class="cursor-pointer rounded-lg border border-gray-300 bg-white p-2 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:hover:bg-gray-700 flex-shrink-0" title="Prendre une photo">
-                            <input
-                                type="file"
-                                accept="image/*"
-                                capture="environment"
-                                @change="handleCameraCapture($event)"
-                                class="hidden"
-                            />
-                            <svg class="h-5 w-5 text-gray-600 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A 2 0 0 1 10.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-                            </svg>
-                        </label>
-                        <!-- Upload Audio -->
-                        <label class="cursor-pointer rounded-lg border border-gray-300 bg-white p-2 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:hover:bg-gray-700 flex-shrink-0" title="Envoyer un fichier audio">
-                            <input
-                                type="file"
-                                accept="audio/*"
-                                @change="handleAudioUpload($event)"
-                                class="hidden"
-                            />
-                            <svg class="h-5 w-5 text-gray-600 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
-                            </svg>
-                        </label>
-                        <!-- Enregistrer Audio -->
-                        <button
-                            type="button"
-                            @click="toggleAudioRecording()"
-                            :class="isRecording ? 'bg-error-500 text-white hover:bg-error-600' : 'border border-gray-300 bg-white text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700'"
-                            class="rounded-lg p-2 transition-colors flex-shrink-0 hover:scale-105 active:scale-95"
-                            :title="isRecording ? 'Arrêter l\'enregistrement' : 'Enregistrer un audio'"
-                        >
-                            <svg x-show="!isRecording" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
-                            </svg>
-                            <svg x-show="isRecording" class="h-5 w-5 animate-pulse" fill="currentColor" viewBox="0 0 24 24">
-                                <circle cx="12" cy="12" r="10" />
-                            </svg>
-                        </button>
-                    </div>
-                    <!-- Input et bouton Envoyer -->
-                    <div class="flex gap-2 items-end">
-                        <textarea
-                            x-model="messageContent"
-                            :placeholder="aiAssistMode ? 'Posez votre question à l\'IA... (Appuyez sur Entrée pour envoyer à l\'IA)' : 'Tapez votre message...'"
-                            rows="1"
-                            @input="$event.target.style.height = 'auto'; $event.target.style.height = $event.target.scrollHeight + 'px';"
-                            class="flex-1 min-w-0 rounded-lg border px-4 py-2.5 text-sm resize-none focus:outline-none focus:ring-2 dark:bg-gray-800 dark:text-white max-h-32 overflow-y-auto"
-                            :class="aiAssistMode ? 'border-blue-300 bg-blue-50 focus:border-blue-500 focus:ring-blue-500 dark:border-blue-700 dark:bg-blue-900/20' : 'border-gray-300 bg-white focus:border-brand-500 focus:ring-brand-500 dark:border-gray-700'"
-                            style="min-height: 42px;"
-                        ></textarea>
-                        <button
-                            type="submit"
-                            :disabled="sending || uploading || !messageContent.trim() || (aiAssistMode && aiGenerating)"
-                            class="rounded-lg px-4 py-2.5 text-sm font-medium text-white bg-brand-500 hover:bg-brand-600 focus:ring-brand-500 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0 transition-all shadow-sm hover:shadow-md flex items-center justify-center"
-                            style="min-height: 42px;"
-                        >
-                            <svg x-show="!sending && !uploading && !aiGenerating" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-                            </svg>
-                            <span x-show="sending || uploading || aiGenerating" class="inline-flex items-center">
-                                <svg class="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                </svg>
-                            </span>
-                        </button>
-                    </div>
-                </form>
-            </div>
-
-            <!-- Zone d'Assistance IA -->
-            <div 
-                x-show="aiAssistMode" 
-                class="flex-shrink-0 border-b border-blue-200 bg-blue-50 dark:bg-blue-900/20 p-3 dark:border-blue-800 shadow-lg"
-                x-transition
-            >
-                <div class="flex items-start gap-3">
-                    <svg class="h-5 w-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <div class="flex-1">
-                        <p class="text-sm font-medium text-blue-800 dark:text-blue-200 mb-1">
-                            Mode Assistance IA activé
-                        </p>
-                        <p class="text-xs text-blue-700 dark:text-blue-300 mb-2">
-                            Votre message sera envoyé à l'IA pour génération de réponse. Sélectionnez des messages ci-dessous pour donner le contexte.
-                        </p>
-                        <div class="flex items-center justify-between">
-                            <div class="text-xs text-blue-600 dark:text-blue-400">
-                                <span x-show="selectedMessageIds.length === 0" class="text-blue-500">Aucun message sélectionné</span>
-                                <span x-show="selectedMessageIds.length > 0" class="font-medium">
-                                    <span x-text="selectedMessageIds.length"></span> message(s) sélectionné(s) pour le contexte
-                                </span>
-                            </div>
-                            <button
-                                type="button"
-                                @click="toggleAIAssist()"
-                                class="text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-200 font-medium"
-                            >
-                                Désactiver
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
             <!-- Messages List - Scrollable -->
             <div
                 id="messages-container"
-                class="flex-1 overflow-y-auto overscroll-contain p-4 md:p-6 space-y-4"
+                class="overflow-y-auto overscroll-contain p-4 md:p-6 space-y-4"
                 style="scroll-behavior: smooth; min-height: 0;"
             >
-                {% for message in messages|reverse %}
+                {% for message in messages %}
                     <div class="flex {% if message.isFromMe %}justify-end{% else %}justify-start{% endif %} gap-2" data-message-id="{{ message.id }}" data-message-type="{{ message.type|default('text') }}">
                         <!-- Checkbox pour sélection -->
                         <div class="flex items-start pt-6" x-show="aiAssistMode">
@@ -329,6 +120,145 @@
                         <p class="text-gray-500 dark:text-gray-400">Aucun message pour le moment</p>
                     </div>
                 {% endfor %}
+            </div>
+
+            <!-- Zone d'Assistance IA -->
+            <div 
+                x-show="aiAssistMode" 
+                class="flex-shrink-0 border-t border-blue-200 bg-blue-50 dark:bg-blue-900/20 p-3 dark:border-blue-800 shadow-lg"
+                x-transition
+            >
+                <div class="flex items-start gap-3">
+                    <svg class="h-5 w-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <div class="flex-1">
+                        <p class="text-sm font-medium text-blue-800 dark:text-blue-200 mb-1">
+                            Mode Assistance IA activé
+                        </p>
+                        <p class="text-xs text-blue-700 dark:text-blue-300 mb-2">
+                            Votre message sera envoyé à l'IA pour génération de réponse. Sélectionnez des messages ci-dessus pour donner le contexte.
+                        </p>
+                        <div class="flex items-center justify-between">
+                            <div class="text-xs text-blue-600 dark:text-blue-400">
+                                <span x-show="selectedMessageIds.length === 0" class="text-blue-500">Aucun message sélectionné</span>
+                                <span x-show="selectedMessageIds.length > 0" class="font-medium">
+                                    <span x-text="selectedMessageIds.length"></span> message(s) sélectionné(s) pour le contexte
+                                </span>
+                            </div>
+                            <button
+                                type="button"
+                                @click="toggleAIAssist()"
+                                class="text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-200 font-medium"
+                            >
+                                Désactiver
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Message Input - Fixed Bottom -->
+            <div class="flex-shrink-0 border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-lg">
+                <form @submit.prevent="sendMessage()" class="p-4 space-y-2">
+
+                    <div class="flex gap-2 items-end">
+                        <textarea
+                            x-model="messageContent"
+                            :placeholder="aiAssistMode ? 'Posez votre question à l\'IA... (Appuyez sur Entrée pour envoyer à l\'IA)' : 'Tapez votre message...'"
+                            rows="1"
+                            @input="$event.target.style.height = 'auto'; $event.target.style.height = $event.target.scrollHeight + 'px';"
+                            class="flex-1 min-w-0 rounded-lg border px-4 py-2.5 text-sm resize-none focus:outline-none focus:ring-2 dark:bg-gray-800 dark:text-white max-h-32 overflow-y-auto"
+                            :class="aiAssistMode ? 'border-blue-300 bg-blue-50 focus:border-blue-500 focus:ring-blue-500 dark:border-blue-700 dark:bg-blue-900/20' : 'border-gray-300 bg-white focus:border-brand-500 focus:ring-brand-500 dark:border-gray-700'"
+                            style="min-height: 42px;"
+                        ></textarea>
+                        <button
+                            type="submit"
+                            :disabled="sending || uploading || !messageContent.trim() || (aiAssistMode && aiGenerating)"
+                            class="rounded-lg px-4 py-2.5 text-sm font-medium text-white bg-brand-500 hover:bg-brand-600 focus:ring-brand-500 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0 transition-all shadow-sm hover:shadow-md flex items-center justify-center"
+                            style="min-height: 42px;"
+                        >
+                            <svg x-show="!sending && !uploading && !aiGenerating" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                            </svg>
+                            <span x-show="sending || uploading || aiGenerating" class="inline-flex items-center">
+                                <svg class="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                            </span>
+                        </button>
+                    </div>
+                                        <!-- Boutons d'upload - Ligne séparée sur mobile -->
+                    <div class="flex flex-wrap gap-2 justify-center sm:justify-start">
+                        <!-- Bouton Assistance IA -->
+                        <button
+                            type="button"
+                            @click="toggleAIAssist()"
+                            :class="aiAssistMode ? 'bg-brand-500 text-white' : 'border border-gray-300 bg-white text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700'"
+                            class="rounded-lg p-2 transition-colors flex-shrink-0 hover:scale-105 active:scale-95"
+                            title="Assistance IA"
+                        >
+                            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                            </svg>
+                        </button>
+                        <!-- Upload Image -->
+                        <label class="cursor-pointer rounded-lg border border-gray-300 bg-white p-2 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:hover:bg-gray-700 flex-shrink-0 transition-colors" title="Envoyer une image">
+                            <input
+                                type="file"
+                                accept="image/*"
+                                @change="handleImageUpload($event)"
+                                class="hidden"
+                            />
+                            <svg class="h-5 w-5 text-gray-600 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                        </label>
+                        <!-- Prendre une photo -->
+                        <label class="cursor-pointer rounded-lg border border-gray-300 bg-white p-2 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:hover:bg-gray-700 flex-shrink-0" title="Prendre une photo">
+                            <input
+                                type="file"
+                                accept="image/*"
+                                capture="environment"
+                                @change="handleCameraCapture($event)"
+                                class="hidden"
+                            />
+                            <svg class="h-5 w-5 text-gray-600 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A 2 0 0 1 10.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
+                        </label>
+                        <!-- Upload Audio -->
+                        <label class="cursor-pointer rounded-lg border border-gray-300 bg-white p-2 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:hover:bg-gray-700 flex-shrink-0" title="Envoyer un fichier audio">
+                            <input
+                                type="file"
+                                accept="audio/*"
+                                @change="handleAudioUpload($event)"
+                                class="hidden"
+                            />
+                            <svg class="h-5 w-5 text-gray-600 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
+                            </svg>
+                        </label>
+                        <!-- Enregistrer Audio -->
+                        <button
+                            type="button"
+                            @click="toggleAudioRecording()"
+                            :class="isRecording ? 'bg-error-500 text-white hover:bg-error-600' : 'border border-gray-300 bg-white text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700'"
+                            class="rounded-lg p-2 transition-colors flex-shrink-0 hover:scale-105 active:scale-95"
+                            :title="isRecording ? 'Arrêter l\'enregistrement' : 'Enregistrer un audio'"
+                        >
+                            <svg x-show="!isRecording" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                            </svg>
+                            <svg x-show="isRecording" class="h-5 w-5 animate-pulse" fill="currentColor" viewBox="0 0 24 24">
+                                <circle cx="12" cy="12" r="10" />
+                            </svg>
+                        </button>
+                    </div>
+                    <!-- Input et bouton Envoyer -->
+                </form>
             </div>
             
             <!-- Modal pour agrandir les images -->
@@ -532,7 +462,16 @@ function requestChatManager(requestId) {
             }
             
             this.messagesContainer = document.getElementById('messages-container');
-            this.scrollToTop();
+            
+            // Calculer et fixer la hauteur du conteneur des messages
+            this.updateMessagesContainerHeight();
+            
+            // Réajuster la hauteur lors du redimensionnement de la fenêtre
+            window.addEventListener('resize', () => {
+                this.updateMessagesContainerHeight();
+            });
+            
+            this.scrollToBottom();
             
             // Se connecter à Firebase pour les messages en temps réel
             this.subscribeToFirebase();
@@ -549,9 +488,45 @@ function requestChatManager(requestId) {
             });
         },
         
-        scrollToTop() {
+        updateMessagesContainerHeight() {
+            if (!this.messagesContainer) return;
+            
+            // Utiliser la hauteur de la fenêtre
+            let containerHeight = window.innerHeight;
+            
+            // Soustraire le Chat Header (header du chat avec flex-shrink-0)
+            const chatHeader = document.querySelector('#chat-container > .flex-shrink-0');
+            if (chatHeader) {
+                containerHeight -= chatHeader.offsetHeight;
+            }
+            
+            // Trouver l'input fixe en bas (avec les classes exactes)
+            const inputContainer = this.messagesContainer.parentElement?.querySelector('.flex-shrink-0.border-t.border-gray-200');
+            if (inputContainer) {
+                containerHeight -= inputContainer.offsetHeight;
+            }
+            
+            // Soustraire la zone d'assistance IA si visible
+            const aiAssistContainer = this.messagesContainer.parentElement?.querySelector('[x-show="aiAssistMode"]');
+            if (aiAssistContainer) {
+                const computedStyle = window.getComputedStyle(aiAssistContainer);
+                if (computedStyle.display !== 'none') {
+                    containerHeight -= aiAssistContainer.offsetHeight;
+                }
+            }
+            
+            // Fixer la hauteur du conteneur des messages
+            if (containerHeight > 0) {
+                this.messagesContainer.style.height = containerHeight + 'px';
+            }
+        },
+        
+        scrollToBottom() {
             if (this.messagesContainer) {
-                this.messagesContainer.scrollTop = 0;
+                // Utiliser requestAnimationFrame pour s'assurer que le DOM est mis à jour
+                requestAnimationFrame(() => {
+                    this.messagesContainer.scrollTop = this.messagesContainer.scrollHeight;
+                });
             }
         },
         
@@ -1029,6 +1004,10 @@ function requestChatManager(requestId) {
                 this.aiUserQuestion = '';
                 this.aiResponse = '';
             }
+            // Mettre à jour la hauteur du conteneur après le changement de visibilité
+            setTimeout(() => {
+                this.updateMessagesContainerHeight();
+            }, 100);
         },
         
         async requestAIAssist() {
@@ -1346,15 +1325,10 @@ function requestChatManager(requestId) {
                 </div>
             `;
             
-            // Ajouter le message au conteneur (en haut pour les nouveaux messages)
+            // Ajouter le message au conteneur (en bas pour les nouveaux messages)
             if (this.messagesContainer) {
-                // Insérer le nouveau message en haut du conteneur
-                const firstChild = this.messagesContainer.firstChild;
-                if (firstChild) {
-                    this.messagesContainer.insertBefore(messageDiv, firstChild);
-                } else {
-                    this.messagesContainer.appendChild(messageDiv);
-                }
+                // Ajouter le nouveau message en bas du conteneur
+                this.messagesContainer.appendChild(messageDiv);
                 
                 // Ajouter l'event listener pour les images
                 const imageElement = messageDiv.querySelector('.request-message-image');
@@ -1369,8 +1343,8 @@ function requestChatManager(requestId) {
                     window.Alpine.initTree(messageDiv);
                 }
                 
-                // Scroller vers le haut pour voir le nouveau message
-                this.scrollToTop();
+                // Scroller vers le bas pour voir le nouveau message
+                this.scrollToBottom();
             }
         },
         
