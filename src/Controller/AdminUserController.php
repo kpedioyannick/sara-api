@@ -23,6 +23,7 @@ use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
+use App\Service\ShortUrlService;
 
 class AdminUserController extends AbstractController
 {
@@ -35,7 +36,8 @@ class AdminUserController extends AbstractController
         private readonly AdminRepository $adminRepository,
         private readonly EntityManagerInterface $em,
         private readonly UserPasswordHasherInterface $passwordHasher,
-        private readonly ValidatorInterface $validator
+        private readonly ValidatorInterface $validator,
+        private readonly ShortUrlService $shortUrlService
     ) {
     }
 
@@ -219,11 +221,12 @@ class AdminUserController extends AbstractController
         }
 
         $loginUrl = $request->getSchemeAndHttpHost() . '/login/token?username=' . urlencode($username) . '&token=' . urlencode($token);
+        $shortLoginUrl = $this->shortUrlService->shorten($loginUrl);
 
         return new JsonResponse([
             'success' => true,
             'token' => $token,
-            'loginUrl' => $loginUrl,
+            'loginUrl' => $shortLoginUrl,
             'expiresAt' => $user->getAuthTokenExpiresAt()->format('Y-m-d H:i:s'),
             'message' => 'Token généré avec succès.'
         ]);

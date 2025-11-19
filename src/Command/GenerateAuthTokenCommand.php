@@ -3,6 +3,7 @@
 namespace App\Command;
 
 use App\Repository\UserRepository;
+use App\Service\ShortUrlService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -19,7 +20,8 @@ class GenerateAuthTokenCommand extends Command
 {
     public function __construct(
         private readonly UserRepository $userRepository,
-        private readonly EntityManagerInterface $em
+        private readonly EntityManagerInterface $em,
+        private readonly ShortUrlService $shortUrlService
     ) {
         parent::__construct();
     }
@@ -49,10 +51,23 @@ class GenerateAuthTokenCommand extends Command
 
         $io->success(sprintf('Token généré pour %s (%s)', $user->getEmail(), $user->getFirstName() . ' ' . $user->getLastName()));
         $io->info('Token: ' . $token);
-        $io->info('URL de connexion: /login/token?username=' . urlencode($username) . '&token=' . urlencode($token));
+        $loginUrl = $this->buildLoginUrl($username, $token);
+        $io->info('URL de connexion: ' . $this->shortUrlService->shorten($loginUrl));
         $io->note('Le token expire le: ' . $user->getAuthTokenExpiresAt()->format('Y-m-d H:i:s'));
 
         return Command::SUCCESS;
+    }
+
+    private function buildLoginUrl(string $username, string $token): string
+    {
+        $path = '/login/token?username=' . urlencode($username) . '&token=' . urlencode($token);
+        $baseUrl = rtrim($_ENV['APP_URL'] ?? $_SERVER['APP_URL'] ?? '', '/');
+
+        if (!empty($baseUrl)) {
+            return $baseUrl . $path;
+        }
+
+        return $path;
     }
 }
 

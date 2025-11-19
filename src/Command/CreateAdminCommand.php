@@ -4,6 +4,7 @@ namespace App\Command;
 
 use App\Entity\Admin;
 use Doctrine\ORM\EntityManagerInterface;
+use App\Service\ShortUrlService;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
@@ -23,7 +24,8 @@ class CreateAdminCommand extends Command
     public function __construct(
         private readonly EntityManagerInterface $em,
         private readonly UserPasswordHasherInterface $passwordHasher,
-        private readonly ValidatorInterface $validator
+        private readonly ValidatorInterface $validator,
+        private readonly ShortUrlService $shortUrlService
     ) {
         parent::__construct();
     }
@@ -81,11 +83,8 @@ class CreateAdminCommand extends Command
         $loginUrl = null;
         if ($generateToken) {
             $token = $admin->generateAuthToken($validityDays);
-            $loginUrl = sprintf(
-                '/login/token?username=%s&token=%s',
-                urlencode($email),
-                urlencode($token)
-            );
+            $loginUrl = $this->buildLoginUrl($email, $token);
+            $loginUrl = $this->shortUrlService->shorten($loginUrl);
         }
 
         // Sauvegarder
@@ -113,6 +112,18 @@ class CreateAdminCommand extends Command
         }
 
         return Command::SUCCESS;
+    }
+
+    private function buildLoginUrl(string $username, string $token): string
+    {
+        $path = '/login/token?username=' . urlencode($username) . '&token=' . urlencode($token);
+        $baseUrl = rtrim($_ENV['APP_URL'] ?? $_SERVER['APP_URL'] ?? '', '/');
+
+        if (!empty($baseUrl)) {
+            return $baseUrl . $path;
+        }
+
+        return $path;
     }
 }
 
