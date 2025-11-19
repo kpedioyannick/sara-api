@@ -315,6 +315,18 @@ class Request
             $data['recipientName'] = 'N/A';
         }
         
+        // Ajouter le nom de l'élève pour les types STUDENT et STUDENT_TO_SPECIALIST
+        $student = $this->getStudent();
+        $requestType = strtolower($this->getType() ?? '');
+        if ($student && in_array($requestType, ['student', 'student_to_specialist'])) {
+            $data['studentName'] = $student->getFirstName() . ' ' . $student->getLastName();
+            if ($student->getPseudo()) {
+                $data['studentName'] .= ' (' . $student->getPseudo() . ')';
+            }
+        } else {
+            $data['studentName'] = null;
+        }
+        
         // Formatage de la date
         $data['createdAt'] = $this->getCreatedAt()?->format('Y-m-d');
         

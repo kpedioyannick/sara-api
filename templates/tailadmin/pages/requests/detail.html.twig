@@ -29,6 +29,13 @@
                 </div>
                 {% endif %}
             </div>
+            {% if request.description %}
+            <div class="mt-2 pt-2 border-t border-gray-200 dark:border-gray-700">
+                <p class="text-sm text-gray-700 dark:text-gray-300">
+                    <span class="font-medium">Description:</span> {{ request.description }}
+                </p>
+            </div>
+            {% endif %}
         </div>
 
         <!-- Messages Area - Scrollable -->
