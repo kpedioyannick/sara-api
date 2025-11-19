@@ -164,7 +164,11 @@ function generateToken(userId) {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            alert('Token généré avec succès!\n\nLien de connexion:\n' + data.loginUrl + '\n\nExpire le: ' + data.expiresAt);
+            const message = 'Token généré avec succès!\n\n' +
+                'Lien de connexion (originale):\n' + data.loginUrl + '\n\n' +
+                'Lien de connexion (raccourcie):\n' + data.shortLoginUrl + '\n\n' +
+                'Expire le: ' + data.expiresAt;
+            alert(message);
             location.reload();
         } else {
             alert('Erreur: ' + (data.error || 'Une erreur est survenue'));

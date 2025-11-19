@@ -226,7 +226,8 @@ class AdminUserController extends AbstractController
         return new JsonResponse([
             'success' => true,
             'token' => $token,
-            'loginUrl' => $shortLoginUrl,
+            'loginUrl' => $loginUrl,
+            'shortLoginUrl' => $shortLoginUrl,
             'expiresAt' => $user->getAuthTokenExpiresAt()->format('Y-m-d H:i:s'),
             'message' => 'Token généré avec succès.'
         ]);

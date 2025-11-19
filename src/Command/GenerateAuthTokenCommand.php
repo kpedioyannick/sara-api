@@ -52,7 +52,9 @@ class GenerateAuthTokenCommand extends Command
         $io->success(sprintf('Token généré pour %s (%s)', $user->getEmail(), $user->getFirstName() . ' ' . $user->getLastName()));
         $io->info('Token: ' . $token);
         $loginUrl = $this->buildLoginUrl($username, $token);
-        $io->info('URL de connexion: ' . $this->shortUrlService->shorten($loginUrl));
+        $shortLoginUrl = $this->shortUrlService->shorten($loginUrl);
+        $io->info('URL de connexion (originale): ' . $loginUrl);
+        $io->info('URL de connexion (raccourcie): ' . $shortLoginUrl);
         $io->note('Le token expire le: ' . $user->getAuthTokenExpiresAt()->format('Y-m-d H:i:s'));
 
         return Command::SUCCESS;

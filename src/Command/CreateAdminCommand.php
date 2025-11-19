@@ -81,10 +81,11 @@ class CreateAdminCommand extends Command
         // Générer un token si demandé
         $token = null;
         $loginUrl = null;
+        $shortLoginUrl = null;
         if ($generateToken) {
             $token = $admin->generateAuthToken($validityDays);
             $loginUrl = $this->buildLoginUrl($email, $token);
-            $loginUrl = $this->shortUrlService->shorten($loginUrl);
+            $shortLoginUrl = $this->shortUrlService->shorten($loginUrl);
         }
 
         // Sauvegarder
@@ -107,7 +108,8 @@ class CreateAdminCommand extends Command
         if ($generateToken && $token) {
             $io->section('Token d\'authentification généré');
             $io->info('Token: ' . $token);
-            $io->info('URL de connexion: ' . $loginUrl);
+            $io->info('URL de connexion (originale): ' . $loginUrl);
+            $io->info('URL de connexion (raccourcie): ' . $shortLoginUrl);
             $io->note('Le token expire le: ' . $admin->getAuthTokenExpiresAt()->format('Y-m-d H:i:s'));
         }
 
