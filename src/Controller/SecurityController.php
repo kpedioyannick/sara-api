@@ -72,16 +72,24 @@ class SecurityController extends AbstractController
         $username = $request->query->get('username');
         $token = $request->query->get('token');
 
-        if (!$username || !$token) {
-            $this->addFlash('error', 'Username et token requis pour la connexion automatique.');
+        if (!$token) {
+            $this->addFlash('error', 'Token requis pour la connexion automatique.');
             return $this->redirectToRoute('app_login');
         }
 
         // Trouver l'utilisateur par email ou pseudo
-        $user = $this->userRepository->findByIdentifier($username);
+        $user = null;
+        if ($username) {
+            $user = $this->userRepository->findByIdentifier($username);
+        }
+
+        // Si non trouvé ou username absent, rechercher via le token
+        if (!$user) {
+            $user = $this->userRepository->findOneByValidAuthToken($token);
+        }
 
         if (!$user) {
-            $this->addFlash('error', 'Utilisateur non trouvé.');
+            $this->addFlash('error', 'Utilisateur non trouvé pour ce token.');
             return $this->redirectToRoute('app_login');
         }
 

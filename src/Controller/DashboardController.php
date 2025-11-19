@@ -36,10 +36,14 @@ class DashboardController extends AbstractController
             throw new \RuntimeException('Utilisateur non authentifié');
         }
 
-        // Rediriger selon le rôle seulement si c'est un Coach
-        // Ne pas rediriger les autres rôles pour éviter les boucles
+        // Rediriger selon le rôle
         if ($user instanceof Coach) {
             return $this->redirectToRoute('admin_dashboard');
+        }
+
+        if ($user instanceof Student) {
+            // Page de soutien scolaire : liste des demandes
+            return $this->redirectToRoute('admin_requests_list');
         }
 
         // Par défaut, afficher le dashboard générique

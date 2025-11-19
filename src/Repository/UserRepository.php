@@ -77,4 +77,19 @@ class UserRepository extends ServiceEntityRepository implements PasswordUpgrader
             return null;
         }
     }
+
+    /**
+     * Trouve un utilisateur via un token d'authentification valide
+     */
+    public function findOneByValidAuthToken(string $token): ?User
+    {
+        $qb = $this->createQueryBuilder('u')
+            ->where('u.authToken = :token')
+            ->andWhere('u.authTokenExpiresAt IS NOT NULL')
+            ->andWhere('u.authTokenExpiresAt > :now')
+            ->setParameter('token', $token)
+            ->setParameter('now', new \DateTimeImmutable());
+
+        return $qb->getQuery()->getOneOrNullResult();
+    }
 }
