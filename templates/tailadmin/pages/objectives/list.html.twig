@@ -1777,7 +1777,7 @@ function objectiveManager() {
         },
         openDelete(id) {
             if (confirm('Êtes-vous sûr de vouloir supprimer cet objectif ?')) {
-                fetch(`/admin/objectives/${id}`, {
+                fetch(`/admin/objectives/${id}/delete`, {
                     method: 'DELETE',
                     headers: {
                         'X-Requested-With': 'XMLHttpRequest',

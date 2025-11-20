@@ -1,0 +1,191 @@
+<div class="flex h-full flex-col" x-data="duplicateManager()">
+  <!-- Header -->
+  <div class="sticky top-0 z-10 border-b border-gray-200 bg-white px-6 py-4 dark:border-gray-800 dark:bg-gray-900">
+    <div class="flex items-center justify-between">
+      <h3 class="text-lg font-semibold text-gray-800 dark:text-white/90">
+        Dupliquer l'objectif
+      </h3>
+      <button
+        @click="$dispatch('close-duplicate-sheet')"
+        class="rounded-lg p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-300"
+      >
+        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Content -->
+  <div class="flex-1 overflow-y-auto p-6">
+    {% if error is defined and error %}
+    <div class="mb-4 rounded-lg bg-red-50 border border-red-200 p-4 dark:bg-red-900/20 dark:border-red-800">
+      <p class="text-sm text-red-700 dark:text-red-300">{{ error }}</p>
+    </div>
+    {% endif %}
+
+    <form @submit.prevent="saveDuplicate()" class="space-y-6">
+      <!-- Information sur l'objectif à dupliquer -->
+      <div class="rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-800/50">
+        <h4 class="mb-2 text-sm font-semibold text-gray-800 dark:text-white/90">
+          Objectif à dupliquer
+        </h4>
+        <p class="text-sm text-gray-700 dark:text-gray-300">{{ objective.title }}</p>
+        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+          Élève actuel : {{ objective.student.firstName }} {{ objective.student.lastName }}
+        </p>
+      </div>
+
+      <!-- Options de duplication -->
+      <div>
+        <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+          Dupliquer les tâches
+        </label>
+        <label class="flex items-center space-x-2 cursor-pointer">
+          <input
+            type="checkbox"
+            x-model="duplicateData.duplicateTasks"
+            class="rounded border-gray-300 text-brand-500 focus:ring-brand-500 dark:border-gray-600 dark:bg-gray-800"
+          />
+          <span class="text-sm text-gray-700 dark:text-gray-300">Inclure toutes les tâches dans la duplication</span>
+        </label>
+      </div>
+
+      <!-- Sélection des élèves -->
+      <div>
+        <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+          Sélectionner les élèves pour lesquels dupliquer l'objectif <span class="text-error-500">*</span>
+        </label>
+        <div class="space-y-2 max-h-60 overflow-y-auto border border-gray-200 rounded-lg p-3 dark:border-gray-700">
+          {% for student in students %}
+          <label class="flex items-center space-x-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 p-2 rounded">
+            <input
+              type="checkbox"
+              :value="{{ student.id }}"
+              x-model="duplicateData.studentIds"
+              :checked="duplicateData.studentIds.includes({{ student.id }})"
+              class="rounded border-gray-300 text-brand-500 focus:ring-brand-500 dark:border-gray-600 dark:bg-gray-800"
+            />
+            <span class="text-sm text-gray-700 dark:text-gray-300">{{ student.firstName }} {{ student.lastName }}{% if student.pseudo %} ({{ student.pseudo }}){% endif %}</span>
+          </label>
+          {% endfor %}
+          {% if students|length == 0 %}
+          <p class="text-sm text-gray-500 dark:text-gray-400">Aucun élève disponible</p>
+          {% endif %}
+        </div>
+      </div>
+    </form>
+  </div>
+
+  <!-- Footer -->
+  <div class="sticky bottom-0 border-t border-gray-200 bg-white px-6 py-4 dark:border-gray-800 dark:bg-gray-900">
+    <div class="flex gap-3">
+      <button
+        @click="$dispatch('close-duplicate-sheet')"
+        class="flex-1 rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+      >
+        Annuler
+      </button>
+      <button
+        @click="saveDuplicate()"
+        :disabled="isSaving || !duplicateData.studentIds || duplicateData.studentIds.length === 0"
+        class="flex-1 rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white shadow-theme-xs hover:bg-brand-600 disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        <span x-show="!isSaving">Dupliquer</span>
+        <span x-show="isSaving">Duplication en cours...</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+// Définir la fonction globalement pour qu'elle soit accessible après l'injection du HTML
+window.duplicateManager = function() {
+  return {
+    duplicateData: {
+      studentIds: [],
+      duplicateTasks: true,
+    },
+    isSaving: false,
+    async saveDuplicate() {
+      if (this.isSaving) return;
+      
+      if (!this.duplicateData.studentIds || this.duplicateData.studentIds.length === 0) {
+        if (window.showToast) {
+          window.showToast('Veuillez sélectionner au moins un élève', 'error');
+        } else {
+          alert('Veuillez sélectionner au moins un élève');
+        }
+        return;
+      }
+      
+      this.isSaving = true;
+
+      try {
+        const response = await fetch('/admin/objectives/{{ objective.id }}/duplicate', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest',
+          },
+          body: JSON.stringify({
+            studentIds: this.duplicateData.studentIds.map(id => Number(id)),
+            duplicateTasks: this.duplicateData.duplicateTasks,
+          }),
+        });
+
+        let result;
+        try {
+          result = await response.json();
+        } catch (e) {
+          result = { success: false, message: 'Erreur lors de la lecture de la réponse' };
+        }
+
+        if (response.ok && result.success) {
+          if (window.showToast) {
+            window.showToast(result.message || 'Objectif(s) dupliqué(s) avec succès', 'success');
+          } else {
+            alert(result.message || 'Objectif(s) dupliqué(s) avec succès');
+          }
+          
+          // Fermer le sheet
+          this.$dispatch('close-duplicate-sheet');
+          
+          // Rediriger vers le premier objectif créé ou recharger la page
+          if (result.redirect) {
+            setTimeout(() => {
+              window.location.href = result.redirect;
+            }, 1000);
+          } else if (result.redirectToList) {
+            setTimeout(() => {
+              window.location.href = result.redirectToList;
+            }, 1000);
+          } else {
+            setTimeout(() => {
+              window.location.reload();
+            }, 1000);
+          }
+        } else {
+          const errorMessage = result.message || 'Erreur lors de la duplication';
+          if (window.showToast) {
+            window.showToast(errorMessage, 'error');
+          } else {
+            alert(errorMessage);
+          }
+        }
+      } catch (error) {
+        console.error('Erreur:', error);
+        const errorMessage = 'Une erreur est survenue lors de la duplication';
+        if (window.showToast) {
+          window.showToast(errorMessage, 'error');
+        } else {
+          alert(errorMessage);
+        }
+      } finally {
+        this.isSaving = false;
+      }
+    },
+  };
+};
+</script>
+

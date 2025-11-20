@@ -40,8 +40,16 @@ class SecurityController extends AbstractController
     #[Route('/login', name: 'app_login')]
     public function login(AuthenticationUtils $authenticationUtils): Response
     {
-        // Ne pas rediriger automatiquement pour éviter les boucles de redirection
-        // L'utilisateur peut rester sur la page de login même s'il est connecté
+        // Rediriger les utilisateurs déjà connectés vers leur dashboard
+        if ($user = $this->getUser()) {
+            if ($user instanceof Coach) {
+                return $this->redirectToRoute('admin_dashboard');
+            } elseif ($user instanceof Student) {
+                return $this->redirectToRoute('admin_requests_list');
+            } else {
+                return $this->redirectToRoute('app_dashboard');
+            }
+        }
 
         $error = $authenticationUtils->getLastAuthenticationError();
         $lastUsername = $authenticationUtils->getLastUsername();

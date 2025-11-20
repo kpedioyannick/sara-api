@@ -834,4 +834,66 @@ class Task
         
         return $task;
     }
+
+    /**
+     * Duplique cette tâche et retourne une nouvelle instance
+     * 
+     * @return self Nouvelle instance de Task dupliquée
+     */
+    public function duplicate(): self
+    {
+        $newTask = new self();
+        
+        // Copier les données de base
+        $newTask->setCoach($this->getCoach());
+        $newTask->setTitle($this->getTitle());
+        $newTask->setDescription($this->getDescription());
+        $newTask->setStatus(self::STATUS_PENDING); // Réinitialiser le statut
+        $newTask->setFrequency($this->getFrequency());
+        $newTask->setRequiresProof($this->isRequiresProof());
+        $newTask->setProofType($this->getProofType());
+        $newTask->setAssignedType($this->getAssignedType());
+        $newTask->setType($this->getType());
+        
+        // Copier les dates si elles existent
+        if ($this->getStartDate()) {
+            $newTask->setStartDate($this->getStartDate());
+        }
+        if ($this->getDueDate()) {
+            $newTask->setDueDate($this->getDueDate());
+        }
+        if ($this->getRepeatDaysOfWeek()) {
+            $newTask->setRepeatDaysOfWeek($this->getRepeatDaysOfWeek());
+        }
+        
+        // Copier les affectations
+        if ($this->getStudent()) {
+            $newTask->setStudent($this->getStudent());
+        }
+        if ($this->getParent()) {
+            $newTask->setParent($this->getParent());
+        }
+        if ($this->getSpecialist()) {
+            $newTask->setSpecialist($this->getSpecialist());
+        }
+        
+        // Copier les champs spécifiques selon le type
+        if ($this->getActivity()) {
+            $newTask->setActivity($this->getActivity());
+        }
+        if ($this->getPath()) {
+            $newTask->setPath($this->getPath());
+        }
+        if ($this->getLocation()) {
+            $newTask->setLocation($this->getLocation());
+        }
+        if ($this->getFamily()) {
+            $newTask->setFamily($this->getFamily());
+        }
+        if ($this->getAssessmentNotes()) {
+            $newTask->setAssessmentNotes($this->getAssessmentNotes());
+        }
+        
+        return $newTask;
+    }
 }

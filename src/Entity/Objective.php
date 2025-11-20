@@ -517,4 +517,45 @@ class Objective
     {
         return self::STATUSES[$this->status] ?? $this->status;
     }
+
+    /**
+     * Duplique cet objectif et retourne une nouvelle instance
+     * 
+     * @param bool $duplicateTasks Si true, duplique également les tâches
+     * @return self Nouvelle instance d'Objective dupliquée
+     */
+    public function duplicate(bool $duplicateTasks = true): self
+    {
+        $newObjective = new self();
+        
+        // Copier les données de base
+        $newObjective->setCoach($this->getCoach());
+        $newObjective->setStudent($this->getStudent());
+        $newObjective->setTitle($this->getTitle() . ' (Copie)');
+        $newObjective->setDescription($this->getDescription());
+        $newObjective->setDescriptionOrigin($this->getDescriptionOrigin());
+        $newObjective->setCategory($this->getCategory());
+        $newObjective->setCategoryTags($this->getCategoryTags());
+        
+        // Réinitialiser le statut et la progression
+        $newObjective->setStatus(self::STATUS_MODIFICATION);
+        $newObjective->setProgress(0);
+        $newObjective->setCreatedAt(new \DateTimeImmutable());
+        
+        // Date limite : date actuelle + 3 semaines
+        $deadline = new \DateTimeImmutable();
+        $deadline = $deadline->modify('+3 weeks');
+        $newObjective->setDeadline($deadline);
+        
+        // Dupliquer les tâches si demandé
+        if ($duplicateTasks) {
+            foreach ($this->getTasks() as $originalTask) {
+                $newTask = $originalTask->duplicate();
+                $newTask->setObjective($newObjective);
+                $newObjective->addTask($newTask);
+            }
+        }
+        
+        return $newObjective;
+    }
 }

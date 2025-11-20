@@ -1274,5 +1274,171 @@ class ObjectiveController extends AbstractController
             'objective' => $objective->toArray()
         ]);
     }
+
+    #[Route('/admin/objectives/{id}/duplicate-sheet', name: 'admin_objectives_duplicate_sheet', methods: ['GET'])]
+    #[IsGranted('ROLE_USER')]
+    public function duplicateSheet(int $id): Response
+    {
+        $user = $this->getUser();
+        if (!$user) {
+            throw $this->createAccessDeniedException('Vous devez être connecté');
+        }
+
+        // Seul le coach peut dupliquer un objectif
+        if (!$user instanceof \App\Entity\Coach) {
+            throw $this->createAccessDeniedException('Seul le coach peut dupliquer un objectif');
+        }
+
+        $objective = $this->objectiveRepository->find($id);
+        if (!$objective) {
+            throw $this->createNotFoundException('Objectif non trouvé');
+        }
+
+        // Vérifier que le coach est le propriétaire de l'objectif
+        if ($objective->getCoach() !== $user) {
+            throw $this->createAccessDeniedException('Vous n\'avez pas le droit de dupliquer cet objectif');
+        }
+
+        // Récupérer tous les élèves du coach
+        $students = [];
+        foreach ($user->getFamilies() as $family) {
+            foreach ($family->getStudents() as $student) {
+                $students[] = $student;
+            }
+        }
+
+        return $this->render('tailadmin/pages/objectives/_duplicate_sheet.html.twig', [
+            'objective' => $objective,
+            'students' => $students,
+        ]);
+    }
+
+    #[Route('/admin/objectives/{id}/duplicate', name: 'admin_objectives_duplicate', methods: ['POST'])]
+    #[IsGranted('ROLE_USER')]
+    public function duplicate(int $id, Request $request): JsonResponse
+    {
+        $user = $this->getUser();
+        if (!$user) {
+            return new JsonResponse(['success' => false, 'message' => 'Vous devez être connecté'], 403);
+        }
+
+        $originalObjective = $this->objectiveRepository->find($id);
+        if (!$originalObjective) {
+            return new JsonResponse(['success' => false, 'message' => 'Objectif non trouvé'], 404);
+        }
+
+        // Vérifier les permissions d'accès
+        if (!$this->permissionService->canViewObjective($user, $originalObjective)) {
+            return new JsonResponse(['success' => false, 'message' => 'Vous n\'avez pas accès à cet objectif'], 403);
+        }
+
+        // Récupérer le coach (soit l'utilisateur connecté s'il est coach, soit le coach de l'objectif)
+        $coach = null;
+        if ($user instanceof \App\Entity\Coach) {
+            $coach = $user;
+        } else {
+            $coach = $this->getCurrentCoach($this->coachRepository, $this->security);
+            if (!$coach) {
+                $coach = $originalObjective->getCoach();
+            }
+        }
+
+        if (!$coach) {
+            return new JsonResponse(['success' => false, 'message' => 'Coach non trouvé'], 404);
+        }
+
+        $data = json_decode($request->getContent(), true);
+        $duplicateTasks = $data['duplicateTasks'] ?? true; // Par défaut, dupliquer les tâches
+        $studentIds = $data['studentIds'] ?? [];
+
+        // Vérifier qu'au moins un élève est sélectionné
+        if (empty($studentIds) || !is_array($studentIds)) {
+            return new JsonResponse(['success' => false, 'message' => 'Veuillez sélectionner au moins un élève'], 400);
+        }
+
+        // Vérifier que les étudiants appartiennent aux familles du coach
+        $students = $this->studentRepository->findBy(['id' => $studentIds]);
+        foreach ($students as $student) {
+            $family = $student->getFamily();
+            if (!$family || $family->getCoach() !== $coach) {
+                return new JsonResponse(['success' => false, 'message' => 'Vous ne pouvez dupliquer que pour vos propres élèves'], 403);
+            }
+        }
+
+        try {
+            $createdObjectives = [];
+            $totalTasksCount = 0;
+
+            // Créer un objectif dupliqué pour chaque élève sélectionné
+            foreach ($students as $student) {
+                // Utiliser la méthode duplicate() de l'entité Objective
+                $newObjective = $originalObjective->duplicate($duplicateTasks);
+                
+                // Définir le coach et l'élève
+                $newObjective->setCoach($coach);
+                $newObjective->setStudent($student);
+                
+                // Mettre à jour le coach et l'élève sur toutes les tâches dupliquées
+                if ($duplicateTasks) {
+                    foreach ($newObjective->getTasks() as $task) {
+                        $task->setCoach($coach);
+                        // Si la tâche était assignée à l'élève original, l'assigner au nouvel élève
+                        if ($task->getAssignedType() === 'student' && $task->getStudent() && $task->getStudent()->getId() === $originalObjective->getStudent()->getId()) {
+                            $task->setStudent($student);
+                        }
+                    }
+                }
+
+                // Validation
+                $errors = $this->validator->validate($newObjective);
+                if (count($errors) > 0) {
+                    $errorMessages = [];
+                    foreach ($errors as $error) {
+                        $errorMessages[] = $error->getMessage();
+                    }
+                    return new JsonResponse(['success' => false, 'message' => implode(', ', $errorMessages)], 400);
+                }
+
+                $this->em->persist($newObjective);
+                $createdObjectives[] = $newObjective;
+                $totalTasksCount += $duplicateTasks ? $newObjective->getTasks()->count() : 0;
+            }
+
+            $this->em->flush();
+
+            $objectivesCount = count($createdObjectives);
+            $message = $objectivesCount > 1
+                ? sprintf('%d objectifs dupliqués avec succès', $objectivesCount)
+                : 'Objectif dupliqué avec succès';
+            
+            if ($totalTasksCount > 0) {
+                $message .= sprintf(' (%d tâche(s) au total)', $totalTasksCount);
+            }
+
+            // Rediriger vers le premier objectif créé si un seul, sinon vers la liste
+            $redirect = $objectivesCount === 1
+                ? '/admin/objectives/' . $createdObjectives[0]->getId()
+                : null;
+
+            return new JsonResponse([
+                'success' => true,
+                'message' => $message,
+                'objectivesCount' => $objectivesCount,
+                'id' => $createdObjectives[0]->getId() ?? null,
+                'redirect' => $redirect,
+                'redirectToList' => $objectivesCount > 1 ? '/admin/objectives' : null,
+            ]);
+        } catch (\Exception $e) {
+            $this->logger->error('Erreur lors de la duplication d\'objectif', [
+                'objective_id' => $id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            return new JsonResponse([
+                'success' => false,
+                'message' => 'Erreur lors de la duplication : ' . $e->getMessage()
+            ], 500);
+        }
+    }
 }
 
