@@ -68,4 +68,28 @@ class SpecialistRepository extends ServiceEntityRepository
 
         return $qb->getQuery()->getResult();
     }
+
+    /**
+     * Retourne les spécialistes associés aux familles d'un coach (avec recherche optionnelle).
+     */
+    public function findByCoachWithSearch($coach, string $search = ''): array
+    {
+        $qb = $this->createQueryBuilder('s')
+            ->innerJoin('App\Entity\Family', 'f', 'WITH', 's MEMBER OF f.specialists')
+            ->where('f.coach = :coach')
+            ->setParameter('coach', $coach)
+            ->groupBy('s.id');
+
+        if (!empty($search) && $search !== 'undefined') {
+            $qb->andWhere(
+                $qb->expr()->orX(
+                    $qb->expr()->like('LOWER(s.firstName)', 'LOWER(:search)'),
+                    $qb->expr()->like('LOWER(s.lastName)', 'LOWER(:search)'),
+                    $qb->expr()->like('LOWER(s.email)', 'LOWER(:search)')
+                )
+            )->setParameter('search', '%' . $search . '%');
+        }
+
+        return $qb->getQuery()->getResult();
+    }
 }

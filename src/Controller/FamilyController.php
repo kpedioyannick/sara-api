@@ -495,8 +495,8 @@ class FamilyController extends AbstractController
             $student->setNeedTags($data['needTags']);
         }
         
-        $defaultPassword = 'password123';
-        $hashedPassword = $this->passwordHasher->hashPassword($student, $defaultPassword);
+        $generatedPassword = bin2hex(random_bytes(16));
+        $hashedPassword = $this->passwordHasher->hashPassword($student, $generatedPassword);
         $student->setPassword($hashedPassword);
 
         // Validation
@@ -557,12 +557,6 @@ class FamilyController extends AbstractController
         }
         if (isset($data['isActive'])) {
             $student->setIsActive((bool)$data['isActive']);
-        }
-        
-        // Gérer le changement de mot de passe si fourni
-        if (isset($data['newPassword']) && !empty(trim($data['newPassword']))) {
-            $hashedPassword = $this->passwordHasher->hashPassword($student, $data['newPassword']);
-            $student->setPassword($hashedPassword);
         }
         
         // Gérer l'assignation des spécialistes - uniquement pour les coaches

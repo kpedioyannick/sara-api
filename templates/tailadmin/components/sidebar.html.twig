@@ -515,7 +515,7 @@
           {% endif %}
 
           <!-- Menu Item Utilisateurs (Admin uniquement) -->
-          {% if app.user and app.user.isAdmin() %}
+          {% if app.user and (app.user.isAdmin() or app.user.isCoach()) %}
           <li>
             <a
               href="{{ path("admin_users_list") }}"

@@ -22,6 +22,7 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
+use Symfony\Component\Security\Http\Attribute\Security;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 use App\Service\ShortUrlService;
 
@@ -42,14 +43,52 @@ class AdminUserController extends AbstractController
     }
 
     #[Route('/admin/users', name: 'admin_users_list')]
-    #[IsGranted('ROLE_ADMIN')]
+    #[Security("is_granted('ROLE_ADMIN') or is_granted('ROLE_COACH')")]
     public function list(Request $request): Response
     {
+        $authenticatedUser = $this->getUser();
+        $isAdmin = $this->isGranted('ROLE_ADMIN');
+        $isCoachOnly = !$isAdmin && $authenticatedUser instanceof Coach;
+
         $search = $request->query->get('search', '');
         $type = $request->query->get('type', 'all');
         $page = max(1, (int) $request->query->get('page', 1));
         $limit = 20;
         $offset = ($page - 1) * $limit;
+
+        if ($isCoachOnly) {
+            /** @var Coach $coach */
+            $coach = $authenticatedUser;
+            $users = [];
+
+            if ($type === 'all' || $type === 'coach') {
+                if ($this->userMatchesSearch($coach, $search)) {
+                    $users[] = $coach;
+                }
+            }
+
+            if ($type === 'all' || $type === 'parent') {
+                $parents = $this->parentRepository->findByCoachWithSearch($coach, $search);
+                $users = array_merge($users, $parents);
+            }
+
+            if ($type === 'all' || $type === 'student') {
+                $students = $this->studentRepository->findByCoachWithSearch($coach, $search);
+                $users = array_merge($users, $students);
+            }
+
+            if ($type === 'all' || $type === 'specialist') {
+                $specialists = $this->specialistRepository->findByCoachWithSearch($coach, $search);
+                $users = array_merge($users, $specialists);
+            }
+
+            return $this->render('tailadmin/pages/users/list.html.twig', [
+                'users' => $users,
+                'search' => $search,
+                'type' => $type,
+                'page' => 1,
+            ]);
+        }
 
         $users = [];
         $total = 0;
@@ -118,7 +157,7 @@ class AdminUserController extends AbstractController
     }
 
     #[Route('/admin/users/{id}', name: 'admin_users_view', requirements: ['id' => '\d+'])]
-    #[IsGranted('ROLE_ADMIN')]
+    #[Security("is_granted('ROLE_ADMIN') or is_granted('ROLE_COACH')")]
     public function view(int $id): Response
     {
         $user = $this->userRepository->find($id);
@@ -128,13 +167,20 @@ class AdminUserController extends AbstractController
             return $this->redirectToRoute('admin_users_list');
         }
 
+        if (!$this->isGranted('ROLE_ADMIN')) {
+            $currentUser = $this->getUser();
+            if (!$currentUser instanceof Coach || !$this->coachCanAccessUser($currentUser, $user)) {
+                throw $this->createAccessDeniedException('Vous ne pouvez consulter que les utilisateurs rattachés à votre périmètre.');
+            }
+        }
+
         return $this->render('tailadmin/pages/users/view.html.twig', [
             'user' => $user,
         ]);
     }
 
     #[Route('/admin/users/{id}/edit', name: 'admin_users_edit', requirements: ['id' => '\d+'], methods: ['GET', 'POST'])]
-    #[IsGranted('ROLE_ADMIN')]
+    #[Security("is_granted('ROLE_ADMIN') or is_granted('ROLE_COACH')")]
     public function edit(int $id, Request $request): Response
     {
         $user = $this->userRepository->find($id);
@@ -142,6 +188,14 @@ class AdminUserController extends AbstractController
         if (!$user) {
             $this->addFlash('error', 'Utilisateur non trouvé.');
             return $this->redirectToRoute('admin_users_list');
+        }
+
+        if (!$this->isGranted('ROLE_ADMIN')) {
+            $currentUser = $this->getUser();
+            if (!$currentUser instanceof Coach) {
+                throw $this->createAccessDeniedException();
+            }
+            $this->assertCoachCanManageUser($currentUser, $user);
         }
 
         if ($request->isMethod('POST')) {
@@ -174,13 +228,25 @@ class AdminUserController extends AbstractController
     }
 
     #[Route('/admin/users/{id}/change-password', name: 'admin_users_change_password', requirements: ['id' => '\d+'], methods: ['POST'])]
-    #[IsGranted('ROLE_ADMIN')]
+    #[Security("is_granted('ROLE_ADMIN') or is_granted('ROLE_COACH')")]
     public function changePassword(int $id, Request $request): JsonResponse
     {
         $user = $this->userRepository->find($id);
 
         if (!$user) {
             return new JsonResponse(['error' => 'Utilisateur non trouvé.'], 404);
+        }
+
+        if (!$this->isGranted('ROLE_ADMIN')) {
+            $currentUser = $this->getUser();
+            if (!$currentUser instanceof Coach) {
+                return new JsonResponse(['error' => 'Accès refusé.'], 403);
+            }
+            try {
+                $this->assertCoachCanManageUser($currentUser, $user);
+            } catch (\Symfony\Component\Security\Core\Exception\AccessDeniedException $e) {
+                return new JsonResponse(['error' => 'Accès refusé.'], 403);
+            }
         }
 
         $data = json_decode($request->getContent(), true);
@@ -199,13 +265,25 @@ class AdminUserController extends AbstractController
     }
 
     #[Route('/admin/users/{id}/generate-token', name: 'admin_users_generate_token', requirements: ['id' => '\d+'], methods: ['POST'])]
-    #[IsGranted('ROLE_ADMIN')]
+    #[Security("is_granted('ROLE_ADMIN') or is_granted('ROLE_COACH')")]
     public function generateToken(int $id, Request $request): JsonResponse
     {
         $user = $this->userRepository->find($id);
 
         if (!$user) {
             return new JsonResponse(['error' => 'Utilisateur non trouvé.'], 404);
+        }
+
+        if (!$this->isGranted('ROLE_ADMIN')) {
+            $currentUser = $this->getUser();
+            if (!$currentUser instanceof Coach) {
+                return new JsonResponse(['error' => 'Accès refusé.'], 403);
+            }
+            try {
+                $this->assertCoachCanManageUser($currentUser, $user);
+            } catch (\Symfony\Component\Security\Core\Exception\AccessDeniedException $e) {
+                return new JsonResponse(['error' => 'Accès refusé.'], 403);
+            }
         }
 
         $data = json_decode($request->getContent(), true);
@@ -234,7 +312,7 @@ class AdminUserController extends AbstractController
     }
 
     #[Route('/admin/users/{id}/delete', name: 'admin_users_delete', requirements: ['id' => '\d+'], methods: ['POST'])]
-    #[IsGranted('ROLE_ADMIN')]
+    #[Security("is_granted('ROLE_ADMIN') or is_granted('ROLE_COACH')")]
     public function delete(int $id): JsonResponse
     {
         $user = $this->userRepository->find($id);
@@ -246,6 +324,18 @@ class AdminUserController extends AbstractController
         // Ne pas permettre la suppression de l'admin actuel
         if ($user === $this->getUser()) {
             return new JsonResponse(['error' => 'Vous ne pouvez pas supprimer votre propre compte.'], 400);
+        }
+
+        if (!$this->isGranted('ROLE_ADMIN')) {
+            $currentUser = $this->getUser();
+            if (!$currentUser instanceof Coach) {
+                return new JsonResponse(['error' => 'Accès refusé.'], 403);
+            }
+            try {
+                $this->assertCoachCanManageUser($currentUser, $user);
+            } catch (\Symfony\Component\Security\Core\Exception\AccessDeniedException $e) {
+                return new JsonResponse(['error' => 'Accès refusé.'], 403);
+            }
         }
 
         $this->em->remove($user);
@@ -334,6 +424,56 @@ class AdminUserController extends AbstractController
         return $this->render('tailadmin/pages/users/new.html.twig', [
             'type' => $request->query->get('type', ''),
         ]);
+    }
+
+    private function userMatchesSearch(User $user, string $search): bool
+    {
+        if (empty($search) || $search === 'undefined') {
+            return true;
+        }
+
+        $search = strtolower($search);
+
+        return str_contains(strtolower((string) $user->getFirstName()), $search)
+            || str_contains(strtolower((string) $user->getLastName()), $search)
+            || str_contains(strtolower((string) $user->getEmail()), $search);
+    }
+
+    private function coachCanAccessUser(Coach $coach, User $target): bool
+    {
+        if ($target instanceof Coach) {
+            return $coach->getId() === $target->getId();
+        }
+
+        if ($target instanceof ParentUser) {
+            return $target->getFamily()?->getCoach()?->getId() === $coach->getId();
+        }
+
+        if ($target instanceof Student) {
+            return $target->getFamily()?->getCoach()?->getId() === $coach->getId();
+        }
+
+        if ($target instanceof Specialist) {
+            foreach ($target->getStudents() as $student) {
+                $studentCoach = $student->getFamily()?->getCoach();
+                if ($studentCoach && $studentCoach->getId() === $coach->getId()) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    private function assertCoachCanManageUser(Coach $coach, User $target): void
+    {
+        if (!$this->coachCanAccessUser($coach, $target)) {
+            throw $this->createAccessDeniedException('Utilisateur non rattaché à votre périmètre.');
+        }
+
+        if ($target instanceof Coach || $target instanceof Admin) {
+            throw $this->createAccessDeniedException('Action non autorisée sur ce type d\'utilisateur.');
+        }
     }
 }
 

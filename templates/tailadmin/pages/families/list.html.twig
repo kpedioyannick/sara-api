@@ -568,6 +568,19 @@
                                         class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
                                     />
                                 </div>
+                            <div>
+                                <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                    Mot de passe <span class="text-error-500">*</span>
+                                </label>
+                                <input
+                                    type="password"
+                                    x-model="newFamilyData.parentPassword"
+                                    required
+                                    placeholder="••••••••"
+                                    autocomplete="new-password"
+                                    class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+                                />
+                            </div>
                             </div>
                         </div>
                     </form>
@@ -657,6 +670,22 @@
                             />
                             <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
                                 Le pseudo sera utilisé pour l'email (pseudo@sara.education). Généré automatiquement à partir du prénom et du nom.
+                            </p>
+                        </div>
+                        <div>
+                            <label class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                Mot de passe <span class="text-error-500">*</span>
+                            </label>
+                            <input
+                                type="password"
+                                x-model="newStudentData.password"
+                                required
+                                placeholder="••••••••"
+                                autocomplete="new-password"
+                                class="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white/90"
+                            />
+                            <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                                Mot de passe de connexion de l'élève.
                             </p>
                         </div>
                         <div>
@@ -760,6 +789,7 @@ function familyManager() {
             parentFirstName: '',
             parentLastName: '',
             parentEmail: '',
+            parentPassword: '',
             location: '',
             specialistIds: [],
         },
@@ -771,6 +801,7 @@ function familyManager() {
             class: '',
             schoolName: '',
             needTags: [],
+            password: '',
         },
         allTags: [],
         studentTagsChoicesInstance: null,
@@ -1328,7 +1359,8 @@ function familyManager() {
             }
 
             if (!this.newFamilyData.parentFirstName || 
-                !this.newFamilyData.parentLastName || !this.newFamilyData.parentEmail) {
+                !this.newFamilyData.parentLastName || !this.newFamilyData.parentEmail ||
+                !this.newFamilyData.parentPassword) {
                 this.showMessage('Veuillez remplir tous les champs obligatoires', 'error');
                 return;
             }
@@ -1347,6 +1379,7 @@ function familyManager() {
                         firstName: this.newFamilyData.parentFirstName,
                         lastName: this.newFamilyData.parentLastName,
                         email: this.newFamilyData.parentEmail,
+                        password: this.newFamilyData.parentPassword,
                     },
                     location: this.newFamilyData.type === 'GROUP' ? this.newFamilyData.location : null,
                     specialistIds: this.newFamilyData.type === 'GROUP' ? this.newFamilyData.specialistIds : [],
@@ -1410,6 +1443,7 @@ function familyManager() {
                 class: '',
                 schoolName: '',
                 needTags: [],
+                password: '',
             };
             this.rightSheetOpen = true;
             // Initialiser Choices.js pour les tags après que le DOM soit mis à jour
@@ -1561,8 +1595,9 @@ function familyManager() {
         saveStudent() {
             // Si c'est une création
             if (this.currentType === 'create-student') {
-                if (!this.currentFamilyId || !this.newStudentData.firstName || 
-                    !this.newStudentData.lastName || !this.newStudentData.pseudo) {
+            if (!this.currentFamilyId || !this.newStudentData.firstName || 
+                !this.newStudentData.lastName || !this.newStudentData.pseudo ||
+                !this.newStudentData.password) {
                     this.showMessage('Veuillez remplir tous les champs obligatoires', 'error');
                     return;
                 }
@@ -1583,7 +1618,8 @@ function familyManager() {
                         email: email,
                         class: this.newStudentData.class || '',
                         schoolName: this.newStudentData.schoolName || '',
-                        needTags: this.newStudentData.needTags || [],
+                    needTags: this.newStudentData.needTags || [],
+                    password: this.newStudentData.password,
                     }),
                 })
                 .then(response => response.json())
@@ -1613,7 +1649,6 @@ function familyManager() {
                 pseudo: this.currentData.pseudo,
                 class: this.currentData.class,
                 schoolName: this.currentData.schoolName,
-                newPassword: this.currentData.newPassword,
                 specialistIds: this.currentData.specialistIds || [],
                 needTags: this.currentData.needTags || [],
                 isActive: this.currentData.isActive !== undefined ? this.currentData.isActive : true
