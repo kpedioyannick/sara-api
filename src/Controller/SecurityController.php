@@ -88,7 +88,7 @@ class SecurityController extends AbstractController
         // Trouver l'utilisateur par email ou pseudo
         $user = null;
         if ($username) {
-            $user = $this->userRepository->findByIdentifier($username);
+        $user = $this->userRepository->findByIdentifier($username);
         }
 
         // Si non trouvé ou username absent, rechercher via le token

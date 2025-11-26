@@ -53,31 +53,31 @@ security:
         - { path: ^/api/parent, roles: ROLE_PARENT }
         - { path: ^/api/student, roles: ROLE_STUDENT }
         - { path: ^/api/specialist, roles: ROLE_SPECIALIST }
-        - { path: ^/api, roles: IS_AUTHENTICATED_FULLY }
+        - { path: ^/api, roles: IS_AUTHENTICATED }
         # Web routes
         - { path: ^/login, roles: PUBLIC_ACCESS }
         - { path: ^/register, roles: PUBLIC_ACCESS }
         # Routes admin accessibles aux coaches, parents, étudiants et spécialistes
-        - { path: ^/admin/notifications, roles: IS_AUTHENTICATED_FULLY }
-        - { path: ^/admin/search, roles: IS_AUTHENTICATED_FULLY }
-        - { path: ^/admin/requests, roles: IS_AUTHENTICATED_FULLY }
-        - { path: ^/admin/planning, roles: IS_AUTHENTICATED_FULLY }
-        - { path: ^/admin/objectives, roles: IS_AUTHENTICATED_FULLY }
-        - { path: ^/admin/profile, roles: IS_AUTHENTICATED_FULLY }
-        - { path: ^/admin/families, roles: IS_AUTHENTICATED_FULLY }
-        - { path: ^/admin/activities, roles: IS_AUTHENTICATED_FULLY }
-        - { path: ^/admin/paths, roles: IS_AUTHENTICATED_FULLY }
-        - { path: ^/admin/integrations, roles: IS_AUTHENTICATED_FULLY }
+        - { path: ^/admin/notifications, roles: IS_AUTHENTICATED }
+        - { path: ^/admin/search, roles: IS_AUTHENTICATED }
+        - { path: ^/admin/requests, roles: IS_AUTHENTICATED }
+        - { path: ^/admin/planning, roles: IS_AUTHENTICATED }
+        - { path: ^/admin/objectives, roles: IS_AUTHENTICATED }
+        - { path: ^/admin/profile, roles: IS_AUTHENTICATED }
+        - { path: ^/admin/families, roles: IS_AUTHENTICATED }
+        - { path: ^/admin/activities, roles: IS_AUTHENTICATED }
+        - { path: ^/admin/paths, roles: IS_AUTHENTICATED }
+        - { path: ^/admin/integrations, roles: IS_AUTHENTICATED }
         # Routes admin réservées aux admins
         - { path: ^/admin/users, roles: [ROLE_ADMIN, ROLE_COACH] }
         # Autres routes admin réservées aux coaches
-        - { path: ^/admin, roles: IS_AUTHENTICATED_FULLY }
+        - { path: ^/admin, roles: IS_AUTHENTICATED }
         - { path: ^/coach, roles: ROLE_COACH }
         - { path: ^/parent, roles: ROLE_PARENT }
         - { path: ^/student, roles: ROLE_STUDENT }
         - { path: ^/specialist, roles: ROLE_SPECIALIST }
-        - { path: ^/dashboard, roles: IS_AUTHENTICATED_FULLY }
-        - { path: ^/settings, roles: IS_AUTHENTICATED_FULLY }
+        - { path: ^/dashboard, roles: IS_AUTHENTICATED }
+        - { path: ^/settings, roles: IS_AUTHENTICATED }
 
 when@test:
     security:

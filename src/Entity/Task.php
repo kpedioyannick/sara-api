@@ -22,11 +22,15 @@ class Task
     public const FREQUENCY_DAILY = 'daily';
     public const FREQUENCY_WEEKLY = 'weekly';
     public const FREQUENCY_MONTHLY = 'monthly';
+    public const FREQUENCY_EVEN_WEEK = 'even_week';
+    public const FREQUENCY_ODD_WEEK = 'odd_week';
 
     public const FREQUENCIES = [
         self::FREQUENCY_NONE => 'Aucune',
         self::FREQUENCY_DAILY => 'Quotidienne',
         self::FREQUENCY_WEEKLY => 'Hebdomadaire',
+        self::FREQUENCY_EVEN_WEEK => 'Semaine Paire',
+        self::FREQUENCY_ODD_WEEK => 'Semaine Impaire',
         self::FREQUENCY_MONTHLY => 'Mensuelle',
     ];
 

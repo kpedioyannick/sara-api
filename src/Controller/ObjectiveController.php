@@ -360,6 +360,8 @@ class ObjectiveController extends AbstractController
                         Task::FREQUENCY_NONE,
                         Task::FREQUENCY_DAILY,
                         Task::FREQUENCY_WEEKLY,
+                        Task::FREQUENCY_EVEN_WEEK,
+                        Task::FREQUENCY_ODD_WEEK,
                         Task::FREQUENCY_MONTHLY
                     ];
                     if (!in_array($frequency, $validFrequencies)) {

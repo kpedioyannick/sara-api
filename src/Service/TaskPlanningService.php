@@ -101,6 +101,65 @@ class TaskPlanningService
         // Supprimer les anciens événements de cette tâche
         $this->removeExistingPlanningForTask($task);
 
+        // Pour les semaines paires/impaires, on doit vérifier la parité de la semaine
+        if (in_array($frequency, [Task::FREQUENCY_EVEN_WEEK, Task::FREQUENCY_ODD_WEEK]) && !empty($repeatDaysOfWeek)) {
+            $currentDate = $startDate;
+            while ($currentDate <= $endDate) {
+                $dayOfWeek = (int)$currentDate->format('w');
+                $isEvenWeek = $this->isEvenWeek($currentDate);
+                
+                // Vérifier si on doit créer un événement pour cette semaine
+                $shouldCreate = false;
+                if ($frequency === Task::FREQUENCY_EVEN_WEEK && $isEvenWeek) {
+                    $shouldCreate = true;
+                } elseif ($frequency === Task::FREQUENCY_ODD_WEEK && !$isEvenWeek) {
+                    $shouldCreate = true;
+                }
+                
+                // Si le jour correspond aux jours sélectionnés et que c'est la bonne semaine
+                if ($shouldCreate && in_array($dayOfWeek, $repeatDaysOfWeek)) {
+                    $eventStartDate = $currentDate->setTime(
+                        (int)$startDate->format('H'),
+                        (int)$startDate->format('i'),
+                        (int)$startDate->format('s')
+                    );
+                    
+                    $eventEndDate = $currentDate->setTime(
+                        (int)$endDate->format('H'),
+                        (int)$endDate->format('i'),
+                        (int)$endDate->format('s')
+                    );
+                    if ($eventEndDate <= $eventStartDate) {
+                        $eventEndDate = $currentDate->setTime(23, 59, 59);
+                    }
+                    
+                    if ($eventStartDate <= $endDate) {
+                        $planning = new Planning();
+                        $planning->setTitle($task->getTitle());
+                        $planning->setDescription($task->getDescription());
+                        $planning->setStartDate($eventStartDate);
+                        $planning->setEndDate($eventEndDate);
+                        $planning->setType(Planning::TYPE_TASK);
+                        $planning->setStatus(Planning::STATUS_TO_DO);
+                        $planning->setUser($student);
+                        $planning->setMetadata([
+                            'taskId' => $task->getId(),
+                            'objectiveId' => $task->getObjective()?->getId(),
+                            'frequency' => $frequency,
+                            'repeatDaysOfWeek' => $repeatDaysOfWeek,
+                        ]);
+
+                        $this->em->persist($planning);
+                        $events[] = $planning;
+                    }
+                }
+                
+                $currentDate = $currentDate->modify('+1 day')->setTime(0, 0, 0);
+            }
+            
+            return $events;
+        }
+
         // Pour les répétitions hebdomadaires, on doit itérer jour par jour
         if ($frequency === Task::FREQUENCY_WEEKLY && !empty($repeatDaysOfWeek)) {
             $currentDate = $startDate;
@@ -204,6 +263,7 @@ class TaskPlanningService
         return match ($frequency) {
             Task::FREQUENCY_DAILY => $startDate->modify('+1 day')->setTime(23, 59, 59),
             Task::FREQUENCY_WEEKLY => $startDate->modify('+1 week')->setTime(23, 59, 59),
+            Task::FREQUENCY_EVEN_WEEK, Task::FREQUENCY_ODD_WEEK => $startDate->modify('+2 weeks')->setTime(23, 59, 59),
             Task::FREQUENCY_MONTHLY => $startDate->modify('+1 month')->setTime(23, 59, 59),
             default => $startDate->modify('+1 day')->setTime(23, 59, 59),
         };
@@ -217,9 +277,19 @@ class TaskPlanningService
         return match ($frequency) {
             Task::FREQUENCY_DAILY => $currentDate->modify('+1 day')->setTime(0, 0, 0),
             Task::FREQUENCY_WEEKLY => $currentDate->modify('+1 week')->setTime(0, 0, 0),
+            Task::FREQUENCY_EVEN_WEEK, Task::FREQUENCY_ODD_WEEK => $currentDate->modify('+2 weeks')->setTime(0, 0, 0),
             Task::FREQUENCY_MONTHLY => $currentDate->modify('+1 month')->setTime(0, 0, 0),
             default => $currentDate->modify('+1 day')->setTime(0, 0, 0),
         };
+    }
+
+    /**
+     * Détermine si une date est dans une semaine paire (basé sur le numéro de semaine ISO)
+     */
+    private function isEvenWeek(\DateTimeImmutable $date): bool
+    {
+        $weekNumber = (int)$date->format('W'); // Numéro de semaine ISO (1-53)
+        return $weekNumber % 2 === 0;
     }
 
     /**

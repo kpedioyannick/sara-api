@@ -60,10 +60,11 @@ services:
             $contactEmail: '%env(CONTACT_EMAIL)%'
             $appName: 'SARA'
 
-    # Notification Service - Forcer l'injection de EmailNotificationService
+    # Notification Service - Forcer l'injection de EmailNotificationService et MessageRepository
     App\Service\NotificationService:
         arguments:
             $emailNotificationService: '@App\Service\EmailNotificationService'
+            $messageRepository: '@App\Repository\MessageRepository'
 
     # Firebase Service
     App\Service\FirebaseService:

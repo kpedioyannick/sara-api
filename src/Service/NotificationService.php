@@ -7,6 +7,7 @@ use App\Entity\Objective;
 use App\Entity\Request;
 use App\Entity\Task;
 use App\Entity\User;
+use App\Repository\MessageRepository;
 use App\Repository\NotificationRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use App\Service\FirebaseService;
@@ -19,7 +20,8 @@ class NotificationService
         private readonly NotificationRepository $notificationRepository,
         private readonly FirebaseService $firebaseService,
         private readonly RouterInterface $router,
-        private readonly ?EmailNotificationService $emailNotificationService = null
+        private readonly ?EmailNotificationService $emailNotificationService = null,
+        private readonly ?MessageRepository $messageRepository = null
     ) {
     }
 
@@ -35,7 +37,8 @@ class NotificationService
         ?string $url = null,
         ?Objective $objective = null,
         ?Task $task = null,
-        ?Request $request = null
+        ?Request $request = null,
+        bool $sendEmail = true
     ): Notification {
         $notification = new Notification();
         $notification->setRecipient($recipient);
@@ -54,8 +57,8 @@ class NotificationService
         // Publier via Firebase pour notification en temps réel
         $this->publishRealtimeNotification($notification);
 
-        // Envoyer un email pour la notification
-        if ($this->emailNotificationService) {
+        // Envoyer un email pour la notification seulement si demandé
+        if ($sendEmail && $this->emailNotificationService) {
             try {
                 $this->emailNotificationService->sendNotificationEmail($notification);
                 error_log('Email de notification envoyé pour: ' . $notification->getTitle() . ' à ' . $recipient->getEmail());
@@ -64,7 +67,11 @@ class NotificationService
                 error_log('Erreur envoi email notification: ' . $e->getMessage() . ' - Trace: ' . $e->getTraceAsString());
             }
         } else {
-            error_log('EmailNotificationService non disponible - aucun email ne sera envoyé pour la notification: ' . $notification->getTitle());
+            if (!$sendEmail) {
+                error_log('Email non envoyé pour notification: ' . $notification->getTitle() . ' (sendEmail = false)');
+            } else {
+                error_log('EmailNotificationService non disponible - aucun email ne sera envoyé pour la notification: ' . $notification->getTitle());
+            }
         }
 
         return $notification;
@@ -377,6 +384,13 @@ class NotificationService
         // Ne pas tronquer le message pour l'email - afficher le message complet
         $notificationMessage = $messageText ? $messageText : "Nouveau message de {$senderName}";
 
+        // Vérifier si c'est le premier message de la première conversation du jour
+        // Si oui, envoyer l'email. Sinon, créer la notification sans envoyer d'email
+        $shouldSendEmail = false;
+        if ($this->messageRepository) {
+            $shouldSendEmail = $this->isFirstMessageOfFirstConversationToday($message, $recipient);
+        }
+
         $this->createNotification(
             recipient: $recipient,
             type: Notification::TYPE_NEW_MESSAGE,
@@ -390,8 +404,38 @@ class NotificationService
                 'conversationId' => $message->getConversationId(),
                 'requestId' => $request?->getId(),
             ],
-            request: $request
+            request: $request,
+            sendEmail: $shouldSendEmail
         );
+    }
+
+    /**
+     * Vérifie si c'est le premier message de la première conversation du jour
+     */
+    private function isFirstMessageOfFirstConversationToday(\App\Entity\Message $message, User $recipient): bool
+    {
+
+        $conversationId = $message->getConversationId();
+
+        $todayStart = new \DateTimeImmutable('today');
+        $todayEnd = new \DateTimeImmutable('tomorrow');
+
+        // Vérifier si c'est la première conversation du jour
+        $otherConversationsCount = (int) $this->em->createQueryBuilder()
+            ->select('COUNT(DISTINCT m.conversationId)')
+            ->from(\App\Entity\Message::class, 'm')
+            ->where('m.receiver = :recipient')
+            ->andWhere('m.createdAt >= :todayStart')
+            ->andWhere('m.createdAt < :todayEnd')
+            ->andWhere('m.conversationId != :conversationId')
+            ->setParameter('recipient', $recipient)
+            ->setParameter('todayStart', $todayStart)
+            ->setParameter('todayEnd', $todayEnd)
+            ->setParameter('conversationId', $conversationId)
+            ->getQuery()
+            ->getSingleScalarResult();
+
+        return $otherConversationsCount === 0;
     }
 
     /**
