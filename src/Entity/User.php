@@ -57,6 +57,9 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column(nullable: true)]
     private ?\DateTimeImmutable $authTokenExpiresAt = null;
 
+    #[ORM\Column(length: 500, nullable: true)]
+    private ?string $fcmToken = null;
+
     #[ORM\OneToMany(mappedBy: 'author', targetEntity: Comment::class, fetch: 'EXTRA_LAZY')]
     private Collection $comments;
 
@@ -189,6 +192,17 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function setAuthTokenExpiresAt(?\DateTimeImmutable $authTokenExpiresAt): static
     {
         $this->authTokenExpiresAt = $authTokenExpiresAt;
+        return $this;
+    }
+
+    public function getFcmToken(): ?string
+    {
+        return $this->fcmToken;
+    }
+
+    public function setFcmToken(?string $fcmToken): static
+    {
+        $this->fcmToken = $fcmToken;
         return $this;
     }
 

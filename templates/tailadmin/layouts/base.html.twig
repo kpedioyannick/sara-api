@@ -12,6 +12,14 @@
     <link href="{{ asset('tailadmin/style.css') }}" rel="stylesheet">
     <link href="{{ asset('styles/theme-colors.css') }}" rel="stylesheet">
     
+    {# PWA Manifest - Permet d'installer l'app sur mobile/desktop #}
+    <link rel="manifest" href="{{ asset('manifest.json') }}">
+    <meta name="theme-color" content="#3b82f6">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="SARA">
+    <link rel="apple-touch-icon" href="{{ asset('tailadmin/favicon.ico') }}">
+    
     {# Firebase SDK - Version plus récente pour éviter les bugs #}
     <script src="https://www.gstatic.com/firebasejs/11.0.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/11.0.1/firebase-database-compat.js"></script>
@@ -73,6 +81,119 @@
 
     {% include 'tailadmin/components/alert.html.twig' %}
     <script defer src="{{ asset('tailadmin/bundle.js') }}"></script>
+    
+    {% if app.user %}
+    {# Initialisation Firebase Cloud Messaging pour les notifications push #}
+    <script>
+    (function() {
+        // Vérifier que Firebase est chargé
+        if (typeof firebase === 'undefined') {
+            console.warn('Firebase non chargé, notifications push désactivées');
+            return;
+        }
+
+        // Enregistrer le Service Worker d'abord
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/firebase-messaging-sw.js')
+                .then((registration) => {
+                    console.log('✅ Service Worker enregistré:', registration.scope);
+                })
+                .catch((error) => {
+                    console.error('❌ Erreur enregistrement Service Worker:', error);
+                });
+        }
+
+        // Récupérer la configuration Firebase
+        fetch('/admin/firebase/config')
+            .then(response => response.json())
+            .then(data => {
+                if (!data.success || !data.config) {
+                    console.error('Erreur récupération config Firebase');
+                    return;
+                }
+
+                const firebaseConfig = data.config;
+                
+                // Initialiser Firebase
+                if (!firebase.apps.length) {
+                    firebase.initializeApp(firebaseConfig);
+                }
+
+                const messaging = firebase.messaging();
+
+                // Configurer le Service Worker pour FCM
+                messaging.useServiceWorker(navigator.serviceWorker.register('/firebase-messaging-sw.js'));
+
+                // Demander la permission et obtenir le token
+                Notification.requestPermission()
+                    .then((permission) => {
+                        if (permission === 'granted') {
+                            console.log('✅ Permission accordée pour les notifications');
+                            return messaging.getToken({ 
+                                vapidKey: firebaseConfig.apiKey,
+                                serviceWorkerRegistration: navigator.serviceWorker.ready
+                            });
+                        } else {
+                            console.warn('Permission refusée pour les notifications');
+                            return null;
+                        }
+                    })
+                    .then((token) => {
+                        if (token) {
+                            console.log('✅ Token FCM obtenu:', token.substring(0, 20) + '...');
+                            // Envoyer le token au serveur
+                            fetch('/admin/firebase/register-token', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                },
+                                body: JSON.stringify({ token: token })
+                            })
+                            .then(response => response.json())
+                            .then(data => {
+                                if (data.success) {
+                                    console.log('✅ Token FCM enregistré avec succès');
+                                } else {
+                                    console.error('Erreur enregistrement token:', data.message);
+                                }
+                            })
+                            .catch(error => {
+                                console.error('Erreur envoi token:', error);
+                            });
+                        } else {
+                            console.warn('Aucun token FCM disponible');
+                        }
+                    })
+                    .catch((error) => {
+                        console.error('Erreur permission/token FCM:', error);
+                    });
+
+                // Écouter les messages en premier plan
+                messaging.onMessage((payload) => {
+                    console.log('📨 Message reçu en premier plan:', payload);
+                    
+                    // Afficher une notification personnalisée
+                    if (Notification.permission === 'granted') {
+                        const notificationTitle = payload.notification?.title || payload.data?.title || 'Nouvelle notification';
+                        const notificationOptions = {
+                            body: payload.notification?.body || payload.data?.body || '',
+                            icon: '/tailadmin/favicon.ico',
+                            badge: '/tailadmin/favicon.ico',
+                            vibrate: [200, 100, 200],
+                            tag: payload.data?.tag || 'default',
+                            data: payload.data || {}
+                        };
+
+                        new Notification(notificationTitle, notificationOptions);
+                    }
+                });
+            })
+            .catch(error => {
+                console.error('Erreur initialisation FCM:', error);
+            });
+    })();
+    </script>
+    {% endif %}
 </body>
 </html>
 

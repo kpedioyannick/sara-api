@@ -2,13 +2,21 @@
 
 namespace App\Controller;
 
+use App\Entity\User;
+use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 class FirebaseController extends AbstractController
 {
+    public function __construct(
+        private readonly EntityManagerInterface $em
+    ) {
+    }
+
     #[Route('/admin/firebase/config', name: 'admin_firebase_config', methods: ['GET'])]
     #[IsGranted('ROLE_USER')]
     public function getConfig(): JsonResponse
@@ -32,6 +40,28 @@ class FirebaseController extends AbstractController
                 'appId' => $_ENV['FIREBASE_APP_ID'] ?? '1:840962006351:web:d5ad1b2986100f15ec393a',
             ],
         ]);
+    }
+
+    #[Route('/admin/firebase/register-token', name: 'admin_firebase_register_token', methods: ['POST'])]
+    #[IsGranted('ROLE_USER')]
+    public function registerToken(Request $request): JsonResponse
+    {
+        $user = $this->getUser();
+        if (!$user instanceof User) {
+            return new JsonResponse(['success' => false, 'message' => 'Non authentifié'], 401);
+        }
+
+        $data = json_decode($request->getContent(), true);
+        $token = $data['token'] ?? null;
+
+        if (!$token) {
+            return new JsonResponse(['success' => false, 'message' => 'Token manquant'], 400);
+        }
+
+        $user->setFcmToken($token);
+        $this->em->flush();
+
+        return new JsonResponse(['success' => true, 'message' => 'Token enregistré']);
     }
 }
 

@@ -225,7 +225,19 @@
       class="shadow-theme-md w-full items-center justify-between gap-4 px-5 py-4 xl:flex xl:justify-end xl:px-0 xl:shadow-none"
     >
       <div class="2xsm:gap-3 flex items-center gap-2">
-     
+        <!-- PWA Install Button -->
+        <div x-data="pwaInstall()" x-show="showInstallButton" class="hidden">
+          <button
+            @click="installApp()"
+            class="flex h-10 w-10 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:border-gray-800 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-300"
+            title="Installer l'application"
+          >
+            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 18v-5.25m0 0a6.01 6.01 0 001.5-.189m-1.5.189a6.01 6.01 0 01-1.5-.189m3.75 7.478a12.06 12.06 0 01-4.5 0m4.5 0a12.05 12.05 0 003.478-.397m-9.978 0a12.05 12.05 0 01-3.478-.397m9.978 0a12.05 12.05 0 00-3.478-.397M9.75 12.75a3 3 0 106 0m-6 0a3 3 0 016 0m-6 0v5.25m6-5.25v5.25m-6 0h12" />
+            </svg>
+          </button>
+        </div>
+        <!-- End PWA Install Button -->
 
         <!-- Notification Menu Area -->
         {% include 'tailadmin/components/notifications.html.twig' %}
@@ -462,5 +474,59 @@ document.addEventListener('keydown', (e) => {
     }
   }
 });
+
+// Gestion de l'installation PWA
+function pwaInstall() {
+  return {
+    showInstallButton: false,
+    deferredPrompt: null,
+    init() {
+      // Écouter l'événement beforeinstallprompt
+      window.addEventListener('beforeinstallprompt', (e) => {
+        // Empêcher l'affichage automatique du prompt
+        e.preventDefault();
+        // Stocker l'événement pour l'utiliser plus tard
+        this.deferredPrompt = e;
+        // Afficher le bouton d'installation
+        this.showInstallButton = true;
+      });
+
+      // Vérifier si l'app est déjà installée
+      if (window.matchMedia('(display-mode: standalone)').matches) {
+        this.showInstallButton = false;
+      }
+
+      // Écouter l'événement appinstalled
+      window.addEventListener('appinstalled', () => {
+        this.showInstallButton = false;
+        this.deferredPrompt = null;
+        console.log('✅ Application installée avec succès');
+      });
+    },
+    async installApp() {
+      if (!this.deferredPrompt) {
+        // Si pas de prompt disponible, afficher un message
+        alert('L\'application peut être installée depuis le menu de votre navigateur (⋮ ou ⋯)');
+        return;
+      }
+
+      // Afficher le prompt d'installation
+      this.deferredPrompt.prompt();
+
+      // Attendre la réponse de l'utilisateur
+      const { outcome } = await this.deferredPrompt.userChoice;
+
+      if (outcome === 'accepted') {
+        console.log('✅ Utilisateur a accepté l\'installation');
+      } else {
+        console.log('❌ Utilisateur a refusé l\'installation');
+      }
+
+      // Réinitialiser
+      this.deferredPrompt = null;
+      this.showInstallButton = false;
+    }
+  };
+}
 
 </script>

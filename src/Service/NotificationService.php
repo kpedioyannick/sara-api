@@ -21,7 +21,8 @@ class NotificationService
         private readonly FirebaseService $firebaseService,
         private readonly RouterInterface $router,
         private readonly ?EmailNotificationService $emailNotificationService = null,
-        private readonly ?MessageRepository $messageRepository = null
+        private readonly ?MessageRepository $messageRepository = null,
+        private readonly ?FCMNotificationService $fcmNotificationService = null
     ) {
     }
 
@@ -195,12 +196,33 @@ class NotificationService
             return;
         }
 
+        $url = $this->router->generate('admin_objectives_detail', ['id' => $objective->getId()]);
+
+        // Envoyer notification push FCM
+        if ($this->fcmNotificationService) {
+            try {
+                $this->fcmNotificationService->sendNotification(
+                    $recipient,
+                    'Tâche validée ! ✅',
+                    "Votre preuve pour '{$task->getTitle()}' a été validée par le coach",
+                    [
+                        'url' => $url,
+                        'tag' => 'task-validated',
+                        'taskId' => (string)$task->getId(),
+                        'objectiveId' => (string)$objective->getId(),
+                    ]
+                );
+            } catch (\Exception $e) {
+                error_log('Erreur notification FCM tâche validée: ' . $e->getMessage());
+            }
+        }
+
         $this->createNotification(
             recipient: $recipient,
             type: Notification::TYPE_TASK_VALIDATED,
             title: 'Tâche validée ! ✅',
             message: "Votre preuve pour '{$task->getTitle()}' a été validée par le coach",
-            url: $this->router->generate('admin_objectives_detail', ['id' => $objective->getId()]),
+            url: $url,
             task: $task,
             objective: $objective
         );
@@ -389,6 +411,28 @@ class NotificationService
         $shouldSendEmail = false;
         if ($this->messageRepository) {
             $shouldSendEmail = $this->isFirstMessageOfFirstConversationToday($message, $recipient);
+        }
+
+        // Envoyer notification push FCM
+        if ($this->fcmNotificationService) {
+            try {
+                $this->fcmNotificationService->sendNotification(
+                    $recipient,
+                    $title,
+                    $notificationMessage,
+                    [
+                        'url' => $url,
+                        'tag' => 'new-message',
+                        'messageId' => (string)$message->getId(),
+                        'senderId' => (string)$sender->getId(),
+                        'senderName' => $senderName,
+                        'conversationId' => $message->getConversationId() ?? '',
+                        'requestId' => $request ? (string)$request->getId() : '',
+                    ]
+                );
+            } catch (\Exception $e) {
+                error_log('Erreur notification FCM nouveau message: ' . $e->getMessage());
+            }
         }
 
         $this->createNotification(
