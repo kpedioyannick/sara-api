@@ -19,184 +19,13 @@
 
     <!-- Content -->
     <div class="flex-1 overflow-y-auto p-6">
-        <!-- Détails de la tâche -->
-        <div class="mb-8">
-            <h4 class="mb-4 text-sm font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide">Informations</h4>
-            <div class="space-y-3">
-                <div>
-                    <label class="inline-block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5 px-2 py-0.5 rounded bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300">Titre</label>
-                    <p class="text-sm text-gray-800 dark:text-white/90 mt-1.5"><span class="px-2 py-0.5 rounded bg-blue-50 dark:bg-blue-900/20 text-blue-900 dark:text-blue-100 font-medium">{{ task.title }}</span></p>
-                </div>
-                {% if task.description %}
-                <div>
-                    <label class="inline-block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5 px-2 py-0.5 rounded bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300">Description</label>
-                    <p class="text-sm text-gray-800 dark:text-white/90 leading-relaxed mt-1.5"><span class="px-2 py-0.5 rounded bg-purple-50 dark:bg-purple-900/20 text-purple-900 dark:text-purple-100">{{ task.description }}</span></p>
-                </div>
-                {% endif %}
-                <div>
-                    <label class="inline-block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5 px-2 py-0.5 rounded bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300">Type</label>
-                    <p class="text-sm text-gray-800 dark:text-white/90 mt-1.5">
-                        <span class="px-2 py-0.5 rounded font-medium bg-emerald-50 dark:bg-emerald-900/20 text-emerald-900 dark:text-emerald-100">
-                            {{ task.type.getLabel() }}
-                        </span>
-                    </p>
-                </div>
-                <div>
-                    <label class="inline-block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5 px-2 py-0.5 rounded {% if task.status == 'pending' %}bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300{% elseif task.status == 'in_progress' %}bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300{% elseif task.status == 'completed' %}bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300{% else %}bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300{% endif %}">Statut</label>
-                    <p class="text-sm text-gray-800 dark:text-white/90 mt-1.5">
-                        <span class="px-2 py-0.5 rounded font-medium {% if task.status == 'pending' %}bg-yellow-50 dark:bg-yellow-900/20 text-yellow-900 dark:text-yellow-100{% elseif task.status == 'in_progress' %}bg-blue-50 dark:bg-blue-900/20 text-blue-900 dark:text-blue-100{% elseif task.status == 'completed' %}bg-green-50 dark:bg-green-900/20 text-green-900 dark:text-green-100{% else %}bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100{% endif %}">
-                            {% if task.status == 'pending' %}En attente
-                            {% elseif task.status == 'in_progress' %}En cours
-                            {% elseif task.status == 'completed' %}Terminée
-                            {% else %}{{ task.status }}
-                            {% endif %}
-                        </span>
-                    </p>
-                </div>
-                <div>
-                    <label class="inline-block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5 px-2 py-0.5 rounded bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300">Date de début</label>
-                    <p class="text-sm text-gray-800 dark:text-white/90 mt-1.5"><span class="px-2 py-0.5 rounded bg-orange-50 dark:bg-orange-900/20 text-orange-900 dark:text-orange-100">{{ task.createdAt ? task.createdAt|date('d/m/Y H:i') : '-' }}</span></p>
-                </div>
-                <div>
-                    <label class="inline-block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5 px-2 py-0.5 rounded bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300">Date de fin</label>
-                    <p class="text-sm text-gray-800 dark:text-white/90 mt-1.5"><span class="px-2 py-0.5 rounded bg-red-50 dark:bg-red-900/20 text-red-900 dark:text-red-100">{{ task.dueDate ? task.dueDate|date('d/m/Y H:i') : '-' }}</span></p>
-                </div>
-                {% if objective %}
-                <div>
-                    <label class="inline-block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5 px-2 py-0.5 rounded bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300">Objectif</label>
-                    <p class="text-sm text-gray-800 dark:text-white/90 mt-1.5"><span class="px-2 py-0.5 rounded bg-indigo-50 dark:bg-indigo-900/20 text-indigo-900 dark:text-indigo-100">{{ objective.title }}</span></p>
-                </div>
-                {% endif %}
-                {% if student %}
-                <div>
-                    <label class="inline-block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5 px-2 py-0.5 rounded bg-teal-100 dark:bg-teal-900/30 text-teal-700 dark:text-teal-300">Élève</label>
-                    <p class="text-sm text-gray-800 dark:text-white/90 mt-1.5">
-                        <span class="px-2 py-0.5 rounded bg-teal-50 dark:bg-teal-900/20 text-teal-900 dark:text-teal-100">
-                            {{ student.firstName }} {{ student.lastName }}
-                            {% if student.class %}({{ student.class }}){% endif %}
-                        </span>
-                    </p>
-                </div>
-                {% endif %}
-            </div>
-        </div>
-
-        <!-- Preuves -->
-        <div class="mb-8">
-            <h4 class="mb-4 text-sm font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide">
-                {% if eventDate %}
-                    Historique des preuves à la date de l'événement ({{ eventDate|date('d/m/Y') }}) ({{ proofs|length }})
-                {% else %}
-                    Preuves ({{ proofs|length }})
-                {% endif %}
-            </h4>
-
-            <!-- Liste des preuves (dépliant/repliant) -->
-            <div class="space-y-2">
-                {% for proof in proofs %}
-                {% set colorIndex = (loop.index0 % 5) %}
-                {% if colorIndex == 0 %}
-                    {% set labelBg = 'bg-pink-100 dark:bg-pink-900/30' %}
-                    {% set labelText = 'text-pink-700 dark:text-pink-300' %}
-                    {% set valueBg = 'bg-pink-50 dark:bg-pink-900/20' %}
-                    {% set valueText = 'text-pink-900 dark:text-pink-100' %}
-                {% elseif colorIndex == 1 %}
-                    {% set labelBg = 'bg-cyan-100 dark:bg-cyan-900/30' %}
-                    {% set labelText = 'text-cyan-700 dark:text-cyan-300' %}
-                    {% set valueBg = 'bg-cyan-50 dark:bg-cyan-900/20' %}
-                    {% set valueText = 'text-cyan-900 dark:text-cyan-100' %}
-                {% elseif colorIndex == 2 %}
-                    {% set labelBg = 'bg-amber-100 dark:bg-amber-900/30' %}
-                    {% set labelText = 'text-amber-700 dark:text-amber-300' %}
-                    {% set valueBg = 'bg-amber-50 dark:bg-amber-900/20' %}
-                    {% set valueText = 'text-amber-900 dark:text-amber-100' %}
-                {% elseif colorIndex == 3 %}
-                    {% set labelBg = 'bg-emerald-100 dark:bg-emerald-900/30' %}
-                    {% set labelText = 'text-emerald-700 dark:text-emerald-300' %}
-                    {% set valueBg = 'bg-emerald-50 dark:bg-emerald-900/20' %}
-                    {% set valueText = 'text-emerald-900 dark:text-emerald-100' %}
-                {% else %}
-                    {% set labelBg = 'bg-violet-100 dark:bg-violet-900/30' %}
-                    {% set labelText = 'text-violet-700 dark:text-violet-300' %}
-                    {% set valueBg = 'bg-violet-50 dark:bg-violet-900/20' %}
-                    {% set valueText = 'text-violet-900 dark:text-violet-100' %}
-                {% endif %}
-                <div class="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 transition-colors hover:shadow-sm">
-                    <button
-                        @click="toggleProof({{ proof.id }})"
-                        class="flex w-full items-center justify-between p-3 text-left transition-colors hover:bg-gray-50/50 dark:hover:bg-gray-700/50"
-                    >
-                        <div class="flex items-center gap-3 flex-1 min-w-0">
-                            {% if proof.type == 'image' and proof.fileUrl %}
-                            <div class="h-8 w-8 flex-shrink-0 overflow-hidden rounded border border-gray-200 dark:border-gray-700">
-                                <img src="{{ proof.fileUrl }}" alt="Preuve" class="h-full w-full object-cover">
-                            </div>
-                            {% else %}
-                            <div class="flex h-8 w-8 items-center justify-center rounded bg-gray-100 dark:bg-gray-700 flex-shrink-0">
-                                <svg class="h-4 w-4 text-gray-500 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                </svg>
-                            </div>
-                            {% endif %}
-                            <div class="flex-1 min-w-0">
-                                <p class="text-sm font-medium text-gray-800 dark:text-white/90 truncate">
-                                    <span class="px-2 py-0.5 rounded {{ valueBg }} {{ valueText }}">{{ proof.title }}</span>
-                                </p>
-                                <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                                    Par <span class="px-1.5 py-0.5 rounded {{ labelBg }} {{ labelText }}">{{ proof.submittedBy.firstName }} {{ proof.submittedBy.lastName }}</span>
-                                    • <span class="px-1.5 py-0.5 rounded {{ labelBg }} {{ labelText }}">{% if proof.submittedAt %}{{ proof.submittedAt|date('d/m/Y H:i') }}{% else %}{{ proof.createdAt|date('d/m/Y H:i') }}{% endif %}</span>
-                                </p>
-                            </div>
-                        </div>
-                        <svg
-                            class="h-4 w-4 text-gray-400 dark:text-gray-500 transition-transform duration-200 flex-shrink-0 ml-2"
-                            :class="{ 'rotate-180': proofOpen[{{ proof.id }}] }"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                            stroke-width="2"
-                        >
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
-                        </svg>
-                    </button>
-                    <div
-                        x-show="proofOpen[{{ proof.id }}]"
-                        x-transition:enter="transition-all duration-200 ease-out"
-                        x-transition:enter-start="opacity-0 -translate-y-2"
-                        x-transition:enter-end="opacity-100 translate-y-0"
-                        x-transition:leave="transition-all duration-150 ease-in"
-                        x-transition:leave-start="opacity-100 translate-y-0"
-                        x-transition:leave-end="opacity-0 -translate-y-2"
-                        class="border-t border-gray-200 px-3 pb-3 pt-3 dark:border-gray-700"
-                    >
-                        {% if proof.description %}
-                        <p class="mb-3 text-sm text-gray-700 dark:text-gray-300 leading-relaxed">{{ proof.description }}</p>
-                        {% endif %}
-                        {% if proof.type == 'image' and proof.fileUrl %}
-                        <div class="mb-3 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700">
-                            <img src="{{ proof.fileUrl }}" alt="Preuve" class="w-full h-auto">
-                        </div>
-                        {% endif %}
-                        {% if proof.content %}
-                        <div class="rounded-lg bg-gray-50 border border-gray-200 p-3 dark:bg-gray-700 dark:border-gray-600">
-                            <p class="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap leading-relaxed">{{ proof.content }}</p>
-                        </div>
-                        {% endif %}
-                    </div>
-                </div>
-                {% else %}
-                <p class="text-sm text-gray-500 dark:text-gray-400 py-2">Aucune preuve pour le moment</p>
-                {% endfor %}
-            </div>
-        </div>
-
         <!-- Formulaire d'ajout de preuve -->
-        <div class="rounded-lg border border-brand-200 bg-brand-50 dark:bg-brand-900/20 dark:border-brand-800/30 transition-colors hover:shadow-sm">
+        <div class="mb-8 rounded-lg border border-brand-200 bg-brand-50 dark:bg-brand-900/20 dark:border-brand-800/30 transition-colors hover:shadow-sm">
             <button
                 @click="addProofFormOpen = !addProofFormOpen"
                 class="flex w-full items-center justify-between p-3 text-left transition-colors hover:opacity-80"
             >
-                <h4 class="text-sm font-semibold text-brand-600 dark:text-brand-400 uppercase tracking-wide">Compléter ...</h4>
+                <h4 class="text-sm font-semibold text-brand-600 dark:text-brand-400 uppercase tracking-wide">Valider votre tâche ...</h4>
                 <svg
                     class="h-4 w-4 text-gray-400 dark:text-gray-500 transition-transform duration-200 flex-shrink-0 ml-2"
                     :class="{ 'rotate-180': addProofFormOpen }"
@@ -395,6 +224,171 @@
                     <span x-show="isSubmitting">Ajout en cours...</span>
                 </button>
                 </form>
+            </div>
+        </div>
+
+        <!-- Détails de la tâche -->
+        <div class="mb-8">
+            <h4 class="mb-4 text-sm font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide">Informations</h4>
+            <div class="space-y-2">
+                <div class="flex items-center gap-2 flex-wrap">
+                    <label class="text-xs font-medium text-gray-500 dark:text-gray-400 px-2 py-0.5 rounded bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 whitespace-nowrap">Titre</label>
+                    <span class="text-sm text-gray-800 dark:text-white/90 px-2 py-0.5 rounded bg-blue-50 dark:bg-blue-900/20 text-blue-900 dark:text-blue-100 font-medium">{{ task.title }}</span>
+                </div>
+                {% if task.description %}
+                <div class="flex items-center gap-2 flex-wrap">
+                    <label class="text-xs font-medium text-gray-500 dark:text-gray-400 px-2 py-0.5 rounded bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 whitespace-nowrap">Description</label>
+                    <span class="text-sm text-gray-800 dark:text-white/90 px-2 py-0.5 rounded bg-purple-50 dark:bg-purple-900/20 text-purple-900 dark:text-purple-100">{{ task.description }}</span>
+                </div>
+                {% endif %}
+                <div class="flex items-center gap-2 flex-wrap">
+                    <label class="text-xs font-medium text-gray-500 dark:text-gray-400 px-2 py-0.5 rounded bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 whitespace-nowrap">Type</label>
+                    <span class="text-sm text-gray-800 dark:text-white/90 px-2 py-0.5 rounded font-medium bg-emerald-50 dark:bg-emerald-900/20 text-emerald-900 dark:text-emerald-100">
+                        {{ task.type.getLabel() }}
+                    </span>
+                </div>
+                <div class="flex items-center gap-2 flex-wrap">
+                    <label class="text-xs font-medium text-gray-500 dark:text-gray-400 px-2 py-0.5 rounded {% if task.status == 'pending' %}bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300{% elseif task.status == 'in_progress' %}bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300{% elseif task.status == 'completed' %}bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300{% else %}bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300{% endif %} whitespace-nowrap">Statut</label>
+                    <span class="text-sm text-gray-800 dark:text-white/90 px-2 py-0.5 rounded font-medium {% if task.status == 'pending' %}bg-yellow-50 dark:bg-yellow-900/20 text-yellow-900 dark:text-yellow-100{% elseif task.status == 'in_progress' %}bg-blue-50 dark:bg-blue-900/20 text-blue-900 dark:text-blue-100{% elseif task.status == 'completed' %}bg-green-50 dark:bg-green-900/20 text-green-900 dark:text-green-100{% else %}bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100{% endif %}">
+                        {% if task.status == 'pending' %}En attente
+                        {% elseif task.status == 'in_progress' %}En cours
+                        {% elseif task.status == 'completed' %}Terminée
+                        {% else %}{{ task.status }}
+                        {% endif %}
+                    </span>
+                </div>
+                <div class="flex items-center gap-2 flex-wrap">
+                    <label class="text-xs font-medium text-gray-500 dark:text-gray-400 px-2 py-0.5 rounded bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 whitespace-nowrap">Date de début</label>
+                    <span class="text-sm text-gray-800 dark:text-white/90 px-2 py-0.5 rounded bg-orange-50 dark:bg-orange-900/20 text-orange-900 dark:text-orange-100">{{ task.createdAt ? task.createdAt|date('d/m/Y H:i') : '-' }}</span>
+                </div>
+                <div class="flex items-center gap-2 flex-wrap">
+                    <label class="text-xs font-medium text-gray-500 dark:text-gray-400 px-2 py-0.5 rounded bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 whitespace-nowrap">Date de fin</label>
+                    <span class="text-sm text-gray-800 dark:text-white/90 px-2 py-0.5 rounded bg-red-50 dark:bg-red-900/20 text-red-900 dark:text-red-100">{{ task.dueDate ? task.dueDate|date('d/m/Y H:i') : '-' }}</span>
+                </div>
+                {% if objective %}
+                <div class="flex items-center gap-2 flex-wrap">
+                    <label class="text-xs font-medium text-gray-500 dark:text-gray-400 px-2 py-0.5 rounded bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 whitespace-nowrap">Objectif</label>
+                    <span class="text-sm text-gray-800 dark:text-white/90 px-2 py-0.5 rounded bg-indigo-50 dark:bg-indigo-900/20 text-indigo-900 dark:text-indigo-100">{{ objective.title }}</span>
+                </div>
+                {% endif %}
+                {% if student %}
+                <div class="flex items-center gap-2 flex-wrap">
+                    <label class="text-xs font-medium text-gray-500 dark:text-gray-400 px-2 py-0.5 rounded bg-teal-100 dark:bg-teal-900/30 text-teal-700 dark:text-teal-300 whitespace-nowrap">Élève</label>
+                    <span class="text-sm text-gray-800 dark:text-white/90 px-2 py-0.5 rounded bg-teal-50 dark:bg-teal-900/20 text-teal-900 dark:text-teal-100">
+                        {{ student.firstName }} {{ student.lastName }}
+                        {% if student.class %}({{ student.class }}){% endif %}
+                    </span>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Preuves -->
+        <div class="mb-8">
+            <h4 class="mb-4 text-sm font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide">
+                {% if eventDate %}
+                    Historique des preuves à la date de l'événement ({{ eventDate|date('d/m/Y') }}) ({{ proofs|length }})
+                {% else %}
+                    Preuves ({{ proofs|length }})
+                {% endif %}
+            </h4>
+
+            <!-- Liste des preuves (dépliant/repliant) -->
+            <div class="space-y-2">
+                {% for proof in proofs %}
+                {% set colorIndex = (loop.index0 % 5) %}
+                {% if colorIndex == 0 %}
+                    {% set labelBg = 'bg-pink-100 dark:bg-pink-900/30' %}
+                    {% set labelText = 'text-pink-700 dark:text-pink-300' %}
+                    {% set valueBg = 'bg-pink-50 dark:bg-pink-900/20' %}
+                    {% set valueText = 'text-pink-900 dark:text-pink-100' %}
+                {% elseif colorIndex == 1 %}
+                    {% set labelBg = 'bg-cyan-100 dark:bg-cyan-900/30' %}
+                    {% set labelText = 'text-cyan-700 dark:text-cyan-300' %}
+                    {% set valueBg = 'bg-cyan-50 dark:bg-cyan-900/20' %}
+                    {% set valueText = 'text-cyan-900 dark:text-cyan-100' %}
+                {% elseif colorIndex == 2 %}
+                    {% set labelBg = 'bg-amber-100 dark:bg-amber-900/30' %}
+                    {% set labelText = 'text-amber-700 dark:text-amber-300' %}
+                    {% set valueBg = 'bg-amber-50 dark:bg-amber-900/20' %}
+                    {% set valueText = 'text-amber-900 dark:text-amber-100' %}
+                {% elseif colorIndex == 3 %}
+                    {% set labelBg = 'bg-emerald-100 dark:bg-emerald-900/30' %}
+                    {% set labelText = 'text-emerald-700 dark:text-emerald-300' %}
+                    {% set valueBg = 'bg-emerald-50 dark:bg-emerald-900/20' %}
+                    {% set valueText = 'text-emerald-900 dark:text-emerald-100' %}
+                {% else %}
+                    {% set labelBg = 'bg-violet-100 dark:bg-violet-900/30' %}
+                    {% set labelText = 'text-violet-700 dark:text-violet-300' %}
+                    {% set valueBg = 'bg-violet-50 dark:bg-violet-900/20' %}
+                    {% set valueText = 'text-violet-900 dark:text-violet-100' %}
+                {% endif %}
+                <div class="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 transition-colors hover:shadow-sm">
+                    <button
+                        @click="toggleProof({{ proof.id }})"
+                        class="flex w-full items-center justify-between p-3 text-left transition-colors hover:bg-gray-50/50 dark:hover:bg-gray-700/50"
+                    >
+                        <div class="flex items-center gap-3 flex-1 min-w-0">
+                            {% if proof.type == 'image' and proof.fileUrl %}
+                            <div class="h-8 w-8 flex-shrink-0 overflow-hidden rounded border border-gray-200 dark:border-gray-700">
+                                <img src="{{ proof.fileUrl }}" alt="Preuve" class="h-full w-full object-cover">
+                            </div>
+                            {% else %}
+                            <div class="flex h-8 w-8 items-center justify-center rounded bg-gray-100 dark:bg-gray-700 flex-shrink-0">
+                                <svg class="h-4 w-4 text-gray-500 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                </svg>
+                            </div>
+                            {% endif %}
+                            <div class="flex-1 min-w-0">
+                                <p class="text-sm font-medium text-gray-800 dark:text-white/90 truncate">
+                                    <span class="px-2 py-0.5 rounded {{ valueBg }} {{ valueText }}">{{ proof.title }}</span>
+                                </p>
+                                <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                                    Par <span class="px-1.5 py-0.5 rounded {{ labelBg }} {{ labelText }}">{{ proof.submittedBy.firstName }} {{ proof.submittedBy.lastName }}</span>
+                                    • <span class="px-1.5 py-0.5 rounded {{ labelBg }} {{ labelText }}">{% if proof.submittedAt %}{{ proof.submittedAt|date('d/m/Y H:i') }}{% else %}{{ proof.createdAt|date('d/m/Y H:i') }}{% endif %}</span>
+                                </p>
+                            </div>
+                        </div>
+                        <svg
+                            class="h-4 w-4 text-gray-400 dark:text-gray-500 transition-transform duration-200 flex-shrink-0 ml-2"
+                            :class="{ 'rotate-180': proofOpen[{{ proof.id }}] }"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                            stroke-width="2"
+                        >
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+                        </svg>
+                    </button>
+                    <div
+                        x-show="proofOpen[{{ proof.id }}]"
+                        x-transition:enter="transition-all duration-200 ease-out"
+                        x-transition:enter-start="opacity-0 -translate-y-2"
+                        x-transition:enter-end="opacity-100 translate-y-0"
+                        x-transition:leave="transition-all duration-150 ease-in"
+                        x-transition:leave-start="opacity-100 translate-y-0"
+                        x-transition:leave-end="opacity-0 -translate-y-2"
+                        class="border-t border-gray-200 px-3 pb-3 pt-3 dark:border-gray-700"
+                    >
+                        {% if proof.description %}
+                        <p class="mb-3 text-sm text-gray-700 dark:text-gray-300 leading-relaxed">{{ proof.description }}</p>
+                        {% endif %}
+                        {% if proof.type == 'image' and proof.fileUrl %}
+                        <div class="mb-3 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700">
+                            <img src="{{ proof.fileUrl }}" alt="Preuve" class="w-full h-auto">
+                        </div>
+                        {% endif %}
+                        {% if proof.content %}
+                        <div class="rounded-lg bg-gray-50 border border-gray-200 p-3 dark:bg-gray-700 dark:border-gray-600">
+                            <p class="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap leading-relaxed">{{ proof.content }}</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% else %}
+                <p class="text-sm text-gray-500 dark:text-gray-400 py-2">Aucune preuve pour le moment</p>
+                {% endfor %}
             </div>
         </div>
     </div>
