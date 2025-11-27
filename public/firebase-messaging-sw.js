@@ -1,4 +1,4 @@
-// Service Worker pour Firebase Cloud Messaging
+// Service Worker pour Firebase Cloud Messaging (notifications push)
 // Ce fichier doit être à la racine de public/
 
 importScripts('https://www.gstatic.com/firebasejs/11.0.1/firebase-app-compat.js');
